@@ -17,6 +17,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import import_pypi as P          # noqa: E402
 import pypi_dataset as D         # noqa: E402
 
+PART_BYTES = 350_000
 INSTALL = {"wheel": "installs (wheel)", "sdist": "installs from source (sdist only)", None: "does not install on CPython 3.14"}
 
 
@@ -74,21 +75,45 @@ def main():
     for f in os.listdir(a.out):
         if f.endswith(".md"):
             os.remove(os.path.join(a.out, f))
-    index = collections.defaultdict(list)
-    for t in sorted(set(pages) | set(refs)):
+    # split big topics into parts (GitHub stops rendering very large Markdown files); remember each
+    # package's file so that cross-references point to the right part
+    parts, home_file = {}, {}
+    for t in set(pages) | set(refs):
         own = sorted(pages.get(t, []), key=lambda x: x[0])
+        chunks, cur, size = [], [], 0
+        for rank, r in own:
+            e = entry(r, rank)
+            if cur and size + len(e) > PART_BYTES:
+                chunks.append(cur)
+                cur, size = [], 0
+            cur.append((rank, r, e))
+            size += len(e)
+        chunks.append(cur)
+        names = [slug(t) + (f"-{i + 1}" if i else "") + ".md" for i in range(len(chunks))]
+        parts[t] = list(zip(names, chunks))
+        for fn, ch in parts[t]:
+            for _, r, _ in ch:
+                home_file[r["name"]] = fn
+    index = collections.defaultdict(list)
+    for t in sorted(parts):
         other = sorted(refs.get(t, []), key=lambda x: x[0])
-        name = slug(t) + ".md"
-        with open(os.path.join(a.out, name), "w", encoding="utf-8") as f:
-            f.write(f"# {t}\n\n[Index](README.md) · {len(own)} packages on this page"
-                    + (f", {len(other)} more listed under another topic" if other else "") + ", by downloads.\n\n")
-            for rank, r in own:
-                f.write(entry(r, rank) + "\n")
-            if other:
-                f.write("## Also in this topic\n\n")
-                for rank, r, home in other:
-                    f.write(f"- [{r['name']}]({slug(home)}.md#{anchor(r['name'])}) - {r.get('summary') or ''}\n")
-        index[t.split(" / ")[0]].append((t, name, len(own) + len(other)))
+        n_own = sum(len(ch) for _, ch in parts[t])
+        for i, (fn, ch) in enumerate(parts[t]):
+            nav = " · ".join(f"[part {j + 1}]({x})" if j != i else f"part {j + 1}" for j, (x, _) in enumerate(parts[t])) \
+                if len(parts[t]) > 1 else ""
+            with open(os.path.join(a.out, fn), "w", encoding="utf-8") as f:
+                f.write(f"# {t}" + (f" (part {i + 1} of {len(parts[t])})" if len(parts[t]) > 1 else "") +
+                        f"\n\n[Index](README.md) · {n_own} packages in this topic"
+                        + (f", {len(other)} more listed under another topic" if other else "") + ", by downloads."
+                        + (f"\n\n{nav}" if nav else "") + "\n\n")
+                for _, _, e in ch:
+                    f.write(e + "\n")
+                if other and i == len(parts[t]) - 1:
+                    f.write("## Also in this topic\n\n")
+                    for rank, r, home in other:
+                        f.write(f"- [{r['name']}]({home_file.get(r['name'], slug(home) + '.md')}#{anchor(r['name'])})"
+                                f" - {r.get('summary') or ''}\n")
+        index[t.split(" / ")[0]].append((t, parts[t][0][0], n_own + len(other)))
     n_ok = sum(1 for _, r in recs if r.get("install_cp314"))
     n_rd = sum(1 for _, r in recs if r.get("readme"))
     with open(os.path.join(a.out, "README.md"), "w", encoding="utf-8") as f:
