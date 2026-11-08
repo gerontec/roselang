@@ -171,8 +171,13 @@ def main():
          "total_with_packs": total + n_pack, "aliases": n_alias,
          "source": dict(src), "py_library_functions": sum(v for k, v in src.items() if k.startswith("py-")),
          "drugs_found_in": None, "drugs_only_unsourced": None,     # from the corpus database below
-         "radio_cards": sum(1 for c in cards if c.get("domain") == "radio engineering"),
-         "social_cards": sum(1 for c in cards if c.get("domain") == "social science"),
+         "radio_cards": sum(1 for c in cards if c.get("domain") == "radio engineering" and c["source"] == "wikidata"),
+         "social_cards": sum(1 for c in cards if c.get("domain") == "social science" and c["source"] == "wikidata"),
+         "social_concepts": sum(1 for c in cards if c.get("domain") == "social science" and c["source"] == "wikidata"
+                                and c["kind"] != "algo"),
+         "social_procedures": sum(1 for c in cards if c.get("domain") == "social science" and c["source"] == "wikidata"
+                                  and c["kind"] == "algo"),
+         "social_solvers": sum(1 for c in cards if c.get("domain") == "social science" and c["source"].startswith("py-")),
          "detail": {k: v for k, v in detail.items() if isinstance(v, int)},
          "packs": {k: dict(v) for k, v in packs.items()}, "by_topic": dict(by), "status": dict(status)}
     S["wikidata_radio_social"] = S["radio_cards"] + S["social_cards"]

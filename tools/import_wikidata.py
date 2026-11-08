@@ -72,6 +72,20 @@ SOCIAL_CORE = ["Q110489961", "Q110489954", "Q16622884", "Q1355183", "Q101247857"
                "Q7798106", "Q7942158", "Q5243912", "Q778684", "Q191474", "Q540742", "Q751414",     # threshold model, voter model, DeGroot learning, Asch, Milgram, spiral of silence, groupthink
                "Q6031027", "Q955199", "Q2914277", "Q4532199", "Q128135", "Q1307337", "Q221284", "Q161272"]  # cascade, bandwagon, moral panic, sociogenic illness, totalitarianism, influence, conformity
 SOCIAL_KNOWLEDGE_CLASSES = BIO_KNOWLEDGE_CLASSES + ["Q602884", "Q3249551"]   # + social phenomenon, process
+# social procedures and algorithms (ids verified by label 2026-11-08): electoral system Q182985, fair division
+# problem Q1511081, solution concept Q780008, agent-based model Q392811, compartmental models in epidemiology
+# Q2572354, epidemiological modeling Q990044; fields game theory Q44455, opinion dynamics Q101247857, social
+# network analysis Q7551269
+SOCIAL_ALGO_CLASSES = ["Q182985", "Q1511081", "Q780008", "Q392811", "Q2572354", "Q990044"]
+SOCIAL_ALGO_FIELDS = ["Q44455", "Q101247857", "Q7551269"]
+# constituencies and single elections are instances of electoral-system classes too: they have a place
+# (P131 located in, P625 coordinates, P276 location) or a date (P585 point in time) - procedures have neither
+# ... and by class (ids verified by label 2026-11-08): constituency of the House of Commons Q27971968, single-member
+# district Q1052894, constituencies of the Parliament / Legislative Assembly of Singapore Q5163953 / Q136093601,
+# public election Q40231
+NOT_PLACE_OR_EVENT = ("FILTER NOT EXISTS { ?i wdt:P131|wdt:P625|wdt:P276|wdt:P585 ?pe . } "
+                      "FILTER NOT EXISTS { ?i wdt:P31 ?ce . VALUES ?ce { wd:Q27971968 wd:Q1052894 wd:Q5163953 "
+                      "wd:Q136093601 } } FILTER NOT EXISTS { ?i wdt:P31/wdt:P279* wd:Q40231 . } ")
 NOT_KNOWLEDGE_SOCIAL = ("FILTER NOT EXISTS { ?i wdt:P31 ?no . VALUES ?no { wd:Q5 wd:Q43229 wd:Q4830453 wd:Q13442814 wd:Q571 } } "
                         "FILTER NOT EXISTS { ?i wdt:P176|wdt:P17|wdt:P625 ?m }")    # + scholarly articles, books
 # disputed: proposed concepts without empirical support - status 'disputed', the verdict says so.
@@ -137,9 +151,15 @@ SELECTIONS = {
                     "{ ?i wdt:P31 wd:Q1127759 . } UNION { ?i wdt:P279* wd:Q7798106 . } UNION { ?i wdt:P279* wd:Q7942158 . } "
                     "UNION { ?i wdt:P361|wdt:P2579 wd:Q101247857 . } " + NOT_KNOWLEDGE_SOCIAL,
     "social_core": "VALUES ?i { " + " ".join("wd:" + q for q in SOCIAL_CORE) + " } .",
+    "socalg_class": " UNION ".join("{ ?i wdt:P31/wdt:P279* wd:%s . } UNION { ?i wdt:P279+ wd:%s . }" % (q, q)
+                                   for q in SOCIAL_ALGO_CLASSES) + " " + NOT_KNOWLEDGE_SOCIAL + NOT_PLACE_OR_EVENT,
+    "socalg_field": "?i wdt:P101|wdt:P361|wdt:P921|wdt:P2578|wdt:P2579 ?fld . VALUES ?fld { " + " ".join(
+                    "wd:" + q for q in SOCIAL_ALGO_FIELDS) + " } . ?i wdt:P31 ?k . VALUES ?k { " + " ".join(
+                    "wd:" + q for q in BIO_KNOWLEDGE_CLASSES) + " } . " + NOT_KNOWLEDGE_SOCIAL,
     "core_concepts": "VALUES ?i { " + " ".join("wd:" + q for q in sorted(set().union(*CORE_KIND.values()))) + " } .",
 }
 SOCIAL_SELECTIONS = {"social_field", "social_sociology", "social_class", "social_core"}
+SOCIAL_ALGO_SELECTIONS = {"socalg_class", "socalg_field"}     # procedures: kind algo, domain social science
 RADIO_SELECTIONS = {"radio_class", "radio_field", "radio_core"}
 ALGO_SELECTIONS = {"algorithm", "computational_problem", "optimization_problem"}
 Q_HARD = {"Q1137554": "NP-hard", "Q215206": "NP-complete"}   # complexity classes (verified by label)
@@ -360,6 +380,8 @@ def main():
             domain = "radio engineering"
         if selected[q] & SOCIAL_SELECTIONS and domain == "math":
             domain = "social science"
+        if selected[q] & SOCIAL_ALGO_SELECTIONS and not tex and kind in ("math", "algo"):
+            kind, domain = "algo", "social science"
         if selected[q] & {"bio_field", "bio_core"}:
             domain = "biology"
             if kind == "math" and not tex:

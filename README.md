@@ -9,7 +9,7 @@ the result (types, physical units, contracts, exhaustive tables and state machin
 compiles it to Python (C, IEC 61131-3 ST and ESPHome C++ planned).
 
 > Status: **knowledge module usable, compiler v1 experimental.** `rose.exists()` points to known
-> solutions in **<!--stat:total_cards-->278 969<!--/stat--> searchable cards** – mathematics, physics, algorithms, control engineering,
+> solutions in **<!--stat:total_cards-->279 305<!--/stat--> searchable cards** – mathematics, physics, algorithms, control engineering,
 > biology, plants and drugs, radio technology, social psychology, Python packages – and says when a
 > problem is open, a concept disputed, or a plant has poison records. It never solves the task
 > itself. Counts per topic: [`docs/STATISTICS.md`](https://github.com/gerontec/roselang/blob/main/docs/STATISTICS.md).
@@ -22,7 +22,7 @@ pip install roselang          # import name "rose"; development version: pip ins
 ```
 
 No server, no network, no API key: the knowledge ships with the package. Size: 75 MB download,
-118 MB installed, plus a <!--stat:index_mb-->362<!--/stat--> MB index unpacked on the first query into `~/.cache/roselang`
+118 MB installed, plus a <!--stat:index_mb-->363<!--/stat--> MB index unpacked on the first query into `~/.cache/roselang`
 (`$ROSE_CACHE`). First query after installing ~0.6 s, then **~7 ms per query** (median, measured).
 
 **1. Does a known solution exist?** – one verdict, the pointers, their sources:

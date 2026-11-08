@@ -341,9 +341,9 @@ Cards shipped (counted by `tools/stats.py`, <!--stat:date-->2026-11-08<!--/stat-
 |---|---|---|---|---|
 | **Lean mathlib4** | statements of proved theorems and definitions (cut at `:=`) | Apache-2.0 | <!--stat:mathlib_cards-->189 932<!--/stat--> | `sets/mathlib.jsonl.gz` |
 | **Gene Ontology** | all non-obsolete terms: processes, functions, components, synonyms | CC BY 4.0 | <!--stat:source.gene_ontology-->38 092<!--/stat--> | catalog |
-| **Wikidata** | defining formulas (P2534) with symbols and ISQ dimensions, theorems, conjectures, physical laws, open problems, "proved by" (P1318), algorithms and computational problems, control and automata concepts, biology methods | CC0 | <!--stat:wikidata_knowledge-->12 136<!--/stat--> | `std/*.rose` + catalog |
+| **Wikidata** | defining formulas (P2534) with symbols and ISQ dimensions, theorems, conjectures, physical laws, open problems, "proved by" (P1318), algorithms and computational problems, control and automata concepts, biology methods | CC0 | <!--stat:wikidata_knowledge-->12 129<!--/stat--> | `std/*.rose` + catalog |
 | **Modelica Standard Library** 4.x | class index: path, description, source line – models, blocks, functions, state graphs (no equations) | BSD-3 | <!--stat:source.modelica-->3 484<!--/stat--> | catalog |
-| **Python libraries** | public solver functions: SciPy 723, networkx 587, python-control 154, transitions 37, Python stdlib 26, dd 17, sympy 15, automata-lib 12, OR-Tools 7 (path, signature, first docstring paragraph) | BSD-3 / MIT / Apache-2.0 / PSF | <!--stat:py_library_functions-->1 578<!--/stat--> | catalog |
+| **Python libraries** | public solver functions: SciPy 723, networkx 587, python-control 154, transitions 37, Python stdlib 26, dd 17, sympy 15, automata-lib 12, OR-Tools 7 (path, signature, first docstring paragraph) | BSD-3 / MIT / Apache-2.0 / PSF | <!--stat:py_library_functions-->1 761<!--/stat--> | catalog |
 | **PyPI** | top 15 000 packages by downloads: summary, licence, installable on CPython 3.14, cleaned README extract (§6.1) | metadata as published; extracts under each package's licence, share-alike left out | <!--stat:source.pypi-->14 498<!--/stat--> | catalog (kind `lib`) |
 | **Rosetta Code** | all 1 363 tasks with 2 606 Python 3 solutions (compile-checked) | GFDL 1.3 | <!--stat:rosetta_tasks-->1 363<!--/stat--> | `sets/rosetta*.jsonl.gz` |
 | **CODATA 2022** | fundamental physical constants with uncertainty | public domain (NIST) | <!--stat:source.codata-->355<!--/stat--> | `std/const/codata.rose` |
@@ -354,7 +354,7 @@ Cards shipped (counted by `tools/stats.py`, <!--stat:date-->2026-11-08<!--/stat-
 | **LOTUS** frozen dump v11 (2026-04-13, Zenodo 19360665) | all natural products with the organisms they are recorded in and one reference DOI per organism, cards `bio:lotus.<qid>`; compounds with a `bio:drug` card are linked to it (§5.8) | CC BY 4.0 (triplets from Wikidata, CC0) | <!--stat:lotus_compounds-->227 247<!--/stat--> | **not shipped**: corpus database and local effect map (MariaDB) |
 | **Rose DIAMOND** (`tools/import_diamond.py`) | protein similarity computed on NCBI nr: one card per query protein with its best hits, plus an overview card, each with the full method (DIAMOND version, mode, cut-off, nr hash); first run: long pepper vs human | MIT (sequences: NCBI, public domain) | <!--stat:db_source.rose-diamond-->23<!--/stat--> | **not shipped**: MariaDB, next to the DIAMOND tables |
 | **Rose facts** (`facts/*.tsv`) | single facts restated in our own words, each with its cited sources and evidence level (`handbook`, `single_study`, `several_studies`, `review`, `regulatory`), cards `bio:fact.<taxon>.<topic>` (P12) | MIT (the facts themselves are not copyrighted) | <!--stat:db_source.rose-facts-->4<!--/stat--> | **not shipped**: MariaDB (effect map) |
-| **Wikidata** (2026-11-08) | radio technology (<!--stat:radio_cards-->312<!--/stat-->), social psychology and social dynamics (<!--stat:social_cards-->303<!--/stat-->) | CC0 | <!--stat:wikidata_radio_social-->615<!--/stat--> | catalog |
+| **Wikidata** (2026-11-08) | radio technology (<!--stat:radio_cards-->312<!--/stat-->), social psychology and social dynamics (<!--stat:social_concepts-->303<!--/stat-->), social procedures: voting, apportionment, fair division, solution concepts, opinion, epidemic and agent-based models (<!--stat:social_procedures-->160<!--/stat-->)) | CC0 | <!--stat:wikidata_radio_social-->775<!--/stat--> | catalog |
 | OEIS | > 400 000 integer sequences | CC BY-SA 4.0 | – | **not shipped**, database only |
 | QUDT, TheAlgorithms | units and dimensions; permissive algorithms | CC BY 4.0 / MIT | – | planned |
 
@@ -689,7 +689,7 @@ laws, controllers, checked state machines.
 - **Recognition is the weak point**, not the amount of knowledge: <!--stat:total_cards_round-->279 000<!--/stat--> cards do not help when
   a word like "warm" outweighs the quantities (§9). Problem classes are hand-written and their test
   cases were written together with them; independent test tasks are needed.
-- **Many proofs, few solvers:** <!--stat:mathlib_cards-->189 932<!--/stat--> of the cards are mathlib statements, <!--stat:py_library_functions-->1 578<!--/stat--> are library
+- **Many proofs, few solvers:** <!--stat:mathlib_cards-->189 932<!--/stat--> of the cards are mathlib statements, <!--stat:py_library_functions-->1 761<!--/stat--> are library
   solvers. Sparse kinds (controllers 38, state machines 78, decision tables 41) are mostly
   Modelica and Wikidata pointers.
 - **The "ready-made solver" shown is the first library entry of a class**, not the best one (PID

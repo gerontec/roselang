@@ -52,7 +52,7 @@ list below.
 | Corpus: OEIS | imported, <!--stat:oeis_sequences-->401 561<!--/stat--> sequences (CC BY-SA 4.0) – database only, not shipped |
 | Corpus: Rosalind (bio, titles + links) and Wikidata biology methods | imported |
 | Corpus: Gene Ontology (<!--stat:source.gene_ontology-->38 092<!--/stat--> terms, CC BY 4.0) | imported (`tools/import_go.py`) |
-| Built-in knowledge | `std/` + `std/catalog.jsonl` (<!--stat:catalog_cards-->87 674<!--/stat--> cards); `rosec` needs no database or server (`rose/knowledge.py`) |
+| Built-in knowledge | `std/` + `std/catalog.jsonl` (<!--stat:catalog_cards-->88 010<!--/stat--> cards); `rosec` needs no database or server (`rose/knowledge.py`) |
 | Embeddings (bge-m3) | `tools/embed.py`; Wikidata + CODATA first, OEIS in background |
 | Knowledge → language | `rose/tex.py` converts imported TeX formulas to Rose `law`s, `tools/verify_laws.py` checks them with the compiler, `tools/export_std.py` generates `std/` (CC0/PD only) |
 | Negative knowledge | `open name intent "..." end` in the language, `use` of an open problem → `E305` |
@@ -79,6 +79,29 @@ Pick one, open an issue saying you work on it, keep the PR small.
 - [ ] Share-alike packs (OEIS, later Rosetta Code) as optional downloads next to `std/`.
 - [ ] Wikidata aliases for every card; Wikidata subclasses of GO terms that GO lacks (6 562 items, e.g. illegitimate recombination).
 
+### Call for social scientists – please bring in your knowledge
+Rose now knows a first set of social procedures, each with its source: voting and apportionment methods,
+fair division, game-theoretic solution concepts, opinion dynamics, epidemic and agent-based models
+(Wikidata, CC0), with ready-made solvers from maintained libraries – `pref_voting` (111 voting methods),
+`nashpy`, `matching` (Gale–Shapley family), `ndlib` (opinion and diffusion models), `mesa` (Schelling,
+Sugarscape, Epstein civil violence …), pointers to `axelrod`. What a computer scientist cannot judge alone:
+
+- [ ] **Which procedures and models are established, which are proposed, which are disputed?** Rose marks
+      a concept `disputed` only with a source (example: mass formation psychosis). Point us to reviews,
+      replication studies or textbooks that settle the status of a concept – or show that a card is wrong.
+- [ ] **What is missing?** Standard methods of the field that a newcomer would look for: survey weighting
+      and raking, network measures (homophily, structural holes), diffusion models (Bass), social choice
+      axioms and the impossibility results that go with them, measurement instruments with their validation.
+- [ ] **Which software is the reference implementation** for a method (R packages count too: name the
+      package and function), so that a card can point to the exact call.
+- [ ] **Negative knowledge:** open problems and failed replications of well-known effects, as sourced cards
+      (kind `open` or status `disputed`), so that an LLM does not present them as settled.
+- [ ] The social-psychology selection from Wikidata is noisy (categories, internet culture, single events) –
+      a curated list of Wikidata items of the field would replace the class-based selection.
+
+How: open an issue or a pull request with the Wikidata item, the DOI or the package; facts go into
+`facts/*.tsv` in your own words with the source (CONCEPT.md P12). No account on our side is needed.
+
 ### Compiler
 - [ ] `machine` with exhaustive checks (deterministic, reachable, no deadlock) – M5.
 - [ ] `ctrl` with mandatory `sample` and bounded outputs (E410/E411), simulation against `model` – M6.
@@ -91,7 +114,7 @@ Pick one, open an issue saying you work on it, keep the PR small.
 ### Packaging
 - [x] `pyproject.toml`: distribution `roselang` (the name `rose` is taken on PyPI), import `rose`, command `rosec`;
       wheel carries `rose/std/` (3.7 MB compressed).
-- [ ] Publish to PyPI (needs the maintainer's account and token).
+- [x] Published on PyPI: `pip install roselang` (0.1.0 and 0.1.1, 2026-11-08).
 
 ### Built-in knowledge (M2)
 - [ ] `rosec plan` to ≥ 10/12: synonyms/aliases in the lexical index, P vs NP warning, no warning for a proved
