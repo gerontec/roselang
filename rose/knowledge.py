@@ -16,7 +16,6 @@ import json
 import math
 import os
 import re
-from collections import Counter
 
 from . import std
 
@@ -64,41 +63,105 @@ def tokens(text):
     return out
 
 
+INDEX_VERSION = 1
+
+
+def cache_dir():
+    d = os.environ.get("ROSE_CACHE") or os.path.join(
+        os.environ.get("XDG_CACHE_HOME") or os.path.join(os.path.expanduser("~"), ".cache"), "roselang")
+    os.makedirs(d, exist_ok=True)
+    return d
+
+
 class Knowledge:
+    """Cards of the core catalog and all installed packs, behind one SQLite file (FTS5 full-text
+    index) that is built once per set of catalog files and cached (~/.cache/roselang, $ROSE_CACHE)."""
+
     def __init__(self, fallback=None):
+        import hashlib
+        import sqlite3
         self.fallback = fallback
         self.error = None
-        self.cards, self.by_ref, self.by_alias = [], {}, {}
-        try:
-            self._load(CATALOG, None)
-        except FileNotFoundError:
+        self.packs = pack_dirs()
+        sources = [(CATALOG, None)] + [(os.path.join(d, "catalog.jsonl"), d) for d in self.packs]
+        if not os.path.exists(CATALOG):
             self.error = f"{CATALOG} missing - run tools/export_std.py"
-        self.n_core = len(self.cards)           # catalog.vec covers the core catalog only
-        self.packs = []
-        for d in pack_dirs():
-            self._load(os.path.join(d, "catalog.jsonl"), d)
-            self.packs.append(d)
+            sources = sources[1:]
+        h = hashlib.sha1(str(INDEX_VERSION).encode())
+        for path, _ in sources:
+            st = os.stat(path)
+            h.update(f"{os.path.abspath(path)}|{st.st_size}|{st.st_mtime_ns}".encode())
+        self.db_path = os.path.join(cache_dir(), f"knowledge-{h.hexdigest()[:16]}.sqlite")
+        if not os.path.exists(self.db_path):
+            self._build(sources)
+        self.db = sqlite3.connect(self.db_path, check_same_thread=False)
+        meta = dict(self.db.execute("SELECT key, value FROM meta"))
+        self.n_core, self.n = int(meta["n_core"]), int(meta["n"])
         self._impl = {}
-        self._index = None
         self._vec = None
+        self._idf_max = math.log(1 + (self.n + 0.5) / 0.5)
 
-    def _load(self, path, pack):
-        with open(path, encoding="utf-8") as f:
-            for line in f:
-                c = json.loads(line)
-                if pack:
-                    c["_pack"] = pack
-                if c["ref"] in self.by_ref:
-                    continue
-                self.by_ref[c["ref"]] = len(self.cards)
-                for a in c.get("aliases", []):
-                    self.by_alias.setdefault(a, len(self.cards))
-                self.cards.append(c)
+    def _build(self, sources):
+        import sqlite3
+        import sys
+        print(f"rose: building the knowledge index once ({len(sources)} catalog file(s)) ...", file=sys.stderr)
+        tmp = self.db_path + f".tmp{os.getpid()}"
+        db = sqlite3.connect(tmp)
+        db.executescript("""
+            CREATE TABLE cards (id INTEGER PRIMARY KEY, ref TEXT UNIQUE, kind TEXT, pack TEXT, json TEXT);
+            CREATE TABLE alias (alias TEXT PRIMARY KEY, id INTEGER);
+            CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT);
+            CREATE VIRTUAL TABLE fts USING fts5(ntok, btok, tokenize = 'unicode61');
+            CREATE VIRTUAL TABLE vocab USING fts5vocab(fts, 'row');
+        """)
+        n, n_core, seen = 0, 0, set()
+        for path, pack in sources:
+            rows, frows, arows = [], [], []
+            with open(path, encoding="utf-8") as f:
+                for line in f:
+                    c = json.loads(line)
+                    if c["ref"] in seen:
+                        continue
+                    seen.add(c["ref"])
+                    n += 1
+                    rows.append((n, c["ref"], c["kind"], pack, line))
+                    name = tokens(c["name"] + " " + c["ref"].split(":", 1)[1].replace("_", " ").replace(".", " "))
+                    frows.append((n, " ".join(name), " ".join(tokens(c.get("intent", "")))))
+                    arows += [(a, n) for a in c.get("aliases", [])]
+            db.executemany("INSERT INTO cards VALUES (?,?,?,?,?)", rows)
+            db.executemany("INSERT INTO fts (rowid, ntok, btok) VALUES (?,?,?)", frows)
+            db.executemany("INSERT OR IGNORE INTO alias VALUES (?,?)", arows)
+            if pack is None:
+                n_core = n                      # catalog.vec covers the core catalog only, ids 1..n_core
+        db.executemany("INSERT INTO meta VALUES (?,?)", [("n", n), ("n_core", n_core)])
+        db.commit()
+        db.close()
+        os.replace(tmp, self.db_path)
+        # keep the three most recent indexes (other pack sets), drop older ones
+        old = sorted((f for f in os.listdir(cache_dir()) if f.startswith("knowledge-") and f.endswith(".sqlite")),
+                     key=lambda f: -os.path.getmtime(os.path.join(cache_dir(), f)))[3:]
+        for f in old:
+            try:
+                os.unlink(os.path.join(cache_dir(), f))
+            except OSError:
+                pass
+
+    def _card(self, i):
+        r = self.db.execute("SELECT json, pack FROM cards WHERE id=?", (i,)).fetchone()
+        c = json.loads(r[0])
+        if r[1]:
+            c["_pack"] = r[1]
+        return c
+
+    def _id(self, ref):
+        r = self.db.execute("SELECT id FROM cards WHERE ref=?", (ref,)).fetchone() or \
+            self.db.execute("SELECT id FROM alias WHERE alias=?", (ref,)).fetchone()
+        return r[0] if r else None
 
     def implementations(self, ref):
-        """Implementations of a pack unit: [{"lang", "code", "level", "works_with"}]."""
-        i = self.by_ref.get(ref)
-        pack = self.cards[i].get("_pack") if i is not None else None
+        """Implementations of a pack unit: [{"lang", "code", "level"}]."""
+        i = self._id(ref)
+        pack = self._card(i).get("_pack") if i is not None else None
         if not pack:
             return []
         if pack not in self._impl:
@@ -113,7 +176,7 @@ class Knowledge:
 
     @property
     def online(self):
-        return bool(self.cards) or bool(self.fallback and self.fallback.online)
+        return self.n > 0 or bool(self.fallback and self.fallback.online)
 
     @property
     def mode(self):
@@ -121,18 +184,17 @@ class Knowledge:
 
     # ---- get ----
     def get(self, ref):
-        i = self.by_ref.get(ref)
-        if i is None:
-            i = self.by_alias.get(ref)
+        i = self._id(ref)
         if i is None and ":" in ref:
             scheme, value = ref.split(":", 1)
-            for k in ("law", "math", "const", "open"):
-                if scheme in ("law", "math", "const", "open") and f"{k}:{value}" in self.by_ref:
-                    i = self.by_ref[f"{k}:{value}"]
-                    break
+            if scheme in ("law", "math", "const", "open"):
+                for k in ("law", "math", "const", "open"):
+                    i = self._id(f"{k}:{value}")
+                    if i is not None:
+                        break
         if i is None:
             return self.fallback.get(ref) if self.fallback and self.fallback.online else None
-        c = dict(self.cards[i])
+        c = self._card(i)
         c["rose_src"] = None   # Rose source of std units is bound from std/ by the compiler (bind_std)
         c["source_url"] = c.get("url")
         c["share_alike"] = bool(c.get("share_alike"))
@@ -144,48 +206,32 @@ class Knowledge:
         hits, _ = self.search(name, k=k, semantic=False)
         return [h["ref"] for h in hits]
 
-    # ---- lexical index ----
-    def _build(self):
-        df, docs = Counter(), []
-        for c in self.cards:
-            name = tokens(c["name"] + " " + c["ref"].split(":", 1)[1].replace("_", " ").replace(".", " "))
-            body = tokens(c.get("intent", ""))
-            tf = Counter(body)
-            for t in name:
-                tf[t] += 3          # the name says what the unit is
-            docs.append((tf, sum(tf.values()), set(name)))
-            df.update(tf.keys())
-        n = len(docs)
-        idf = {t: math.log(1 + (n - d + 0.5) / (d + 0.5)) for t, d in df.items()}
-        avg = sum(L for _, L, _ in docs) / max(n, 1)
-        post = {}
-        for i, (tf, _, _) in enumerate(docs):
-            for t in tf:
-                post.setdefault(t, []).append(i)
-        self._index = (docs, idf, avg, post, math.log(1 + (n + 0.5) / 0.5))
-
+    # ---- lexical ----
     def _lexical(self, query, pool):
-        if self._index is None:
-            self._build()
-        docs, idf, avg, post, idf_max = self._index
+        """BM25 (FTS5, name column weighted 3x) for ranking; similarity = idf-weighted share of the
+        task's words that a unit contains. Returns ({id: score}, {id: coverage})."""
         q = list(dict.fromkeys(tokens(query)))
         if not q:
             return {}, {}
-        w = {t: idf.get(t, idf_max) for t in q}     # an unknown word is as specific as a word can be
+        ph = ",".join("?" * len(q))
+        df = dict(self.db.execute(f"SELECT term, doc FROM vocab WHERE term IN ({ph})", q))
+        w = {t: (math.log(1 + (self.n - df[t] + 0.5) / (df[t] + 0.5)) if t in df else self._idf_max) for t in q}
+        known = [t for t in q if t in df]
+        if not known:
+            return {}, {}
+        match = " OR ".join(f'"{t}"' for t in known)
+        rows = self.db.execute("SELECT rowid, -bm25(fts, 3.0, 1.0), ntok, btok FROM fts WHERE fts MATCH ? "
+                               "ORDER BY bm25(fts, 3.0, 1.0) LIMIT ?", (match, pool * 4)).fetchall()
         total = sum(w.values())
-        scores, cover = Counter(), Counter()
-        for t in q:
-            for i in post.get(t, ()):
-                tf, L, _ = docs[i]
-                f = tf[t]
-                scores[i] += w[t] * f * 2.2 / (f + 1.2 * (0.25 + 0.75 * L / avg))
-                cover[i] += w[t]
         qs = set(q)
-        for i in list(scores):
-            if docs[i][2] == qs:            # the task names exactly this unit: it outranks its relatives
-                scores[i] *= 1.5
-        top = scores.most_common(pool)
-        return {i: s for i, s in top}, {i: cover[i] / total for i, _ in top}
+        scores, cover = {}, {}
+        for i, sc, ntok, btok in rows:
+            nt = set(ntok.split())
+            have = nt | set(btok.split())
+            cover[i] = sum(w[t] for t in q if t in have) / total
+            scores[i] = sc * (1.5 if nt == qs else 1.0)   # the task names exactly this unit
+        top = sorted(scores, key=lambda i: -scores[i])[:pool]
+        return {i: scores[i] for i in top}, {i: cover[i] for i in top}
 
     # ---- semantic ----
     def _vectors(self):
@@ -225,9 +271,10 @@ class Knowledge:
                 notes.append(f"semantic search unavailable ({type(e).__name__}), lexical only")
         if sims is not None:
             import numpy as np
-            cand = set(int(i) for i in np.argpartition(-sims, pool)[:pool]) | set(bm)
-            score = {i: float(sims[i]) + (0.03 if i in bm else 0.0) for i in cand}
-            sim = {i: float(sims[i]) for i in cand}
+            # vector row r is card id r + 1; pack cards (ids > n_core) have no vector: lexical score only
+            cand = set(int(r) + 1 for r in np.argpartition(-sims, pool)[:pool]) | set(bm)
+            score = {i: (float(sims[i - 1]) if i <= self.n_core else 0.0) + (0.03 if i in bm else 0.0) for i in cand}
+            sim = {i: (float(sims[i - 1]) if i <= self.n_core else cover.get(i, 0.0)) for i in cand}
             measure = "cosine"
         else:
             top = max(bm.values(), default=1.0)
@@ -236,7 +283,7 @@ class Knowledge:
             measure = "coverage"
         out = []
         for i in sorted(score, key=lambda i: -score[i]):
-            c = self.cards[i]
+            c = self._card(i)
             if kind and c["kind"] != kind:
                 continue
             out.append({"ref": c["ref"], "kind": c["kind"], "name": c["name"], "level": c["level"],

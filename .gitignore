@@ -8,3 +8,5 @@ dist/
 *.egg-info/
 packs/*/build/
 packs/*/*.egg-info/
+packs/*/rose_*/catalog.jsonl
+packs/*/rose_*/impl.jsonl
