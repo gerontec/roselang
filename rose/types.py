@@ -16,7 +16,7 @@ class Ty:
         if self.base == "Real":
             if self.dim == U.NONE and not self.absolute:
                 return "Real"
-            return f"Real[{'degC' if self.absolute else U.dim_str(self.dim)}]"
+            return f"Real[{'degC' if self.absolute else U.unit_name(self.dim)}]"
         if self.base in ("List", "Range") and self.args:
             return f"{self.base}[{self.args[0]}]"
         if self.base == "Enum":

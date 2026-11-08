@@ -1,0 +1,4 @@
+module neg.e201
+fn f(p: Real[W], e: Real[kW*h]) -> Real[W]
+  intent "adding energy to power must fail"
+= p + e

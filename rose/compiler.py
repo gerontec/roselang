@@ -263,7 +263,7 @@ class Compiler:
             a, b = self.law_dim(e.left, vars_), self.law_dim(e.right, vars_)
             if e.op in ("+", "-"):
                 if a is not None and b is not None and a != b:
-                    raise ValueError(f"cannot add {U.dim_str(a)} and {U.dim_str(b)}")
+                    raise ValueError(f"cannot add {U.unit_name(a)} and {U.unit_name(b)}")
                 return a if a is not None else b
             if e.op == "*":
                 return None if a is None or b is None else U.dmul(a, b)
@@ -287,7 +287,7 @@ class Compiler:
                 return args[0]
             if f in BUILTIN_DIMLESS:
                 if args and args[0] not in (None, U.NONE):
-                    raise ValueError(f"{f}() needs a dimensionless argument, got {U.dim_str(args[0])}")
+                    raise ValueError(f"{f}() needs a dimensionless argument, got {U.unit_name(args[0])}")
                 return U.NONE
         return None
 
@@ -304,7 +304,7 @@ class Compiler:
             try:
                 a, b = self.law_dim(lhs, info.vars), self.law_dim(rhs, info.vars)
                 if a is not None and b is not None and a != b:
-                    raise ValueError(f"left side is {U.dim_str(a)}, right side is {U.dim_str(b)}")
+                    raise ValueError(f"left side is {U.unit_name(a)}, right side is {U.unit_name(b)}")
             except ValueError as e:
                 self.d("E204", f"law '{law.name}' is dimensionally inconsistent: {e}", lhs)
 
@@ -489,7 +489,8 @@ class Compiler:
                 pts = set()
                 for cells, _, _ in t.rules:
                     c = cells[k] if k < len(cells) else ("any",)
-                    for ex in c[1:] if c[0] in ("cmp", "eq", "range") else ():
+                    vals = (c[2],) if c[0] == "cmp" else (c[1], c[2]) if c[0] == "range" else (c[1],) if c[0] == "eq" else ()
+                    for ex in vals:
                         v = const_value(ex)
                         if v is not None:
                             pts.add(v)
@@ -517,7 +518,9 @@ class Compiler:
                 nm = t.ins[k].name
                 if c[0] == "any":
                     continue
-                code, ct = self.expr(c[-1] if c[0] != "range" else c[1], env)
+                if c[0] == "cmp" and len(c) == 4 and not (isinstance(c[3], Name) and c[3].text == nm):
+                    self.d("E101", f"rule cell {k + 1} compares '{src_of(c[3])}', but the column is '{nm}'", c[3])
+                code, ct = self.expr(c[2] if c[0] == "cmp" else c[1], env)
                 if c[0] == "cmp":
                     self.same_dims(env[nm], ct, c[2], c[1])
                     parts.append(f"{nm} {c[1]} {code}")
@@ -856,7 +859,7 @@ def is_zero(node):
 
 
 def unit_hint(t):
-    return "degC" if t.absolute else U.dim_str(t.dim)
+    return "degC" if t.absolute else U.unit_name(t.dim)
 
 
 def const_number(e):
@@ -916,6 +919,8 @@ def src_of(e):
         return f"{src_of(e.obj)}.{e.name}"
     if isinstance(e, Str):
         return repr(e.value)
+    if isinstance(e, Bool):
+        return "true" if e.value else "false"
     if isinstance(e, Unary):
         return f"{e.op}{' ' if e.op == 'not' else ''}{src_of(e.expr)}"
     return type(e).__name__

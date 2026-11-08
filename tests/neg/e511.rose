@@ -1,0 +1,11 @@
+module neg.e511
+table src
+  intent "rule for soc below 10 % with grid down is missing"
+  hit unique
+  in soc: Real[%]{0 .. 100}, grid_ok: Bool
+  out s: {battery, grid, none}
+  rule soc >= 20 %, true -> battery
+  rule soc < 20 %, true -> grid
+  rule soc >= 10 %, false -> battery
+  check complete, no_overlap
+end

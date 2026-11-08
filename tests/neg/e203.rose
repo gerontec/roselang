@@ -1,0 +1,4 @@
+module neg.e203
+fn f(a: Real[degC], b: Real[degC]) -> Real[degC]
+  intent "adding two absolute temperatures must fail"
+= a + b

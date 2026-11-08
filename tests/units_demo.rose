@@ -1,0 +1,38 @@
+module test.units
+
+law heat_flow
+  intent "thermal power carried by a water flow"
+  var P:    Real[W]
+  var mdot: Real[kg/s]
+  var cp:   Real[J/(kg*K)] = 4182 J/(kg*K)
+  var dT:   Real[K]
+  eq  P = mdot * cp * dT
+  valid dT in 0.5 K .. 80 K
+end
+
+fn required_flow(p: Real[W], spread: Real[K]) -> Real[kg/s]
+  intent "mass flow needed to carry power p at temperature spread"
+do
+  return solve heat_flow for mdot given P = p, dT = spread
+end
+
+fn spread_of(t_flow: Real[degC], t_return: Real[degC]) -> Real[K]
+  intent "temperature spread between flow and return"
+= t_flow - t_return
+
+table discharge_source
+  intent "choose energy source by battery SOC and grid state"
+  hit    unique
+  in     soc: Real[%]{0 .. 100}, grid_ok: Bool
+  out    src: {battery, grid, none}
+  rule   soc >= 20 %,  true  -> battery
+  rule   soc <  20 %,  true  -> grid
+  rule   soc >= 10 %,  false -> battery
+  rule   soc <  10 %,  false -> none
+  check  complete, no_overlap
+end
+
+test required_flow(9 kW, 5 K) == 0.430 kg/s within 1 %
+test spread_of(35 degC, 30 degC) == 5 K within 0.001 K
+test discharge_source(soc = 15 %, grid_ok = false) == battery
+test discharge_source(soc = 5 %, grid_ok = true) == grid

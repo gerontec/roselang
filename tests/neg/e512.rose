@@ -1,0 +1,10 @@
+module neg.e512
+table src
+  intent "two rules overlap between 10 and 20 %"
+  hit unique
+  in soc: Real[%]{0 .. 100}
+  out s: {battery, grid}
+  rule soc >= 10 % -> battery
+  rule soc < 20 % -> grid
+  check complete, no_overlap
+end

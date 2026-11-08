@@ -1,0 +1,4 @@
+module neg.e202
+fn f(p: Real[W]) -> Bool
+  intent "comparing power with a bare number must fail"
+= p > 9

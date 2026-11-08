@@ -1,0 +1,3 @@
+module neg.e101
+fn f(x: Int) -> Int
+= x + 1

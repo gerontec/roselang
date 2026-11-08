@@ -1,0 +1,8 @@
+module neg.e204
+law wrong
+  intent "power equals mass flow times spread, cp forgotten"
+  var P: Real[W]
+  var mdot: Real[kg/s]
+  var dT: Real[K]
+  eq P = mdot * dT
+end

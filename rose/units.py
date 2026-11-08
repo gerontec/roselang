@@ -181,3 +181,22 @@ def parse_unit(text: str) -> Unit:
 
 def to_si(value: float, u: Unit) -> float:
     return value * u.scale + u.offset
+
+
+_NAMED = ["W", "J", "N", "Pa", "V", "C", "F", "Ohm", "S", "Wb", "T", "H", "Hz", "lx"]
+_BASE_SYM = ["m", "kg", "s", "A", "K", "mol", "cd"]
+
+
+def unit_name(d) -> str:
+    """Readable SI unit for a dimension: (2,1,-3,0,0,0,0) -> 'W', (0,1,-1,...) -> 'kg/s'."""
+    if d == NONE:
+        return "1"
+    for n in _NAMED:
+        if _U[n].dim == d:
+            return n
+    num = [f"{s}^{e}" if e != 1 else s for s, e in zip(_BASE_SYM, d) if e > 0]
+    den = [f"{s}^{-e}" if e != -1 else s for s, e in zip(_BASE_SYM, d) if e < 0]
+    top = "*".join(num) or "1"
+    if not den:
+        return top
+    return f"{top}/{den[0]}" if len(den) == 1 else f"{top}/({'*'.join(den)})"

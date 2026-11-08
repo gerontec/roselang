@@ -7,7 +7,16 @@ physical laws, controllers and state machines – and writes only the glue. A MC
 finds the blocks, checks the result (types, physical units, contracts, exhaustive
 tables and state machines) and compiles it to Python, C, IEC 61131-3 ST or ESPHome C++.
 
-> Status: **concept (M0)**. No compiler, no MCP server, no corpus imported yet.
+> Status: **compiler v1 (experimental)**. Corpus imported from Wikidata, CODATA and OEIS;
+> compiler handles `fn`, `const`, `use`, `law` + `solve`, `table`, `test` and emits Python.
+> Not yet: Rosetta Code import, `machine`/`ctrl`, C/ST/ESPHome targets, MCP server.
+> Want to help? See [`TODO.md`](TODO.md).
+
+```sh
+python3 tests/run_tests.py                       # offline self-test
+ROSE_OFFLINE=1 ./rosec test tests/units_demo.rose
+./rosec plan "mass flow of water for 9 kW at 5 K spread"   # needs the corpus
+```
 
 ```rose
 use law:water_heat_flow                      # P = mdot * cp * dT
@@ -29,6 +38,10 @@ test required_flow(9 kW, 5 K) == 0.430 kg/s within 1 %
 | [`spec/grammar.ebnf`](spec/grammar.ebnf) | grammar draft v0 |
 | [`spec/mcp-tools.md`](spec/mcp-tools.md) | MCP tool specification and diagnostic codes |
 | [`schema/rose_schema.sql`](schema/rose_schema.sql) | MariaDB 11.8 corpus schema (`rose_*`, `VECTOR(1024)` + HNSW) |
+| [`rose/`](rose) | compiler v1 (`rosec`): parser, unit checker, solve, tables, Python codegen, corpus access |
+| [`tools/`](tools) | corpus importers (Wikidata, CODATA, OEIS) and embedding |
+| [`tests/`](tests) | self-test: positive programs and negative programs per diagnostic code |
+| [`TODO.md`](TODO.md) | open tasks and rules for contributors (humans and LLMs) |
 | [`examples/`](examples) | `fn`, `law`, `ctrl`, `machine`, `table`, `bio` examples |
 
 ## Key ideas

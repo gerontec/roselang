@@ -70,7 +70,7 @@ class Parser:
     # ---- module ----
     def module(self):
         self.expect("module")
-        name = self.qname()
+        name = self.ref_name()  # module paths may contain keywords (test.units)
         targets, uses, items = [], [], []
         while not self.cur.kind == "eof":
             if self.accept("target"):
@@ -370,9 +370,10 @@ class Parser:
         intent = self.cur.text
         self.i += 1
         self.expect("hit")
-        hit = self.ident("hit policy") if self.cur.kind == "ident" else self.cur.text
-        if self.cur.kind != "ident":
-            self.i += 1
+        hit = self.cur.text
+        if hit not in ("unique", "first"):
+            raise self.err(f"hit policy must be unique or first, got '{hit}'")
+        self.i += 1
         ins, outs, rules, checks = [], [], [], []
         while not self.is_("end"):
             if self.is_("in") or self.is_("out"):
@@ -413,6 +414,11 @@ class Parser:
             self.i += 1
             return ("cmp", op, self.add_expr())
         e = self.add_expr()
+        if self.cur.kind == "op" and self.cur.text in CMP:
+            # long form 'soc >= 20 %': the left side must name the column (checked by the compiler)
+            op = self.cur.text
+            self.i += 1
+            return ("cmp", op, self.add_expr(), e)
         if self.accept(".."):
             return ("range", e, self.add_expr())
         return ("eq", e)
