@@ -80,39 +80,45 @@ class Corpus:
         return r.json()["data"][0]["embedding"]
 
     def search(self, query, k=10, kind=None, pool=60):
-        """Hybrid search: HNSW vector top-N + FULLTEXT top-N, fused by reciprocal rank (RRF)."""
+        """Hybrid search. Candidates: HNSW vector top-N + FULLTEXT top-N. Rank: exact cosine similarity
+        of every candidate, plus a small bonus for a FULLTEXT hit (semantics first, words second)."""
         cur = self.con.cursor()
-        ranks, sims, notes = {}, {}, []
+        cand, ft, notes, v = set(), set(), [], None
         try:
             v = json.dumps(self.embed(query))
-            cur.execute("SELECT unit_id, VEC_DISTANCE_COSINE(v, VEC_FromText(%s)) d FROM rose_embedding "
-                        "ORDER BY d LIMIT %s", (v, pool))
-            for i, (uid, d) in enumerate(cur.fetchall()):
-                ranks.setdefault(uid, 0.0)
-                ranks[uid] += 1.0 / (60 + i)
-                sims[uid] = 1 - float(d)
+            # the distance expression must be repeated in ORDER BY: ordering by its alias returned wrong
+            # neighbours on MariaDB 11.8 (measured 2026-11-08)
+            cur.execute("SELECT unit_id FROM rose_embedding ORDER BY VEC_DISTANCE_COSINE(v, VEC_FromText(%s)) "
+                        "LIMIT %s", (v, pool))
+            cand |= {r[0] for r in cur.fetchall()}
         except Exception as e:
             notes.append(f"vector search unavailable: {e}")
-        cur.execute("SELECT unit_id, MATCH(name, intent) AGAINST (%s) s FROM rose_unit "
-                    "WHERE MATCH(name, intent) AGAINST (%s) ORDER BY s DESC LIMIT %s", (query, query, pool))
-        for i, (uid, s) in enumerate(cur.fetchall()):
-            ranks.setdefault(uid, 0.0)
-            ranks[uid] += 1.0 / (60 + i)
-        if not ranks:
+        cur.execute("SELECT unit_id FROM rose_unit WHERE MATCH(name, intent) AGAINST (%s) "
+                    "ORDER BY MATCH(name, intent) AGAINST (%s) DESC LIMIT %s", (query, query, pool // 2))
+        ft = {r[0] for r in cur.fetchall()}
+        cand |= ft
+        if not cand:
             return [], notes
-        ids = list(ranks)
+        ids = list(cand)
+        ph = ",".join(["%s"] * len(ids))
+        sims = {}
+        if v is not None:
+            cur.execute(f"SELECT unit_id, 1 - VEC_DISTANCE_COSINE(v, VEC_FromText(%s)) FROM rose_embedding "
+                        f"WHERE unit_id IN ({ph})", [v] + ids)
+            sims = {uid: float(s) for uid, s in cur.fetchall()}
         cur.execute("SELECT u.unit_id, u.ref, u.kind, u.name, u.level, u.signature, u.payload, s.license, "
                     "s.share_alike, u.rose_src IS NOT NULL FROM rose_unit u JOIN rose_source s USING (source_id) "
-                    f"WHERE u.unit_id IN ({','.join(['%s'] * len(ids))})", ids)
+                    f"WHERE u.unit_id IN ({ph})", ids)
         out = []
         for uid, ref, kd, name, level, sig, payload, lic, sa, has_src in cur.fetchall():
             if kind and kd != kind:
                 continue
             p = json.loads(payload) if payload else {}
+            sim = sims.get(uid, 0.0)
             out.append({"ref": ref, "kind": kd, "name": name, "level": level, "signature": sig,
                         "status": p.get("status"), "domain": p.get("domain"),
                         "usable": bool(has_src) and kd != "open", "license": lic, "share_alike": bool(sa),
-                        "similarity": round(sims.get(uid, 0.0), 3), "score": ranks[uid],
+                        "similarity": round(sim, 3), "score": sim + (0.03 if uid in ft else 0.0),
                         "proved_by": [x.get("label") for x in p.get("proved_by", [])] or None})
         out.sort(key=lambda r: (-r["score"], -LEVELS.index(r["level"])))
         return out[:k], notes
