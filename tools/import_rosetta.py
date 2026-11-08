@@ -88,7 +88,7 @@ H2 = re.compile(r'<div class="mw-heading mw-heading2"><h2 id="([^"]+)"')
 
 
 def parse_task(page):
-    body = page.split('class="mw-content-ltr mw-parser-output"', 1)[-1]
+    body = page.split('class="mw-content-ltr mw-parser-output"', 1)[-1].split(">", 1)[-1]
     heads = [(m.start(), html.unescape(m.group(1))) for m in H2.finditer(body)]
     first = heads[0][0] if heads else len(body)
     intro = re.sub(r'<div class="infobox".*?</div>', "", body[:first], count=1, flags=re.S)
