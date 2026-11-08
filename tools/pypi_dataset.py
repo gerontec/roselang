@@ -64,23 +64,54 @@ def record(d):
                                                             info.get("description_content_type")) or None)}
 
 
+class Brake:
+    """Shared back-off: a 429 or 5xx from PyPI stops every thread for a while (doubling up to
+    5 minutes while it repeats); each success shortens the next pause again."""
+    def __init__(self):
+        self.lock, self.until, self.delay, self.hits, self.bytes = threading.Lock(), 0.0, 5.0, 0, 0
+
+    def wait(self):
+        t = self.until - time.time()
+        if t > 0:
+            time.sleep(t)
+
+    def hit(self):
+        with self.lock:
+            self.hits += 1
+            self.until = max(self.until, time.time() + self.delay)
+            self.delay = min(self.delay * 2, 300.0)
+
+    def ok(self, n):
+        with self.lock:
+            self.bytes += n
+            self.delay = max(5.0, self.delay * 0.99)
+
+
+BRAKE = Brake()
+
+
 def fetch_one(name):
     cached = os.path.join(P.CACHE, P.norm(name) + ".json.gz")
     try:
         if os.path.exists(cached):
             d = json.load(gzip.open(cached))
         else:
-            for attempt in range(3):
+            for attempt in range(6):
+                BRAKE.wait()
                 try:
-                    d = json.loads(P.get(f"https://pypi.org/pypi/{name}/json"))
-                    time.sleep(0.15)
+                    raw = P.get(f"https://pypi.org/pypi/{name}/json")
+                    BRAKE.ok(len(raw))
+                    d = json.loads(raw)
                     break
                 except urllib.error.HTTPError as e:
                     if e.code == 404:
                         return {"name": name, "missing": True}
-                    time.sleep(2 + 5 * attempt)
+                    if e.code == 429 or e.code >= 500:
+                        BRAKE.hit()
+                    else:
+                        time.sleep(1 + attempt)
                 except Exception:
-                    time.sleep(2 + 5 * attempt)
+                    time.sleep(1 + 2 * attempt)
             else:
                 return None                        # retried later on resume
         r = {k: v for k, v in record(d).items() if v is not None}
@@ -90,7 +121,7 @@ def fetch_one(name):
         return {"name": name, "key": P.norm(name), "error": type(e).__name__}
 
 
-def fetch():
+def fetch(threads):
     all_names = names()
     done = set()
     if os.path.exists(RECORDS):
@@ -102,7 +133,7 @@ def fetch():
     todo = [n for n in all_names if P.norm(n) not in done]
     print(f"{len(all_names)} projects, {len(done)} done, {len(todo)} to fetch", flush=True)
     lock, stats, t0 = threading.Lock(), collections.Counter(), time.time()
-    with open(RECORDS, "a", encoding="utf-8") as out, cf.ThreadPoolExecutor(4) as ex:
+    with open(RECORDS, "a", encoding="utf-8") as out, cf.ThreadPoolExecutor(threads) as ex:
         for i, r in enumerate(ex.map(fetch_one, todo), 1):
             if r is None:
                 stats["retry later"] += 1
@@ -110,10 +141,12 @@ def fetch():
                 stats["missing" if r.get("missing") else "error" if r.get("error") else "ok"] += 1
                 with lock:
                     out.write(json.dumps(r, ensure_ascii=False) + "\n")
-            if i % 5000 == 0:
+            if i % 2000 == 0:
                 out.flush()
-                rate = i / (time.time() - t0)
-                print(f"{i}/{len(todo)} {dict(stats)} {rate:.1f}/s, eta {(len(todo) - i) / rate / 3600:.1f} h", flush=True)
+                dt_ = time.time() - t0
+                rate = i / dt_
+                print(f"{i}/{len(todo)} {dict(stats)} {rate:.0f}/s, {BRAKE.bytes * 8 / dt_ / 1e6:.0f} Mbit/s, "
+                      f"throttled {BRAKE.hits}x, eta {(len(todo) - i) / rate / 3600:.1f} h", flush=True)
     print("fetched", dict(stats), flush=True)
 
 
@@ -123,7 +156,10 @@ def build():
     shards, seen, st = collections.defaultdict(list), set(), collections.Counter()
     years = collections.Counter()
     for ln in open(RECORDS, encoding="utf-8"):
-        r = json.loads(ln)
+        try:
+            r = json.loads(ln)
+        except json.JSONDecodeError:               # a line cut off by an interrupted fetch
+            continue
         k = P.norm(r["name"])
         if k in seen or r.get("missing"):
             st["missing"] += bool(r.get("missing"))
@@ -156,8 +192,9 @@ def build():
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("step", choices=["fetch", "build"])
+    ap.add_argument("--threads", type=int, default=32)
     a = ap.parse_args()
-    fetch() if a.step == "fetch" else build()
+    fetch(a.threads) if a.step == "fetch" else build()
 
 
 if __name__ == "__main__":
