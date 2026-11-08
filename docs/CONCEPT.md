@@ -36,8 +36,12 @@ rose.exists("estimate the state of a system from noisy measurements")
 #   measurements (...); ready-made solver: python-control lqe.', 'solutions': [...]}
 ```
 
-Three answers: **solved** (with pointers to the known solution and its source), **open** (negative
-knowledge) or **unknown** (nothing in the knowledge matches). The language and compiler (sections
+Five answers: **solved** (with pointers to the known solution and its source), **open** (negative
+knowledge), **caution** (the best match records food or poison uses of a plant – Rose shows the
+records with their source and never confirms that something is safe to eat or take), **disputed**
+(the best match is a proposed concept without established empirical support, e.g. "mass formation
+psychosis" – Rose points to it and to the criticism, it does not present it as known knowledge) or
+**unknown** (nothing in the knowledge matches). The language and compiler (sections
 5, 11) stay, but are no longer the first goal: composing and checking solutions comes after finding
 them.
 
@@ -181,6 +185,8 @@ test primes_below(10) == [2, 3, 5, 7]
 | Decision table | `table` | energy source by state of charge (DMN, hit `unique`) | complete and overlap-free by exhaustive enumeration |
 | Bioinformatics | `use bio:` | homology search, sequence by accession, alignment | local DIAMOND backend enforced (5.7) |
 | Open problem | – (`use open:` is an error) | Riemann hypothesis, P vs NP | `E305`: negative knowledge, hint only |
+| Plant / natural-product drug | card `bio:taxon.*`, `bio:drug.*` (reference only) | *Sambucus nigra*, ephedrine | verdict `caution` when food or poison is recorded; food and poison always shown together (§5.8) |
+| Disputed concept | card with `status: disputed` | mass formation psychosis, pseudoscience | verdict `disputed`, never `solved`; the card names the source of the criticism |
 
 ### 5.3 Physical laws are acausal
 
@@ -292,6 +298,35 @@ Terms that exist in neither source stay unknown – e.g. "heterologous recombina
 GO term nor a Wikidata item; Wikidata has homologous (Q22280388) and illegitimate recombination
 (Q59567515, alias "nonhomologous recombination").
 
+### 5.8 Plants, poisons and natural-product drugs (2026-11-08)
+
+What the sources record, never a judgement of safety.
+
+| Cards | Source | Content | Count |
+|---|---|---|---|
+| `bio:taxon.<species>` | USDA GRIN taxonomy download (economic uses, *World Economic Plants*), names and synonyms from WCVP (Kew) | species with a recorded use as human food, food additive, medicine, social use (stimulant, hallucinogen, masticatory), pesticide or poison; family, English common names, up to 8 synonyms, GRIN and POWO links; infraspecific taxa and synonyms merged into the accepted species | 5 549 (1 612 food, 1 532 poison, 151 both) |
+| `bio:drug.<compound>` | Wikidata (CC0), found-in-taxon (P703) mostly from LOTUS | compounds with an ATC code that are found in an organism – plants, fungi, bacteria; producing organisms, and for up to three organisms the publication behind each claim (title, year, DOI) | 423 (7 only with unsourced claims) |
+
+Rules:
+
+- **Food and poison together.** A species card lists every recorded use; when both food and poison
+  are recorded it says so (potato: vegetable, starch – and poisonous to mammals). The plant part is
+  given where GRIN records it (only 1 339 of 35 805 use records do); otherwise the card says
+  nothing about the part.
+- **Verdict `caution`, never `solved`**, for a match with food or poison records. The answer says
+  that safety depends on part, ripeness, preparation, amount and above all correct identification.
+- **Natural only, with the source of each claim.** Fully synthetic drugs are left out. A found-in
+  claim without a reference is shown as unconfirmed; a claim with a reference names it, so that a
+  single old report is visible as such (amphetamine and methamphetamine in two Texas acacias:
+  *Phytochemistry* 1997 and 1998, one research group).
+- **Planned: synthetic drugs known before ivermectin** (avermectin discovered 1975, ivermectin
+  marketed 1981) – the first WHO Model List of Essential Medicines (1977). Wikidata holds the list
+  only as a document, without editions or members, so this needs the list itself as a source.
+- Gaps: compounds without an ATC code (avermectin – only its semi-synthetic derivative ivermectin
+  has one, and that is found in no organism); the discovery history (from which organism a drug was
+  first isolated, and when) is not in Wikidata for these compounds (P575 empty), only where a
+  compound occurs today.
+
 ## 6. The corpus – sources
 
 Cards shipped in release 0.1.0 (counted in the installed package, 2026-11-08):
@@ -308,6 +343,9 @@ Cards shipped in release 0.1.0 (counted in the installed package, 2026-11-08):
 | **CODATA 2022** | fundamental physical constants with uncertainty | public domain (NIST) | 355 | `std/const/codata.rose` |
 | **Rosalind** | classic bioinformatics problems | titles and links only | 104 | catalog |
 | **Rose core** | 30 problem classes (§8.3), reference controllers, machines, plant models, bio mapping | MIT | 45 | `std/problems.json` + catalog |
+| **USDA GRIN** (+ names from **WCVP**, Kew) | plants with recorded uses and poisons (§5.8) | US federal work, cite as USDA ARS NPGS / CC BY 3.0 | 5 549 | catalog |
+| **Wikidata / LOTUS** | natural-product drugs with producing organisms (§5.8) | CC0 | 423 | catalog |
+| **Wikidata** (2026-11-08) | radio technology (312), social psychology and social dynamics (303) | CC0 | 615 | catalog |
 | OEIS | > 400 000 integer sequences | CC BY-SA 4.0 | – | **not shipped**, database only |
 | QUDT, TheAlgorithms | units and dimensions; permissive algorithms | CC BY 4.0 / MIT | – | planned |
 
@@ -418,6 +456,13 @@ and backups would become our job. The first upload waits for an explicit decisio
 | `tested` | runs in the sandbox, output matches the reference (laws: dimensionally consistent) |
 | `cross_checked` | ≥ 2 independent implementations agree |
 | `proven` | contract checked formally (mathlib proof, exhaustive enumeration, CBMC) |
+
+`payload.status = disputed` marks a proposed concept without established empirical support: set by
+hand with a source (`DISPUTED` in `tools/import_wikidata.py`) or from Wikidata *instance of
+pseudoscience*. It records the state of the evidence with its source, not an opinion of Rose; a
+classical concept that a disputed application builds on (Le Bon's and Freud's mass formation) keeps
+its own status and gets a note. `payload.status = caution` marks plant cards with food or poison
+records (§5.8).
 
 Theorems from Wikidata carry `payload.status = proved` (with the prover, e.g. the Poincaré
 conjecture, proved by Grigori Perelman, 2002) but stay level `imported` until a machine-checked

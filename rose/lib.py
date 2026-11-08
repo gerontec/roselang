@@ -409,7 +409,7 @@ def use(ref):
 
 def exists(task, k=3):
     """Does a known solution exist for this task? Only points to it - does not solve anything.
-    -> {"verdict": "solved" | "open" | "disputed" | "unknown", "answer": one sentence, "solutions": [{ref, name,
+    -> {"verdict": "solved" | "open" | "disputed" | "caution" | "unknown", "answer": one sentence, "solutions": [{ref, name,
        url, complexity}], "warnings": [...]}"""
     return verdict(_knowledge().plan(task, k=max(k, 5)), _knowledge(), k)
 
@@ -443,8 +443,8 @@ def verdict(r, kb, k=3):
             call = card["call"]
         sols.append({"ref": p["ref"], "name": p["name"], "url": url, "level": p["level"], "call": call,
                      "complexity": p.get("complexity") or card.get("complexity"), "license": p["license"]})
-        if card.get("status") == "disputed":
-            sols[-1]["status"] = "disputed"
+        if card.get("status") in ("disputed", "caution"):
+            sols[-1]["status"] = card["status"]
         if card.get("kind") == "lib":
             sols[-1].update({k: card[k] for k in ("package_license", "docs", "install") if card.get(k)})
     best = sols[0]
@@ -452,6 +452,13 @@ def verdict(r, kb, k=3):
         return {"verdict": "disputed", "answer": f"Not established knowledge: {best['name']} is a proposed, "
                 "disputed concept without established empirical support - see the source.",
                 "solutions": sols, "warnings": warn, "task": r["task"]}
+    if best.get("status") == "caution":      # food / poison records: never a go-ahead
+        return {"verdict": "caution", "answer": f"Sources record uses of {best['name']}, see the card; whether "
+                "anything is safe to eat or to take depends on the part, preparation, amount and correct "
+                "identification - Rose does not confirm it.",
+                "solutions": sols, "warnings": warn, "task": r["task"]}
+    warn += [f"CAUTION: '{x['name']}' ({x['ref']}) has food or poison records - not a confirmation of safety"
+             for x in sols if x.get("status") == "caution"]
     warn += [f"DISPUTED: '{x['name']}' ({x['ref']}) is a proposed concept without established empirical support"
              for x in sols if x.get("status") == "disputed"]
     extra = f" ({best['complexity']})" if best.get("complexity") else ""

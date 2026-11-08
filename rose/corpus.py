@@ -209,8 +209,10 @@ def how_to_use(h):
         return f"use {h['ref']} as <alias>"
     if h["ref"].startswith("oeis:"):
         return f"use {h['ref']} as <alias>   (terms as test oracle, alias.contains(x))"
-    if h["kind"] == "bio":
+    if h["kind"] == "bio" and str(h["ref"]).startswith(("bio:search.", "bio:seq.", "bio:meta.")):
         return f"use {h['ref']}   (local DIAMOND nr, two-stage, never online BLAST)"
+    if str(h["ref"]).startswith(("bio:taxon.", "bio:drug.")):
+        return "reference only: what the sources record (uses, poisons, producing organisms) - no confirmation of safety"
     if h["ref"].startswith("rc:"):
         return (f"python: rose.use({h['ref']!r}).code  (Rosetta Code solution, GFDL share-alike); "
                 "Rose: reference only, no signature yet")
