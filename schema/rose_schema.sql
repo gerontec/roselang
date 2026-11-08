@@ -95,7 +95,7 @@ CREATE TABLE IF NOT EXISTS rose_dep (
 -- Variables of laws/models: lets SQL find "a law that yields kg/s from W and K"
 CREATE TABLE IF NOT EXISTS rose_law_var (
   unit_id      BIGINT UNSIGNED NOT NULL,
-  symbol       VARCHAR(32)  NOT NULL,
+  symbol       VARCHAR(32)  COLLATE utf8mb4_bin NOT NULL,   -- case-sensitive: r and R are different symbols
   quantity     VARCHAR(64)  NULL,                 -- QUDT quantity kind, e.g. MassFlowRate
   unit         VARCHAR(32)  NOT NULL,             -- SI unit, e.g. kg/s
   dim          VARCHAR(64)  NOT NULL,             -- normalised dimension vector, e.g. M1 T-1
