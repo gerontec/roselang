@@ -180,6 +180,10 @@ class Knowledge:
                 f = tf[t]
                 scores[i] += w[t] * f * 2.2 / (f + 1.2 * (0.25 + 0.75 * L / avg))
                 cover[i] += w[t]
+        qs = set(q)
+        for i in list(scores):
+            if docs[i][2] == qs:            # the task names exactly this unit: it outranks its relatives
+                scores[i] *= 1.5
         top = scores.most_common(pool)
         return {i: s for i, s in top}, {i: cover[i] / total for i, _ in top}
 
