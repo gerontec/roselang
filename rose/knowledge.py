@@ -1,4 +1,4 @@
-"""Built-in knowledge of the compiler: std/catalog.jsonl, generated from the corpus, shipped with rosec.
+"""Built-in knowledge of the compiler: std/catalog.jsonl.gz, generated from the corpus, shipped with rosec.
 
 No database, no server: `rosec plan/search/get` and `use` resolution work offline.
   search: BM25 over name, intent and aliases (always available)
@@ -20,7 +20,7 @@ import re
 
 from . import std
 
-CATALOG = os.path.join(std.STD, "catalog.jsonl")
+CATALOG = os.path.join(std.STD, "catalog.jsonl.gz")
 VECTORS = os.path.join(std.STD, "catalog.vec")
 EMBED_URL = os.environ.get("ROSE_EMBED_URL", "http://127.0.0.1:8084/v1/embeddings")
 DIM = 1024

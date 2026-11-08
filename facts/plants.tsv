@@ -1,0 +1,5 @@
+# Facts about plants, restated in our own words. A fact is not copyrighted; only wording and the
+# database as a whole are. One row per fact; the source is cited, never copied. Columns, tab-separated:
+# taxon	part	topic	fact	cites (URL; URL ...)	evidence	checked
+# evidence: handbook | single_study | several_studies | review | regulatory  (how well it is backed)
+Juniperus communis	cone berries (juniper berries)	sugars	About 30 % of the dried cone berries are free sugars, glucose and fructose (invert sugar), plus pectin. The content varies with origin and ripeness. The figure is a handbook value (Wichtl, Teedrogen, 1984) repeated by the EMA assessment reports; no targeted quantification by ripening stage was found. The EMA notes there is no consensus on the role of the sugars.	https://www.ema.europa.eu/en/documents/herbal-report/final-assessment-report-juniperus-communis-l-pseudo-fructus-galbulus-revision-1_en.pdf; https://ema.europa.eu/en/documents/herbal-report/superseded-assessment-report-juniperi-pseudo-fructus_en.pdf	handbook	2026-11-08

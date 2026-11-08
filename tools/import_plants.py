@@ -4,8 +4,9 @@ produce them. Pointer cards only: Rose shows what the sources record, it never s
 is safe to eat or to take.
 
   taxa    USDA GRIN taxonomy download (taxonomy_data.cab: taxonomy_use, species, genus, family,
-          common names) - species with a recorded use as human food, food additive, medicine,
-          social use (stimulant, hallucinogen ...), pesticide or poison. Infraspecific taxa and
+          common names) - species with any recorded economic use (food, additive, medicine,
+          social use, pesticide, poison, material, fuel, environmental, forage, bee plant, insect
+          host, gene source, weed) or a protection status (CITES I/II, CPC). Infraspecific taxa and
           synonyms are merged into the species. Accepted name, synonyms and POWO link from WCVP
           (Kew, CC BY 3.0). Cards bio:taxon.<name>; status 'caution' when food or poison is recorded.
   drugs   Wikidata (CC0): compounds with an ATC code (P267) that are found in an organism (P703,
@@ -39,7 +40,12 @@ GRIN = os.path.join(BASE, "grin_dl")
 WCVP = os.path.join(BASE, "wcvp_dl", "wcvp_dwca.zip")
 GRIN_URL = "https://npgsweb.ars-grin.gov/gringlobal/taxon/taxonomydetail?id={}"
 USES = {"FOOD": "human food", "ADDITIVE": "food additive", "MEDICINE": "medicine", "SOCIAL": "social use",
-        "PESTICIDE": "pesticide", "POISON": "poison"}
+        "PESTICIDE": "pesticide", "POISON": "poison", "MATERIAL": "material", "FUEL": "fuel",
+        "ENVIRON": "environmental", "FORAGE": "animal food", "BEE": "bee plant", "HOST": "host of useful insects",
+        "ALTHOST": "alternate host of crop diseases or pests", "GENETIC": "gene source", "WEED": "weed"}
+# not uses but a protection status, shown separately
+PROTECTION = {"CITESI": "CITES Appendix I", "CITESII": "CITES Appendix II",
+              "CPC": "rare or endangered (CPC National Collection)"}
 CAUTION = ("[CAUTION: whether a plant is safe to eat depends on the plant part, ripeness, preparation and "
            "amount, and above all on correct identification (poisonous look-alikes) - Rose only shows what the "
            "sources record and does not confirm that anything is safe to eat]")
@@ -130,7 +136,7 @@ def taxa(a):
     uses, fams, grin_id = collections.defaultdict(list), {}, {}
     for r in grin("taxonomy_use.txt"):
         code = r["economic_usage_code"]
-        if code not in USES:
+        if code not in USES and code not in PROTECTION:
             continue
         k, family = key_of(r["taxonomy_species_id"])
         if not k:
@@ -191,7 +197,11 @@ def taxa(a):
         if cn:
             parts[0] += " [common names: " + "; ".join(cn) + "]"
         rec = "; ".join(f"{USES[c]}: {', '.join(by[c][:8])}" for c in USES if c in by)
-        parts.append(f"recorded uses (USDA GRIN): {rec}")
+        if rec:
+            parts.append(f"recorded uses (USDA GRIN): {rec}")
+        prot = [PROTECTION[c] for c in PROTECTION if c in by]
+        if prot:
+            parts.append("[protection: " + "; ".join(prot) + "]")
         if "FOOD" in codes and "POISON" in codes:
             parts.append("[recorded BOTH as human food and as poisonous]")
         if codes & {"FOOD", "POISON"}:
@@ -204,7 +214,8 @@ def taxa(a):
         st["food"] += "FOOD" in codes
         st["poison"] += "POISON" in codes
         st["both"] += {"FOOD", "POISON"} <= codes
-        payload = {"domain": "botany", "status": status, "uses": {USES[c]: by[c] for c in by},
+        payload = {"domain": "botany", "status": status, "uses": {USES[c]: by[c] for c in by if c in USES},
+                   "protection": prot,
                    "grin": GRIN_URL.format(grin_id[k]) if grin_id.get(k) else None, "powo": w.get("powo"),
                    "family": w.get("family") or fams.get(k), "common_names": cn, "synonyms": w.get("synonyms", [])}
         if a.dry_run:

@@ -2,7 +2,7 @@
 
 > **In short:** an LLM given a new task should not re-invent what is already solved – and should
 > not "solve" what is still open. Rose **carries the knowledge of solved and open problems itself**
-> (Python package `roselang`, about 247 000 cards: proved theorems, physical laws, constants,
+> (Python package `roselang`, about <!--stat:total_cards_round-->279 000<!--/stat--> cards: proved theorems, physical laws, constants,
 > algorithms, Rosetta Code tasks, plant models, controllers, state machines, library solvers,
 > bioinformatics terms) and answers one question first: **is there a known solution, and where is
 > it?** It **points** to the solution – source, licence, ready-made library call – and **solves
@@ -135,6 +135,7 @@ problem is used as a building block.
 | P9 | **Vocabulary that tokenises well** | short English keywords, ASCII, no exotic operators |
 | P10 | **Re-invention detector** | a hand-written body resembling a corpus unit triggers `R201 known-solution` |
 | P11 | **Negative knowledge** | open problems are corpus units of kind `open`: found by search, never usable |
+| P12 | **Facts are free, wording is not** | a fact (a content, a property, an approval date) is not copyrighted; only the wording of a text and a database as a whole are. Rose takes single facts from any source – also share-alike, non-commercial or proprietary – restates them in its own words, cites the source and says how well the fact is backed (`facts/*.tsv`, MIT). Not allowed in what Rose *publishes* (repository, catalog, packs): copying text, or extracting a substantial part of a database. A local copy for analysis is a different matter: whole databases under share-alike licences (ChEMBL, CC BY-SA) may be loaded into the local MariaDB (schema `chembl`, effect map `rose_compound_effect` with `source='chembl'`) as long as nothing of it is exported; the licence's attribution is kept with the data |
 
 Rose is less a general-purpose language than a **planning and composition language with a
 checker**. A deliberately small core covers loops, strings and glue code.
@@ -293,7 +294,7 @@ requirements, found by `rose.exists()` as `bio:backend.nr_local`.
 
 Bio knowledge comes from Wikidata (bioinformatics methods, laws of genetics and enzyme kinetics,
 linked to 19 biology fields), the Rosalind problem list (titles and links only) and the **Gene
-Ontology** (all 38 092 non-obsolete terms: processes, functions, components, with synonyms).
+Ontology** (all <!--stat:source.gene_ontology-->38 092<!--/stat--> non-obsolete terms: processes, functions, components, with synonyms).
 Terms that exist in neither source stay unknown – e.g. "heterologous recombination" is neither a
 GO term nor a Wikidata item; Wikidata has homologous (Q22280388) and illegitimate recombination
 (Q59567515, alias "nonhomologous recombination").
@@ -304,9 +305,9 @@ What the sources record, never a judgement of safety.
 
 | Cards | Source | Content | Count |
 |---|---|---|---|
-| `bio:taxon.<species>` | USDA GRIN taxonomy download (economic uses, *World Economic Plants*), names and synonyms from WCVP (Kew) | species with a recorded use as human food, food additive, medicine, social use (stimulant, hallucinogen, masticatory), pesticide or poison; family, English common names, up to 8 synonyms, GRIN and POWO links; infraspecific taxa and synonyms merged into the accepted species | 5 549 (1 612 food, 1 532 poison, 151 both) |
-| `bio:drug.<compound>` | Wikidata (CC0), found-in-taxon (P703) mostly from LOTUS | compounds with an ATC code that are recorded as found in an organism – plants, fungi, bacteria; the organisms, and for up to three organisms the publication behind each claim (title, year, DOI) | 423 (7 only with unsourced claims) |
-| `bio:drug.<compound>` | FDA Orange Book data files (US federal work), ATC code by name from Wikidata | drugs known before ivermectin: active ingredients approved in the US before 1 January 1982 ("Approved Prior to Jan 1, 1982"), salts merged into the active moiety; 150 of them are also found-in cards and get the note | 601 more (197 without a Wikidata match, e.g. carbamazepine, radiopharmaceuticals) |
+| `bio:taxon.<species>` | USDA GRIN taxonomy download (economic uses, *World Economic Plants*), names and synonyms from WCVP (Kew) | species with a recorded use as human food, food additive, medicine, social use (stimulant, hallucinogen, masticatory), pesticide or poison; family, English common names, up to 8 synonyms, GRIN and POWO links; infraspecific taxa and synonyms merged into the accepted species | <!--stat:grin_species-->15 771<!--/stat--> (<!--stat:grin_food-->1 612<!--/stat--> food, <!--stat:grin_poison-->1 532<!--/stat--> poison, <!--stat:grin_both-->151<!--/stat--> both) |
+| `bio:drug.<compound>` | Wikidata (CC0), found-in-taxon (P703) mostly from LOTUS | compounds with an ATC code that are recorded as found in an organism – plants, fungi, bacteria; the organisms, and for up to three organisms the publication behind each claim (title, year, DOI) | <!--stat:drugs_found_in-->423<!--/stat--> (<!--stat:drugs_only_unsourced-->7<!--/stat--> only with unsourced claims) |
+| `bio:drug.<compound>` | FDA Orange Book data files (US federal work), ATC code by name from Wikidata | drugs known before ivermectin: active ingredients approved in the US before 1 January 1982 ("Approved Prior to Jan 1, 1982"), salts merged into the active moiety; 150 of them are also found-in cards and get the note | <!--stat:source.fda-orange-book-->601<!--/stat--> more (197 without a Wikidata match, e.g. carbamazepine, radiopharmaceuticals) |
 
 Rules:
 
@@ -324,8 +325,9 @@ Rules:
 - **Synthetic drugs: only those known before ivermectin** (avermectin discovered 1975, ivermectin
   marketed 1981): FDA Orange Book, US approval before 1982. Limits: US market only (metamizole is
   missing), products withdrawn before the first edition (1980) are missing, and the date is an
-  approval, not the discovery. Not usable: Rote Liste and Gelbe Liste (licensed), ChEMBL
-  (`first_approval`, but CC BY-SA), DrugBank (CC BY-NC); the WHO list of 1977 is not in Wikidata.
+  approval, not the discovery. Rote Liste, Gelbe Liste, ChEMBL (`first_approval`) and DrugBank are
+  not imported in bulk (licence of the database), but single facts from them may be restated in
+  `facts/*.tsv` with the source cited (P12); the WHO list of 1977 is not in Wikidata.
 - Gaps: compounds without an ATC code (avermectin – only its semi-synthetic derivative ivermectin
   has one, and that is found in no organism); the discovery history (from which organism a drug was
   first isolated, and when) is not in Wikidata for these compounds (P575 empty), only where a
@@ -333,23 +335,26 @@ Rules:
 
 ## 6. The corpus – sources
 
-Cards shipped in release 0.1.0 (counted in the installed package, 2026-11-08):
+Cards shipped (counted by `tools/stats.py`, <!--stat:date-->2026-11-08<!--/stat-->):
 
 | Source | Content | Licence | Cards | Shipped as |
 |---|---|---|---|---|
-| **Lean mathlib4** | statements of proved theorems and definitions (cut at `:=`) | Apache-2.0 | 189 932 | `sets/mathlib.jsonl.gz` |
-| **Gene Ontology** | all non-obsolete terms: processes, functions, components, synonyms | CC BY 4.0 | 38 092 | catalog |
-| **Wikidata** | defining formulas (P2534) with symbols and ISQ dimensions, theorems, conjectures, physical laws, open problems, "proved by" (P1318), algorithms and computational problems, control and automata concepts, biology methods | CC0 | 12 144 | `std/*.rose` + catalog |
-| **Modelica Standard Library** 4.x | class index: path, description, source line – models, blocks, functions, state graphs (no equations) | BSD-3 | 3 484 | catalog |
-| **Python libraries** | public solver functions: SciPy 723, networkx 587, python-control 154, transitions 37, Python stdlib 26, dd 17, sympy 15, automata-lib 12, OR-Tools 7 (path, signature, first docstring paragraph) | BSD-3 / MIT / Apache-2.0 / PSF | 1 578 | catalog |
-| **PyPI** | top 15 000 packages by downloads: summary, licence, installable on CPython 3.14, cleaned README extract (§6.1) | metadata as published; extracts under each package's licence, share-alike left out | 14 498 | catalog (kind `lib`) |
-| **Rosetta Code** | all 1 363 tasks with 2 606 Python 3 solutions (compile-checked) | GFDL 1.3 | 1 363 | `sets/rosetta*.jsonl.gz` |
-| **CODATA 2022** | fundamental physical constants with uncertainty | public domain (NIST) | 355 | `std/const/codata.rose` |
-| **Rosalind** | classic bioinformatics problems | titles and links only | 104 | catalog |
-| **Rose core** | 30 problem classes (§8.3), reference controllers, machines, plant models, bio mapping | MIT | 45 | `std/problems.json` + catalog |
-| **USDA GRIN** (+ names from **WCVP**, Kew) | plants with recorded uses and poisons (§5.8) | US federal work, cite as USDA ARS NPGS / CC BY 3.0 | 5 549 | catalog |
-| **Wikidata / LOTUS** | natural-product drugs with producing organisms (§5.8) | CC0 | 423 | catalog |
-| **Wikidata** (2026-11-08) | radio technology (312), social psychology and social dynamics (303) | CC0 | 615 | catalog |
+| **Lean mathlib4** | statements of proved theorems and definitions (cut at `:=`) | Apache-2.0 | <!--stat:mathlib_cards-->189 932<!--/stat--> | `sets/mathlib.jsonl.gz` |
+| **Gene Ontology** | all non-obsolete terms: processes, functions, components, synonyms | CC BY 4.0 | <!--stat:source.gene_ontology-->38 092<!--/stat--> | catalog |
+| **Wikidata** | defining formulas (P2534) with symbols and ISQ dimensions, theorems, conjectures, physical laws, open problems, "proved by" (P1318), algorithms and computational problems, control and automata concepts, biology methods | CC0 | <!--stat:wikidata_knowledge-->12 136<!--/stat--> | `std/*.rose` + catalog |
+| **Modelica Standard Library** 4.x | class index: path, description, source line – models, blocks, functions, state graphs (no equations) | BSD-3 | <!--stat:source.modelica-->3 484<!--/stat--> | catalog |
+| **Python libraries** | public solver functions: SciPy 723, networkx 587, python-control 154, transitions 37, Python stdlib 26, dd 17, sympy 15, automata-lib 12, OR-Tools 7 (path, signature, first docstring paragraph) | BSD-3 / MIT / Apache-2.0 / PSF | <!--stat:py_library_functions-->1 578<!--/stat--> | catalog |
+| **PyPI** | top 15 000 packages by downloads: summary, licence, installable on CPython 3.14, cleaned README extract (§6.1) | metadata as published; extracts under each package's licence, share-alike left out | <!--stat:source.pypi-->14 498<!--/stat--> | catalog (kind `lib`) |
+| **Rosetta Code** | all 1 363 tasks with 2 606 Python 3 solutions (compile-checked) | GFDL 1.3 | <!--stat:rosetta_tasks-->1 363<!--/stat--> | `sets/rosetta*.jsonl.gz` |
+| **CODATA 2022** | fundamental physical constants with uncertainty | public domain (NIST) | <!--stat:source.codata-->355<!--/stat--> | `std/const/codata.rose` |
+| **Rosalind** | classic bioinformatics problems | titles and links only | <!--stat:source.rosalind-->104<!--/stat--> | catalog |
+| **Rose core** | 30 problem classes (§8.3), reference controllers, machines, plant models, bio mapping | MIT | <!--stat:rose_core-->46<!--/stat--> | `std/problems.json` + catalog |
+| **USDA GRIN** (+ names from **WCVP**, Kew) | plants with any recorded economic use (food, medicine, poison, material, fuel, environmental, forage, ...) or protection status (CITES, CPC) (§5.8) | US federal work, cite as USDA ARS NPGS / CC BY 3.0 | <!--stat:grin_species-->15 771<!--/stat--> | catalog |
+| **Wikidata / LOTUS** | natural-product drugs with producing organisms (§5.8) | CC0 | <!--stat:drugs_found_in-->423<!--/stat--> | catalog |
+| **LOTUS** frozen dump v11 (2026-04-13, Zenodo 19360665) | all natural products with the organisms they are recorded in and one reference DOI per organism, cards `bio:lotus.<qid>`; compounds with a `bio:drug` card are linked to it (§5.8) | CC BY 4.0 (triplets from Wikidata, CC0) | <!--stat:lotus_compounds-->227 247<!--/stat--> | **not shipped**: corpus database and local effect map (MariaDB) |
+| **Rose DIAMOND** (`tools/import_diamond.py`) | protein similarity computed on NCBI nr: one card per query protein with its best hits, plus an overview card, each with the full method (DIAMOND version, mode, cut-off, nr hash); first run: long pepper vs human | MIT (sequences: NCBI, public domain) | <!--stat:db_source.rose-diamond-->23<!--/stat--> | **not shipped**: MariaDB, next to the DIAMOND tables |
+| **Rose facts** (`facts/*.tsv`) | single facts restated in our own words, each with its cited sources and evidence level (`handbook`, `single_study`, `several_studies`, `review`, `regulatory`), cards `bio:fact.<taxon>.<topic>` (P12) | MIT (the facts themselves are not copyrighted) | <!--stat:db_source.rose-facts-->4<!--/stat--> | **not shipped**: MariaDB (effect map) |
+| **Wikidata** (2026-11-08) | radio technology (<!--stat:radio_cards-->312<!--/stat-->), social psychology and social dynamics (<!--stat:social_cards-->303<!--/stat-->) | CC0 | <!--stat:wikidata_radio_social-->615<!--/stat--> | catalog |
 | OEIS | > 400 000 integer sequences | CC BY-SA 4.0 | – | **not shipped**, database only |
 | QUDT, TheAlgorithms | units and dimensions; permissive algorithms | CC BY 4.0 / MIT | – | planned |
 
@@ -632,7 +637,7 @@ temperature 0; A = model alone, B = model + the output of `rose.exists()` in the
 
 | | correct | per question (median) | prompt tokens (median) |
 |---|---|---|---|
-| `rose.exists()` alone (no LLM) | 31/34 | 8.5 ms | – |
+| `rose.exists()` alone (no LLM) | <!--stat:m7_rose-->31/34<!--/stat--> | 8.5 ms | – |
 | Qwen3-4B alone (A) | 22/34 | 3.8 s | 127 |
 | Qwen3-4B + Rose (B) | 31/34 | 3.8 s | 580 |
 | Qwen3-30B-A3B alone (A) | 26/34 | 5.4 s | 127 |
@@ -681,10 +686,10 @@ laws, controllers, checked state machines.
 - **Hints the LLM already knows:** for a large model most pointers are not news (§0). The value
   is the checked verdict, provenance and the exact library call; if M7 shows no gain for large
   models, the target group is small local models.
-- **Recognition is the weak point**, not the amount of knowledge: 247 000 cards do not help when
+- **Recognition is the weak point**, not the amount of knowledge: <!--stat:total_cards_round-->279 000<!--/stat--> cards do not help when
   a word like "warm" outweighs the quantities (§9). Problem classes are hand-written and their test
   cases were written together with them; independent test tasks are needed.
-- **Many proofs, few solvers:** 190 000 of the cards are mathlib statements, 1 578 are library
+- **Many proofs, few solvers:** <!--stat:mathlib_cards-->189 932<!--/stat--> of the cards are mathlib statements, <!--stat:py_library_functions-->1 578<!--/stat--> are library
   solvers. Sparse kinds (controllers 38, state machines 78, decision tables 41) are mostly
   Modelica and Wikidata pointers.
 - **The "ready-made solver" shown is the first library entry of a class**, not the best one (PID

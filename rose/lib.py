@@ -9,7 +9,7 @@ language, but as a library - every check runs when Python executes the line, not
     rose.use("open:goldbachs_conjecture")                         # raises OpenProblem (E305)
     rose.plan("count the prime numbers below n")
 
-Same building blocks as rosec: rose/units.py (dimensions), std/ + std/catalog.jsonl (knowledge),
+Same building blocks as rosec: rose/units.py (dimensions), std/ + std/catalog.jsonl.gz (knowledge),
 sympy (solve), the exhaustive table check. Error classes carry the Rose diagnostic code.
 """
 import itertools

@@ -22,7 +22,8 @@ import rose_db as R
 # pack -> (corpus source, module, share-alike, payload fields copied into the card)
 PACKS = {"rosetta": ("rosettacode", "rose_rosetta", True,
                      ("description", "outputs", "languages", "python_solutions", "python3_solutions", "status")),
-         "mathlib": ("mathlib", "rose_mathlib", False, ("statement", "doc", "named", "file", "line", "status"))}
+         "mathlib": ("mathlib", "rose_mathlib", False, ("statement", "doc", "named", "file", "line", "status")),
+}
 
 
 def main():
@@ -48,6 +49,11 @@ def main():
     cur.execute("SELECT u.unit_id, u.ref, u.kind, u.name, u.intent, u.level, u.payload, u.source_url, s.license "
                 "FROM rose_unit u JOIN rose_source s USING (source_id) WHERE s.name=%s ORDER BY u.ref", (source,))
     units = cur.fetchall()
+    aliases = {}
+    cur.execute("SELECT a.unit_id, a.scheme, a.value FROM rose_alias a JOIN rose_unit u USING (unit_id) "
+                "JOIN rose_source s USING (source_id) WHERE s.name=%s", (source,))
+    for uid_, scheme, value in cur.fetchall():
+        aliases.setdefault(uid_, []).append(f"{scheme}:{value}")
     impls = {}
     cur.execute("SELECT i.unit_id, i.lang, i.code, i.level FROM rose_impl i JOIN rose_unit u USING (unit_id) "
                 "JOIN rose_source s USING (source_id) WHERE s.name=%s ORDER BY i.impl_id", (source,))
@@ -60,6 +66,8 @@ def main():
             card = {"ref": ref, "kind": kind, "name": name, "intent": intent, "level": level, "source": source,
                     "license": lic, "url": url, "share_alike": share_alike, "std": False}
             card.update({f: p[f] for f in fields if p.get(f) not in (None, [], "")})
+            if uid in aliases:
+                card["aliases"] = sorted(aliases[uid])
             fc.write(json.dumps(card, ensure_ascii=False, sort_keys=True) + "\n")
             if uid in impls:
                 fi.write(json.dumps({"ref": ref, "impl": impls[uid]}, ensure_ascii=False) + "\n")

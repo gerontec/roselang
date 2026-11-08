@@ -1,0 +1,10 @@
+# Measured effects of compounds on human proteins, one row per compound and target (single facts, P12).
+# compound	target	code	chembl_target	relation	measure	value_um_min	value_um_max	test_system	evidence	reference
+piperine	TRPV1 (transient receptor potential vanilloid 1)	Q8NER1	CHEMBL4794	agonist	EC50	3.2	3.2	cells	single_study	https://doi.org/10.1016/j.bmc.2010.03.013
+piperine	P-glycoprotein ABCB1	P08183	CHEMBL4302	inhibitor	IC50	15.5	74.1	cells	single_study	https://doi.org/10.1124/jpet.102.034728
+piperine	CYP3A4	P08684	CHEMBL340	inhibitor				enzyme	single_study	https://doi.org/10.1124/jpet.102.034728
+piperine	monoamine oxidase B (MAO-B)	P27338	CHEMBL2039	inhibitor	IC50	0.48	1.05	enzyme	several_studies	https://doi.org/10.1016/j.bmcl.2012.09.056
+piperine	monoamine oxidase A (MAO-A)	P21397	CHEMBL1951	inhibitor	IC50	59	59	enzyme	single_study	https://doi.org/10.1016/j.bmcl.2012.09.056
+piperine	GABA-A receptor alpha1beta2gamma2	P14867	CHEMBL2095172	modulator	EC50	5.8	52.4	cells	several_studies	https://doi.org/10.1021/acs.jnatprod.1c00840
+piperlongumine	thioredoxin reductase 1 (TXNRD1)	Q16881	CHEMBL1927	inhibitor	IC50	1.8	45.9	cells	several_studies	https://doi.org/10.1021/acs.jnatprod.0c00599
+piperlongumine	CYP3A4	P08684	CHEMBL340	active	potency	0.05	0.05	enzyme	screening	https://www.ebi.ac.uk/chembl/compound_report_card/CHEMBL465843/

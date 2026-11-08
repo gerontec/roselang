@@ -7,7 +7,7 @@
   rosec compile FILE.rose [-o OUT.py] [--json]  writes OUT.py and OUT.lock.json
   rosec test FILE.rose                          compile and run the tests
   rosec get REF [--json]                        show one unit
-plan/search/get use the built-in knowledge (std/catalog.jsonl); --db uses the corpus database.
+plan/search/get use the built-in knowledge (std/catalog.jsonl.gz); --db uses the corpus database.
 """
 import argparse
 import json

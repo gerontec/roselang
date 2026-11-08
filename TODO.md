@@ -39,7 +39,7 @@ python3 tests/run_tests.py                 # offline self-test, needs only pytho
 ROSE_OFFLINE=1 ./rosec test tests/units_demo.rose
 ```
 
-The corpus (`rose_*` tables, ~412 000 units) lives in a private MariaDB instance; without it
+The corpus (`rose_*` tables, ~<!--stat:corpus_units_round-->939 000<!--/stat--> units) lives in a private MariaDB instance; without it
 `use` statements report `E301 corpus offline`. Making the corpus publicly reachable is on the
 list below.
 
@@ -49,10 +49,10 @@ list below.
 |---|---|
 | Corpus: Wikidata (formulas, theorems, laws, conjectures, open problems) | importer done (`tools/import_wikidata.py`) |
 | Corpus: CODATA 2022 constants | imported, 355 constants |
-| Corpus: OEIS | imported, 401 561 sequences (CC BY-SA 4.0) – database only, not shipped |
+| Corpus: OEIS | imported, <!--stat:oeis_sequences-->401 561<!--/stat--> sequences (CC BY-SA 4.0) – database only, not shipped |
 | Corpus: Rosalind (bio, titles + links) and Wikidata biology methods | imported |
-| Corpus: Gene Ontology (38 092 terms, CC BY 4.0) | imported (`tools/import_go.py`) |
-| Built-in knowledge | `std/` + `std/catalog.jsonl` (47 967 cards); `rosec` needs no database or server (`rose/knowledge.py`) |
+| Corpus: Gene Ontology (<!--stat:source.gene_ontology-->38 092<!--/stat--> terms, CC BY 4.0) | imported (`tools/import_go.py`) |
+| Built-in knowledge | `std/` + `std/catalog.jsonl` (<!--stat:catalog_cards-->87 674<!--/stat--> cards); `rosec` needs no database or server (`rose/knowledge.py`) |
 | Embeddings (bge-m3) | `tools/embed.py`; Wikidata + CODATA first, OEIS in background |
 | Knowledge → language | `rose/tex.py` converts imported TeX formulas to Rose `law`s, `tools/verify_laws.py` checks them with the compiler, `tools/export_std.py` generates `std/` (CC0/PD only) |
 | Negative knowledge | `open name intent "..." end` in the language, `use` of an open problem → `E305` |

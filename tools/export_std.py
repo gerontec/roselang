@@ -2,12 +2,14 @@
 """Generate the standard library std/ from the corpus: knowledge as Rose source.
 
 Only CC0 / public-domain sources (Wikidata, CODATA) - share-alike data (OEIS) stays in the corpus.
+Facts restated in our own words (facts/*.tsv, source rose-facts) are MIT whatever the cited source's
+licence: a fact is not copyrighted, only wording and a database as a whole.
   std/law.rose         laws with verified Rose source (level parsed/tested), physics
   std/math.rose        mathematical formulas with Rose source
   std/const/codata.rose  CODATA constants
   std/open.rose        open problems as `open` declarations (negative knowledge)
   std/index.json       ref -> {file, name, kind, level, license, url}
-  std/catalog.jsonl    one card per unit of every non-share-alike source (also cards without Rose
+  std/catalog.jsonl.gz one card per unit of every non-share-alike source (also cards without Rose
                        source): the compiler's built-in knowledge for `rosec plan/search/get`
   std/catalog.vec      optional: int8 bge-m3 vectors in catalog order (--vectors, not in git)
 Usage: export_std.py [--out ../rose/std] [--vectors]
@@ -94,7 +96,11 @@ def main():
     export_catalog(cur, out, index, a.vectors)
 
 
-OWN_SETS = ("mathlib", "rosettacode")   # exported as built-in sets by export_pack.py, not into catalog.jsonl
+OWN_SETS = ("mathlib", "rosettacode",          # built-in sets (export_pack.py)
+            "lotus", "rose-facts", "rose-diamond")   # MariaDB only: effect map and DIAMOND results, not in the module
+
+
+
 
 
 def export_catalog(cur, out, index, vectors):
@@ -107,12 +113,21 @@ def export_catalog(cur, out, index, vectors):
                 "WHERE s.share_alike=0 AND s.name NOT IN (" + ",".join(f"'{x}'" for x in OWN_SETS) + ") "
                 "ORDER BY u.ref")
     ids = []
-    with open(os.path.join(out, "catalog.jsonl"), "w", encoding="utf-8") as fh:
+    import gzip
+    import io
+    old = os.path.join(out, "catalog.jsonl")              # uncompressed until 2026-11-08
+    if os.path.exists(old):
+        os.unlink(old)
+    # deterministic gzip (no name, mtime 0): the same cards give the same bytes, so the index key stays
+    with open(os.path.join(out, "catalog.jsonl.gz"), "wb") as raw, \
+            gzip.GzipFile(filename="", mode="wb", fileobj=raw, mtime=0, compresslevel=9) as gz, \
+            io.TextIOWrapper(gz, encoding="utf-8") as fh:
         for uid, ref, kind, name, intent, sig, level, payload, url, src, lic in cur.fetchall():
             p = json.loads(payload) if payload else {}
             card = {"ref": ref, "kind": kind, "name": name, "intent": intent, "level": level, "source": src,
                     "license": lic, "url": url, "std": ref in index}
-            for k in ("domain", "status", "proved_year", "complexity", "atc", "atc_groups"):
+            for k in ("domain", "status", "proved_year", "complexity", "atc", "atc_groups", "cites", "evidence", "checked",
+                      "protection", "hits", "method", "computed", "subject_taxon"):
                 if p.get(k):
                     card[k] = p[k]
             if kind == "lib":                       # PyPI package: how to get it, not how to use it
