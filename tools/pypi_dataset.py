@@ -121,32 +121,39 @@ def fetch_one(name):
         return {"name": name, "key": P.norm(name), "error": type(e).__name__}
 
 
-def fetch(threads):
+def record_files():
+    return sorted(os.path.join(BASE, f) for f in os.listdir(BASE) if f.startswith("records") and f.endswith(".jsonl"))
+
+
+def fetch(threads, shard="0/1"):
+    """Shard k/N fetches every N-th name starting at k into records-<k>.jsonl, so that N processes
+    can run side by side (one Python process is limited by its interpreter lock, not by the line)."""
+    k, n = map(int, shard.split("/"))
     all_names = names()
     done = set()
-    if os.path.exists(RECORDS):
-        for ln in open(RECORDS, encoding="utf-8"):
+    for path in record_files() if os.path.isdir(BASE) else []:
+        for ln in open(path, encoding="utf-8"):
             try:
                 done.add(P.norm(json.loads(ln)["name"]))
             except Exception:
                 pass
-    todo = [n for n in all_names if P.norm(n) not in done]
-    print(f"{len(all_names)} projects, {len(done)} done, {len(todo)} to fetch", flush=True)
-    lock, stats, t0 = threading.Lock(), collections.Counter(), time.time()
-    with open(RECORDS, "a", encoding="utf-8") as out, cf.ThreadPoolExecutor(threads) as ex:
-        for i, r in enumerate(ex.map(fetch_one, todo), 1):
-            if r is None:
-                stats["retry later"] += 1
-            else:
+    todo = [x for i, x in enumerate(all_names) if i % n == k and P.norm(x) not in done]
+    print(f"{len(all_names)} projects, {len(done)} done, shard {shard}: {len(todo)} to fetch", flush=True)
+    stats, t0 = collections.Counter(), time.time()
+    out_path = RECORDS if n == 1 else os.path.join(BASE, f"records-{k}.jsonl")
+    with open(out_path, "a", encoding="utf-8") as out, cf.ThreadPoolExecutor(threads) as ex:
+        for c in range(0, len(todo), 2000):                     # bounded: one chunk in flight at a time
+            for r in ex.map(fetch_one, todo[c:c + 2000]):
+                if r is None:
+                    stats["retry later"] += 1
+                    continue
                 stats["missing" if r.get("missing") else "error" if r.get("error") else "ok"] += 1
-                with lock:
-                    out.write(json.dumps(r, ensure_ascii=False) + "\n")
-            if i % 2000 == 0:
-                out.flush()
-                dt_ = time.time() - t0
-                rate = i / dt_
-                print(f"{i}/{len(todo)} {dict(stats)} {rate:.0f}/s, {BRAKE.bytes * 8 / dt_ / 1e6:.0f} Mbit/s, "
-                      f"throttled {BRAKE.hits}x, eta {(len(todo) - i) / rate / 3600:.1f} h", flush=True)
+                out.write(json.dumps(r, ensure_ascii=False) + "\n")
+            out.flush()
+            i, dt_ = min(c + 2000, len(todo)), time.time() - t0
+            rate = i / dt_
+            print(f"{i}/{len(todo)} {dict(stats)} {rate:.0f}/s, {BRAKE.bytes * 8 / dt_ / 1e6:.0f} Mbit/s, "
+                  f"throttled {BRAKE.hits}x, eta {(len(todo) - i) / rate / 3600:.1f} h", flush=True)
     print("fetched", dict(stats), flush=True)
 
 
@@ -155,7 +162,7 @@ def build():
     os.makedirs(out_dir, exist_ok=True)
     shards, seen, st = collections.defaultdict(list), set(), collections.Counter()
     years = collections.Counter()
-    for ln in open(RECORDS, encoding="utf-8"):
+    for ln in (x for path in record_files() for x in open(path, encoding="utf-8")):
         try:
             r = json.loads(ln)
         except json.JSONDecodeError:               # a line cut off by an interrupted fetch
@@ -192,9 +199,10 @@ def build():
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("step", choices=["fetch", "build"])
-    ap.add_argument("--threads", type=int, default=32)
+    ap.add_argument("--threads", type=int, default=16)
+    ap.add_argument("--shard", default="0/1", help="k/N: this process takes every N-th name, starting at k")
     a = ap.parse_args()
-    fetch(a.threads) if a.step == "fetch" else build()
+    fetch(a.threads, a.shard) if a.step == "fetch" else build()
 
 
 if __name__ == "__main__":
