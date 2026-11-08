@@ -4,7 +4,7 @@
 
 CREATE TABLE IF NOT EXISTS rose_source (
   source_id    SMALLINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  name         VARCHAR(64)  NOT NULL UNIQUE,      -- rosettacode, oeis, wikidata, qudt, codata, msl, mathlib, own
+  name         VARCHAR(64)  NOT NULL UNIQUE,      -- rosettacode, oeis, wikidata, qudt, codata, msl, mathlib, blastdiamond, own
   url          VARCHAR(255) NOT NULL,
   license      VARCHAR(64)  NOT NULL,             -- SPDX id, e.g. GFDL-1.3-or-later, CC-BY-SA-4.0, CC0-1.0
   share_alike  BOOLEAN      NOT NULL DEFAULT FALSE,
@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS rose_source (
 CREATE TABLE IF NOT EXISTS rose_unit (
   unit_id      BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   ref          VARCHAR(190) NOT NULL UNIQUE,      -- rc:Sieve_of_Eratosthenes, oeis:A000040, law:water_heat_flow
-  kind         ENUM('algo','math','law','const','model','ctrl','machine','table') NOT NULL,
+  kind         ENUM('algo','math','law','const','model','ctrl','machine','table','bio') NOT NULL,
   name         VARCHAR(255) NOT NULL,
   intent       TEXT         NOT NULL,             -- embedding key
   signature    VARCHAR(1024) NULL,                -- canonical Rose type signature

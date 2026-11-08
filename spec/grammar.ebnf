@@ -8,7 +8,7 @@ target_decl = "target" , ident , { "," , ident } ;
 use_decl    = "use" , ref , [ "as" , ident ] ;
 ref         = scheme , ":" , refname , [ "@" , version ] ;
 scheme      = "rc" | "oeis" | "math" | "law" | "const" | "model"
-            | "ctrl" | "machine" | "table" | "wikidata" | "local" ;
+            | "ctrl" | "machine" | "table" | "bio" | "wikidata" | "local" ;
 refname     = qname | string ;
 version     = ident | "sha:" , hex ;
 

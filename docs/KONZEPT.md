@@ -137,6 +137,7 @@ test primes_below(2)  == []
 | Regler | `ctrl` | PID mit Anti-Windup, Zweipunkt, Rampe | Abtastzeit Pflicht, Stellgrößenbegrenzung Pflicht, Simulation gegen Streckenmodell |
 | Zustandsautomat | `machine` | Pumpe mit Hysterese + Mindestlaufzeit | deterministisch, vollständig, alle Zustände erreichbar, keine Verklemmung |
 | Entscheidungstabelle | `table` | Entladequelle nach SOC/Netz (DMN, hit policy `unique`) | vollständig, überschneidungsfrei (vollständige Aufzählung) |
+| Bioinformatik | `use bio:` | Homologiesuche, Sequenz zu Accession, Taxon mit Abstammung | Weg über die lokale DIAMOND-nr erzwungen (Abschnitt 5.7) |
 
 ### 5.3 Physikalische Gesetze – akausal
 
@@ -240,6 +241,85 @@ Kategorien: `E1xx` Syntax, `E2xx` Typen/Einheiten, `E3xx` Bausteine
 (unbekannt, keine Implementierung für das Ziel), `E4xx` Regler, `E5xx`
 Automaten/Tabellen, `R2xx` Empfehlungen (z. B. `R201 known-solution`).
 
+### 5.7 Bio-Aufgaben: Abkürzung über die lokale DIAMOND-nr
+
+**Regel:** Betrifft eine Aufgabe Proteinsequenzen, Homologie, Taxa oder
+Accessions, nimmt Rose **immer den lokalen Weg** über die DIAMOND-Datenbank auf
+dem dell. Nie NCBI-Online-BLAST (`blastp -remote`, Biopython `NCBIWWW.qblast`),
+nie Entrez-`efetch` für Sequenzen, die lokal vorliegen, nie eine selbst
+geschriebene Alignment-Schleife über eine Datenbank.
+
+**Bestand** (Repo [gerontec/blastDiamond](https://github.com/gerontec/blastDiamond)):
+
+| Teil | Was |
+|---|---|
+| `~/diamond/nr_full.dmnd` (NVMe) | komplette NCBI-nr als DIAMOND-DB, täglich ergänzt (`nr_daily_delta.py`, Cron 04:30) |
+| `wagodb.blast_*` | Metadaten: Accessions, Länge, `createdate`, Taxa mit Abstammung (`blast_taxon`, Cron 04:55) |
+| `dmnd_preselect.py` | Vorauswahl nach Taxon (mit Untertaxa), Länge, `new_days` → kleine Teil-.dmnd, Cache 2 Tage |
+| `dmnd_getseq.py` | Reste einer Accession direkt über die Offset-Tabelle der .dmnd |
+| `blast_job` + `blast_api_worker.py` | Warteschlange mit RAM-Planung: Grenze min(48 GB, MemAvailable − 4 GB), `--block-size` passend |
+| `api.php` | `?r=acc`, `?r=taxon`, `?r=search`, `?r=job`, `?r=amylo` |
+
+**Abbildung der Bausteine:**
+
+| Rose-Baustein | wird übersetzt in |
+|---|---|
+| `bio:meta.*` – Accession, Taxon, Abstammung, Zählen, „neu seit“ | **reines SQL** auf `blast_*`, keine Suche |
+| `bio:seq.get(acc, range?)` | `dmnd_getseq` |
+| `bio:search.blastp` / `bio:search.blastx` | Job in `blast_job` (intern) bzw. `POST ?r=search` mit `X-Api-Key` (extern) |
+| `bio:amylo` | `?r=amylo` (Tesla P4) |
+
+**Zweistufig erzwungen** – wie im Worker und in `rep_newseq.py`:
+
+1. **Eingrenzen** in MariaDB (Taxon samt Untertaxa, Länge, Erstellungsdatum) → Teil-.dmnd.
+2. **Fein suchen** in dieser Menge mit `--dbsize` der vollen nr, damit die
+   E-Werte mit einer Suche über die ganze nr vergleichbar bleiben.
+
+`bio:search` ohne Filter ist ein Fehler (`E602`), außer es steht ausdrücklich
+`scope all_nr` da. Dann gibt der Prüfer eine Schätzung von Laufzeit und RAM aus
+`blast_ram_log` aus. Eine ungefilterte Suche über die ganze nr dauert für 51 aa
+mehr als 7 min und belegt ~15 GB RSS, mit Vorauswahl sind es Sekunden.
+
+**Kein zweiter Suchweg:** Der übersetzte Code ruft `diamond` nie selbst auf,
+sondern reicht einen Job an die vorhandene Warteschlange. So bleibt die
+RAM-Planung des 64-GB-Rechners an einer Stelle.
+
+**Zählfragen sind keine Suche.** „Wie viele SARS-CoV-2-Sequenzen haben
+Spike-Länge?“ ist ein `bio:meta.count`, also ein `SELECT` (948 665 Sequenzen,
+9 s). Das deckt sich mit der Arbeitsteilung aus 8.3: Zählen macht SQL, nicht
+das Modell.
+
+**Empfindlichkeit:** Standard ist `very_sensitive`. `ultra_sensitive` nur mit
+Begründung, denn gemessen lieferte es bei der Spike-Abfrage dieselben Treffer
+bei etwa 3-facher Laufzeit (13 s gegen 41–46 s).
+
+```rose
+use bio:search.blastp as blastp
+use bio:meta
+
+fn new_spike_like(query: Fasta) -> List[bio.Hit]
+  intent "spike-like proteins added to nr in the last 90 days"
+  effect io
+do
+  return blastp(query, taxon = meta.taxon("Coronaviridae"), len = 1100 .. 1400,
+                new_days = 90, sensitivity = very_sensitive, max_targets = all)
+end
+
+fn spike_length_count() -> Int
+  intent "number of SARS-CoV-2 sequences of spike length in nr"
+do
+  return meta.count(taxon = meta.taxon("Severe acute respiratory syndrome coronavirus 2"),
+                    len = 1200 .. 1300)
+end
+```
+
+Bio-Diagnosen: `E601 remote-blast` (Online-BLAST oder `qblast` im Code →
+`bio:search`), `E602 unfiltered-nr-search`, `E603 charset-join` (Join von
+`utf8mb4`-Accessions auf `blast_acc.acc` (ascii) → `CONVERT(… USING ascii)`,
+sonst Vollscan über 1,9 Mrd. Zeilen), `R203 local-data-available` (Download
+einer Sequenz, die lokal vorliegt), `R204 masked-residues` (Sequenzen aus der
+.dmnd können X-Läufe aus der makedb-Maskierung enthalten).
+
 ## 6. Der Korpus – Quellen
 
 | Quelle | Inhalt | Lizenz | Nutzung |
@@ -255,6 +335,7 @@ Automaten/Tabellen, `R2xx` Empfehlungen (z. B. `R201 known-solution`).
 | **Modelica Standard Library** | > 1 000 Modelle: Thermik, Elektrik, Fluid, Mechanik | BSD-3 | `law`- und `model`-Bausteine, akausale Gleichungen direkt übernehmbar |
 | python-control, Fachliteratur | PID-Formen, Anti-Windup, Einstellregeln (Ziegler-Nichols, SIMC) | BSD-3 / Zitat | `ctrl`-Bibliothek, eigene Implementierung |
 | SCXML (W3C), IEC 61131-3 SFC | Automatenmodelle | W3C / Norm | Import-/Exportformate für `machine` |
+| **gerontec/blastDiamond** (lokal) | komplette NCBI-nr als DIAMOND-DB + Metadaten `blast_*` | NCBI-Daten gemeinfrei, Code eigen | `bio`-Bausteine, nur Abbildung auf die vorhandene Strecke (5.7) |
 | **Eigene Projekte** | batmonitor-DMN, `rep_max_state.py`, CODESYS-Heizung, ESPHome-Regler | eigen | über die vorhandene `vec_`-Wissensbasis verknüpfen, nicht kopieren |
 
 Nicht verwendet: Project-Euler-Lösungen (Veröffentlichung untersagt),
@@ -364,7 +445,9 @@ Aufgaben, gleiche Modelle (Qwen3-4B lokal, DeepSeek über `ds`, Claude):
 
 Aufgaben: (1) Rosetta-Tasks im **Leave-one-out** – der Task wird aus dem Index
 entfernt, Teilprobleme bleiben auffindbar; (2) 30 eigene Aufgaben aus dem
-Haus-Umfeld (Regler, Automaten, Energieflüsse) mit festen Prüfungen.
+Haus-Umfeld (Regler, Automaten, Energieflüsse) mit festen Prüfungen;
+(3) 10 Bio-Aufgaben (Homologie, „neu seit“, Zählen nach Taxon). Dort zählt
+zusätzlich, ob das LLM den lokalen Weg nimmt oder doch Online-BLAST schreibt.
 
 Kennzahlen: pass@1, Tokens ein/aus, Anzahl check-Runden, Laufzeit,
 Einheitenfehler, Fehler in Automaten/Tabellen.
@@ -380,7 +463,7 @@ Sprache muss ihren Mehrwert beweisen.
 |---|---|---|
 | **M0** | dieses Konzept | Review |
 | **M1** | Rosetta-Import → `rose_unit`/`rose_impl`, Embeddings der Task-Texte | Retrieval: umformulierte Task-Beschreibung → richtiger Task in den Top-3 bei ≥ 80 % |
-| **M2** | MCP-Server v0: `search`, `get`, `examples` | Variante B des Benchmarks lauffähig |
+| **M2** | MCP-Server v0: `search`, `get`, `examples`; `bio`-Bausteine als dünne Abbildung auf blastDiamond (SQL, `dmnd_getseq`, Job-Warteschlange) | Variante B des Benchmarks lauffähig; Bio-Abfrage aus 5.7 liefert dieselben Treffer wie `rep_newseq.py` |
 | **M3** | Rose v0: Parser (Lark), Prüfer (Typen, Einheiten), Übersetzer → Python; `fn`, `use`, `test`, `intent` | Beispiel `primes.rose` übersetzt und grün |
 | **M4** | `law` + Import Wikidata/QUDT/CODATA/MSL-Thermik, `solve` mit SymPy | 50 Gesetze nach jeder Variable auflösbar, Dimensionen geprüft |
 | **M5** | `table`, `machine` mit vollständiger Aufzählung; Ziele ST und C | batmonitor-Tabellen als Rose nachgebaut, Differenztest gegen Original grün |

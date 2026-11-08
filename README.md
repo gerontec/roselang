@@ -29,7 +29,7 @@ test required_flow(9 kW, 5 K) == 0.430 kg/s within 1 %
 | [`spec/grammar.ebnf`](spec/grammar.ebnf) | grammar draft v0 |
 | [`spec/mcp-tools.md`](spec/mcp-tools.md) | MCP tool specification and diagnostic codes |
 | [`schema/rose_schema.sql`](schema/rose_schema.sql) | MariaDB 11.8 corpus schema (`rose_*`, `VECTOR(1024)` + HNSW) |
-| [`examples/`](examples) | `fn`, `law`, `ctrl`, `machine`, `table` examples |
+| [`examples/`](examples) | `fn`, `law`, `ctrl`, `machine`, `table`, `bio` examples |
 
 ## Key ideas
 
@@ -43,6 +43,9 @@ test required_flow(9 kW, 5 K) == 0.430 kg/s within 1 %
   hand-written code re-implements a corpus unit.
 - **Provenance and licences** in `rose.lock`; `--license permissive` excludes
   share-alike sources (Rosetta Code is GFDL).
+- **Bio tasks take the local shortcut:** sequence, homology and taxon questions compile onto the
+  local DIAMOND nr ([gerontec/blastDiamond](https://github.com/gerontec/blastDiamond)): MariaDB
+  pre-selection, then DIAMOND through the existing job queue; online BLAST is a compile error.
 - **Measured, not assumed:** the language is dropped if LLM + MCP + Rose does not beat
   LLM + MCP alone.
 

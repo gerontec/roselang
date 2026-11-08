@@ -1,0 +1,28 @@
+module bio.new_spike
+target python
+
+# Bio tasks always take the local DIAMOND nr on the dell (gerontec/blastDiamond):
+# 1) narrow in MariaDB (taxon with sub-taxa, length, new_days) -> sub-.dmnd
+# 2) search fine-grained with --dbsize of the full nr, via the blast_job queue
+# Never NCBI online BLAST (E601), never an unfiltered search over all of nr (E602).
+
+use bio:search.blastp as blastp
+use bio:meta
+
+fn new_spike_like(query: Fasta) -> List[bio.Hit]
+  intent "spike-like proteins added to nr in the last 90 days"
+  effect io
+do
+  return blastp(query, taxon = meta.taxon("Coronaviridae"), len = 1100 .. 1400,
+                new_days = 90, sensitivity = very_sensitive, max_targets = all)
+end
+
+# A counting question is not a search: pure SQL on wagodb.blast_*
+fn spike_length_count() -> Int
+  intent "number of SARS-CoV-2 sequences of spike length in nr"
+do
+  return meta.count(taxon = meta.taxon("Severe acute respiratory syndrome coronavirus 2"),
+                    len = 1200 .. 1300)
+end
+
+test spike_length_count() > 900000

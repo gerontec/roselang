@@ -33,7 +33,7 @@ Design rules
 
 | Tool | Input | Output |
 |---|---|---|
-| `rose.search` | `query: str`, `kind?: algo\|math\|law\|const\|model\|ctrl\|machine\|table`, `target?: str`, `min_level?: str`, `license?: any\|permissive`, `k?: int` | list of signature cards |
+| `rose.search` | `query: str`, `kind?: algo\|math\|law\|const\|model\|ctrl\|machine\|table\|bio`, `target?: str`, `min_level?: str`, `license?: any\|permissive`, `k?: int` | list of signature cards |
 | `rose.match_signature` | `signature: str` (Rose type, e.g. `"(Real[W], Real[K]) -> Real[kg/s]"`), `kind?`, `k?` | list of signature cards, exact dimension match first |
 | `rose.get` | `ref: str`, `with?: [source, tests, provenance, deps]` | card + requested parts (Rose source, test vectors, origin URL, dependencies) |
 | `rose.examples` | `ref: str`, `lang: str`, `k?: int` | implementations in that language with `level`, `license`, `source_url` (only tool that returns foreign code) |
@@ -63,8 +63,28 @@ Design rules
 | E503 | deadlock | reachable state without outgoing transition (and not final) |
 | E511 | table-incomplete | input combination without rule (with counterexample) |
 | E512 | table-overlap | input combination matched by > 1 rule under `hit unique` |
+| E601 | remote-blast | NCBI online BLAST / `qblast` used; replace with `bio:search` (local DIAMOND nr) |
+| E602 | unfiltered-nr-search | `bio:search` without taxon/length/new_days filter and without `scope all_nr` |
+| E603 | charset-join | utf8mb4 accession joined on `blast_acc.acc` (ascii) without `CONVERT(... USING ascii)` |
 | R201 | known-solution | hand-written body resembles a corpus unit |
 | R202 | lower-level-chosen | a higher-level unit with the same signature exists |
+| R203 | local-data-available | sequence downloaded (efetch/UniProt) although it is in the local nr |
+| R204 | masked-residues | residues from the .dmnd may contain X runs (makedb masking) |
+
+## Bio units: local DIAMOND shortcut
+
+`kind = bio` never creates a new search path. The compiler maps it onto the existing
+gerontec/blastDiamond stack on the dell:
+
+| Unit | Compiles to |
+|---|---|
+| `bio:meta.*` (accession, taxon, lineage, count, new since) | SQL on `wagodb.blast_*` |
+| `bio:seq.get` | `dmnd_getseq.py` (offset table of `nr_full.dmnd`) |
+| `bio:search.blastp` / `blastx` | job in `blast_job` (internal) or `POST ?r=search` with `X-Api-Key` (external), two-stage: MariaDB pre-selection → sub-.dmnd → DIAMOND with `--dbsize` of the full nr |
+| `bio:amylo` | `POST ?r=amylo` (Tesla P4) |
+
+Generated code never calls `diamond` directly, so the worker's RAM planning stays the
+only one.
 
 ## Example session
 
