@@ -173,9 +173,12 @@ def control_units():
         if not is_solver(name, obj) or not getattr(obj, "__module__", "").startswith("control") or id(obj) in seen:
             continue
         seen.add(id(obj))
-        out.append({"path": f"{obj.__module__}.{name}", "public": f"control.{name}", "obj": obj, "lib": "control",
+        canon = getattr(obj, "__name__", name)            # control.bode is an alias of bode_plot
+        if getattr(control, canon, None) is not obj:
+            canon = name
+        out.append({"path": f"{obj.__module__}.{canon}", "public": f"control.{canon}", "obj": obj, "lib": "control",
                     "version": control.__version__,
-                    "url": f"https://python-control.readthedocs.io/en/latest/generated/control.{name}.html"})
+                    "url": f"https://python-control.readthedocs.io/en/latest/generated/control.{canon}.html"})
     return out
 
 
