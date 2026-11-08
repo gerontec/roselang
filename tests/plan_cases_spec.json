@@ -107,5 +107,21 @@
    "state_estimation",
    "kalman"
   ]
+ },
+ {
+  "task": "simulate the temperature of a hot water tank with heat losses and a heating element",
+  "category": "model",
+  "ref_any": [
+   "physical_system_model",
+   "msl:"
+  ]
+ },
+ {
+  "task": "switch the compressor on below 4 degC and off above 7 degC",
+  "category": "ctrl",
+  "ref_any": [
+   "on_off_control",
+   "two_point"
+  ]
  }
 ]

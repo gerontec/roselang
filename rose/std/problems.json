@@ -51,7 +51,11 @@
   "E_controller": "\\b(pid|controller|control loop|setpoint|regler|regelkreis|sollwert|regelung)\\b",
   "O_tuning": "\\b(tun(e|ing)|gains?|parameters? for|einstell\\w*|parametrier\\w*|auslegen|auslegung)\\b",
   "O_estimate": "\\b(estimat\\w*|noisy (measurements|sensor)|filter (the )?noise|kalman|observer|sch(ä|a)tz\\w*|verrauscht\\w*|beobachter)\\b",
-  "O_response": "\\b(step response|transfer function|bode|frequency response|impulse response|sprungantwort|(ü|u)bertragungsfunktion|frequenzgang)\\b"
+  "O_response": "\\b(step response|transfer function|bode|frequency response|impulse response|sprungantwort|(ü|u)bertragungsfunktion|frequenzgang)\\b",
+  "O_keep_at": "\\b(keep|hold|maintain|regulate|control)\\b[^.]{0,40}\\b(at|to|constant|between)\\b|\\b(halten|konstant|regeln|regulieren)\\b",
+  "E_actuator": "\\b(heaters?|heating element|pumps?|valves?|compressors?|fans?|motors?|heizung|heizstab|heizer|pumpen?|ventile?|verdichter|l(ü|u)fter|motor)\\b",
+  "O_model_sim": "\\b(simulat\\w*|model (the|a|its)? ?(dynamics|behaviou?r|system)|dynamic model|modell\\w*|simulier\\w*)\\b",
+  "E_physical": "\\b(thermal|heat|temperature|electrical|circuit|voltage|motor|pump|tank|pipe|spring|damper|gear|mass|w(ä|a)rme|temperatur|elektrisch|schaltung|pumpe|beh(ä|a)lter|rohr|feder|getriebe)\\b"
  },
  "problems": [
   {
@@ -1261,7 +1265,9 @@
    "see": [
     "machine:finite_state_machine",
     "machine:mealy_machine",
-    "machine:moore_machine"
+    "machine:moore_machine",
+    "msl:Modelica.StateGraph.Step",
+    "msl:Modelica.StateGraph.Transition"
    ],
    "kind": "machine"
   },
@@ -1308,7 +1314,8 @@
    ],
    "see": [
     "ctrl:pid_controler",
-    "ctrl:pid.parallel.antiwindup"
+    "ctrl:pid.parallel.antiwindup",
+    "msl:Modelica.Blocks.Continuous.LimPID"
    ],
    "kind": "ctrl"
   },
@@ -1391,9 +1398,104 @@
    ],
    "see": [
     "ctrl:transfer_function",
-    "ctrl:statespace_representation"
+    "ctrl:statespace_representation",
+    "msl:Modelica.Blocks.Continuous.FirstOrder"
    ],
    "kind": "ctrl"
+  },
+  {
+   "id": "on_off_control",
+   "kind": "ctrl",
+   "name": "on/off (two-point) control with hysteresis",
+   "description": "keep a quantity near a setpoint by switching an actuator on and off with a hysteresis band (thermostat)",
+   "aliases": [
+    "thermostat",
+    "bang-bang control",
+    "Zweipunktregler",
+    "Hysterese"
+   ],
+   "requires": [
+    [
+     "O_keep_at"
+    ],
+    [
+     "E_actuator",
+     "E_controller"
+    ]
+   ],
+   "optional": [
+    "E_physical"
+   ],
+   "forbids": [
+    "O_tuning"
+   ],
+   "complexity": "closed-form rule; minimum on/off times against wear",
+   "solvers": [
+    {
+     "name": "Rose two-point controller card",
+     "ref": "ctrl:two_point",
+     "use": "on/off with hysteresis band"
+    },
+    {
+     "name": "Modelica OnOffController",
+     "ref": "msl:Modelica.Blocks.Logical.OnOffController",
+     "use": "model block"
+    },
+    {
+     "name": "Modelica Hysteresis",
+     "ref": "msl:Modelica.Blocks.Logical.Hysteresis",
+     "use": "model block"
+    },
+    {
+     "name": "PID controller",
+     "ref": "ctrl:pid.parallel.antiwindup",
+     "use": "when the actuator is continuous"
+    }
+   ],
+   "see": [
+    "machine:hysteresis_min_runtime"
+   ]
+  },
+  {
+   "id": "physical_system_model",
+   "kind": "model",
+   "name": "dynamic model of a physical system",
+   "description": "model or simulate thermal, electrical, fluid or mechanical components and their interaction",
+   "aliases": [
+    "plant model",
+    "system simulation",
+    "Streckenmodell",
+    "Simulation"
+   ],
+   "requires": [
+    [
+     "O_model_sim"
+    ],
+    [
+     "E_physical"
+    ]
+   ],
+   "optional": [],
+   "forbids": [],
+   "complexity": "numerical integration of differential-algebraic equations",
+   "solvers": [
+    {
+     "name": "Modelica Standard Library components",
+     "ref": "msl:Modelica.Thermal.HeatTransfer.Components.HeatCapacitor",
+     "use": "thermal, electrical, fluid, mechanical component models"
+    },
+    {
+     "name": "scipy.integrate.solve_ivp",
+     "ref": "py:scipy.integrate.solve_ivp",
+     "use": "ODE integration in Python",
+     "library": true
+    }
+   ],
+   "see": [
+    "msl:Modelica.Electrical.Analog.Basic.Resistor",
+    "msl:Modelica.Fluid.Vessels.OpenTank",
+    "model:fopdt"
+   ]
   }
  ]
 }
