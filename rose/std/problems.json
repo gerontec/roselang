@@ -85,6 +85,18 @@
    "complexity": "NP-hard",
    "solvers": [
     {
+     "name": "networkx.algorithms.approximation.traveling_salesman.traveling_salesman_problem",
+     "ref": "py:networkx.algorithms.approximation.traveling_salesman.traveling_salesman_problem",
+     "use": "NetworkX: Christofides or greedy + local search, approximate",
+     "library": true
+    },
+    {
+     "name": "ortools.constraint_solver.pywrapcp.RoutingModel",
+     "ref": "py:ortools.constraint_solver.pywrapcp.RoutingModel",
+     "use": "OR-Tools routing solver, one vehicle",
+     "library": true
+    },
+    {
      "name": "Held-Karp dynamic programming",
      "ref": "algo:heldkarp_algorithm",
      "use": "exact, O(n^2 2^n), up to about 20 locations"
@@ -144,6 +156,12 @@
    "complexity": "NP-hard",
    "solvers": [
     {
+     "name": "ortools.constraint_solver.pywrapcp.RoutingModel",
+     "ref": "py:ortools.constraint_solver.pywrapcp.RoutingModel",
+     "use": "OR-Tools routing solver: capacities, time windows, several vehicles",
+     "library": true
+    },
+    {
      "name": "Clarke-Wright savings",
      "ref": "algo:clarke_wrights_savings_algorithm",
      "use": "construction heuristic"
@@ -196,6 +214,24 @@
    "complexity": "polynomial",
    "solvers": [
     {
+     "name": "networkx.algorithms.shortest_paths.weighted.dijkstra_path",
+     "ref": "py:networkx.algorithms.shortest_paths.weighted.dijkstra_path",
+     "use": "NetworkX Dijkstra",
+     "library": true
+    },
+    {
+     "name": "networkx.algorithms.shortest_paths.astar.astar_path",
+     "ref": "py:networkx.algorithms.shortest_paths.astar.astar_path",
+     "use": "NetworkX A*",
+     "library": true
+    },
+    {
+     "name": "scipy.sparse.csgraph.shortest_path",
+     "ref": "py:scipy.sparse.csgraph.shortest_path",
+     "use": "SciPy on a sparse matrix",
+     "library": true
+    },
+    {
      "name": "Dijkstra",
      "ref": "algo:dijkstras_algorithm",
      "use": "non-negative weights, O((V+E) log V)"
@@ -245,6 +281,18 @@
    ],
    "complexity": "polynomial",
    "solvers": [
+    {
+     "name": "networkx.algorithms.shortest_paths.dense.floyd_warshall",
+     "ref": "py:networkx.algorithms.shortest_paths.dense.floyd_warshall",
+     "use": "NetworkX Floyd-Warshall",
+     "library": true
+    },
+    {
+     "name": "scipy.sparse.csgraph.floyd_warshall",
+     "ref": "py:scipy.sparse.csgraph.floyd_warshall",
+     "use": "SciPy Floyd-Warshall",
+     "library": true
+    },
     {
      "name": "Floyd-Warshall",
      "ref": "algo:floydwarshall_algorithm",
@@ -296,6 +344,18 @@
    "complexity": "polynomial",
    "solvers": [
     {
+     "name": "networkx.algorithms.tree.mst.minimum_spanning_tree",
+     "ref": "py:networkx.algorithms.tree.mst.minimum_spanning_tree",
+     "use": "NetworkX Kruskal/Prim/Boruvka",
+     "library": true
+    },
+    {
+     "name": "scipy.sparse.csgraph.minimum_spanning_tree",
+     "ref": "py:scipy.sparse.csgraph.minimum_spanning_tree",
+     "use": "SciPy on a sparse matrix",
+     "library": true
+    },
+    {
      "name": "Kruskal",
      "ref": "algo:kruskals_algorithm",
      "use": "O(E log E)"
@@ -337,6 +397,18 @@
    ],
    "complexity": "NP-hard (weakly: pseudo-polynomial dynamic programming)",
    "solvers": [
+    {
+     "name": "ortools.algorithms.python.knapsack_solver.KnapsackSolver",
+     "ref": "py:ortools.algorithms.python.knapsack_solver.KnapsackSolver",
+     "use": "OR-Tools knapsack solver, exact",
+     "library": true
+    },
+    {
+     "name": "scipy.optimize.milp",
+     "ref": "py:scipy.optimize.milp",
+     "use": "as an integer program",
+     "library": true
+    },
     {
      "name": "dynamic programming over the capacity",
      "ref": null,
@@ -381,6 +453,18 @@
    "complexity": "NP-hard",
    "solvers": [
     {
+     "name": "ortools.sat.python.cp_model.CpModel",
+     "ref": "py:ortools.sat.python.cp_model.CpModel",
+     "use": "OR-Tools CP-SAT model",
+     "library": true
+    },
+    {
+     "name": "scipy.optimize.milp",
+     "ref": "py:scipy.optimize.milp",
+     "use": "as an integer program",
+     "library": true
+    },
+    {
      "name": "first-fit decreasing",
      "ref": null,
      "use": "at most 11/9 OPT + 6/9 bins"
@@ -422,6 +506,12 @@
    "complexity": "NP-hard",
    "solvers": [
     {
+     "name": "networkx.algorithms.coloring.greedy_coloring.greedy_color",
+     "ref": "py:networkx.algorithms.coloring.greedy_coloring.greedy_color",
+     "use": "NetworkX greedy colouring with strategies (largest_first, DSATUR)",
+     "library": true
+    },
+    {
      "name": "greedy colouring (largest degree first)",
      "ref": "algo:greedy_coloring",
      "use": "heuristic"
@@ -460,6 +550,18 @@
    "complexity": "polynomial (undirected or directed); NP-hard for mixed graphs",
    "solvers": [
     {
+     "name": "networkx.algorithms.euler.eulerize",
+     "ref": "py:networkx.algorithms.euler.eulerize",
+     "use": "NetworkX: add duplicate edges (Chinese postman)",
+     "library": true
+    },
+    {
+     "name": "networkx.algorithms.euler.eulerian_circuit",
+     "ref": "py:networkx.algorithms.euler.eulerian_circuit",
+     "use": "then the Euler circuit",
+     "library": true
+    },
+    {
      "name": "Euler circuit after a minimum-weight matching of odd nodes",
      "ref": "algo:hierholzers_algorithm",
      "use": "Hierholzer for the Euler circuit"
@@ -493,6 +595,12 @@
    ],
    "complexity": "polynomial, O(n log n) comparisons",
    "solvers": [
+    {
+     "name": "builtins.sorted",
+     "ref": "py:builtins.sorted",
+     "use": "Python built-in (Timsort)",
+     "library": true
+    },
     {
      "name": "the language's built-in sort (Timsort in Python)",
      "ref": null,
@@ -608,6 +716,24 @@
    "complexity": "polynomial",
    "solvers": [
     {
+     "name": "networkx.algorithms.flow.maxflow.maximum_flow",
+     "ref": "py:networkx.algorithms.flow.maxflow.maximum_flow",
+     "use": "NetworkX",
+     "library": true
+    },
+    {
+     "name": "scipy.sparse.csgraph.maximum_flow",
+     "ref": "py:scipy.sparse.csgraph.maximum_flow",
+     "use": "SciPy",
+     "library": true
+    },
+    {
+     "name": "ortools.graph.python.max_flow.SimpleMaxFlow",
+     "ref": "py:ortools.graph.python.max_flow.SimpleMaxFlow",
+     "use": "OR-Tools",
+     "library": true
+    },
+    {
      "name": "Edmonds-Karp",
      "ref": "algo:edmondskarp_algorithm",
      "use": "O(V E^2)"
@@ -648,6 +774,18 @@
    "complexity": "polynomial, O(n^3)",
    "solvers": [
     {
+     "name": "scipy.optimize.linear_sum_assignment",
+     "ref": "py:scipy.optimize.linear_sum_assignment",
+     "use": "SciPy Hungarian-type solver",
+     "library": true
+    },
+    {
+     "name": "ortools.graph.python.linear_sum_assignment.SimpleLinearSumAssignment",
+     "ref": "py:ortools.graph.python.linear_sum_assignment.SimpleLinearSumAssignment",
+     "use": "OR-Tools",
+     "library": true
+    },
+    {
      "name": "Hungarian method",
      "ref": "algo:hungarian_algorithm",
      "use": "O(n^3)"
@@ -681,6 +819,18 @@
    "complexity": "polynomial, O(V + E)",
    "solvers": [
     {
+     "name": "graphlib.TopologicalSorter",
+     "ref": "py:graphlib.TopologicalSorter",
+     "use": "Python standard library",
+     "library": true
+    },
+    {
+     "name": "networkx.algorithms.dag.topological_sort",
+     "ref": "py:networkx.algorithms.dag.topological_sort",
+     "use": "NetworkX",
+     "library": true
+    },
+    {
      "name": "Kahn's algorithm / depth-first search",
      "ref": null,
      "use": "O(V + E), also detects cycles"
@@ -712,6 +862,12 @@
    "forbids": [],
    "complexity": "NP-hard",
    "solvers": [
+    {
+     "name": "scipy.optimize.milp",
+     "ref": "py:scipy.optimize.milp",
+     "use": "as an integer program",
+     "library": true
+    },
     {
      "name": "greedy (largest uncovered first)",
      "ref": null,
@@ -745,6 +901,12 @@
    "forbids": [],
    "complexity": "NP-complete (weakly: pseudo-polynomial dynamic programming)",
    "solvers": [
+    {
+     "name": "ortools.sat.python.cp_model.CpModel",
+     "ref": "py:ortools.sat.python.cp_model.CpModel",
+     "use": "OR-Tools CP-SAT",
+     "library": true
+    },
     {
      "name": "dynamic programming over the target",
      "ref": null,
@@ -783,6 +945,12 @@
    "complexity": "NP-hard",
    "solvers": [
     {
+     "name": "ortools.sat.python.cp_model.CpModel",
+     "ref": "py:ortools.sat.python.cp_model.CpModel",
+     "use": "OR-Tools CP-SAT (interval variables, no-overlap)",
+     "library": true
+    },
+    {
      "name": "dispatching rules + local search, constraint programming",
      "ref": null,
      "use": "heuristic / exact for small instances"
@@ -810,6 +978,12 @@
    "forbids": [],
    "complexity": "polynomial, O(n log n)",
    "solvers": [
+    {
+     "name": "scipy.spatial.ConvexHull",
+     "ref": "py:scipy.spatial.ConvexHull",
+     "use": "SciPy (Qhull)",
+     "library": true
+    },
     {
      "name": "Graham scan",
      "ref": "algo:graham_scan",
@@ -846,6 +1020,12 @@
    "complexity": "polynomial, O(log n)",
    "solvers": [
     {
+     "name": "bisect.bisect_left",
+     "ref": "py:bisect.bisect_left",
+     "use": "Python standard library",
+     "library": true
+    },
+    {
      "name": "binary search (bisect in Python)",
      "ref": "algo:binary_search_algorithm",
      "use": "O(log n)"
@@ -873,6 +1053,18 @@
    "forbids": [],
    "complexity": "polynomial (interior point); simplex fast in practice",
    "solvers": [
+    {
+     "name": "scipy.optimize.linprog",
+     "ref": "py:scipy.optimize.linprog",
+     "use": "SciPy (HiGHS)",
+     "library": true
+    },
+    {
+     "name": "ortools.linear_solver.pywraplp.Solver",
+     "ref": "py:ortools.linear_solver.pywraplp.Solver",
+     "use": "OR-Tools",
+     "library": true
+    },
     {
      "name": "simplex method",
      "ref": "math:simplex_algorithm",

@@ -434,10 +434,16 @@ def verdict(r, kb, k=3):
                 if c2 and c2.get("url"):
                     url = c2["url"]
                     break
-        sols.append({"ref": p["ref"], "name": p["name"], "url": url, "level": p["level"],
+        call = next((x["name"] for x in card.get("solvers", []) if x.get("library")), None)
+        if p["ref"].startswith("py:"):
+            call = p["name"]
+        sols.append({"ref": p["ref"], "name": p["name"], "url": url, "level": p["level"], "call": call,
                      "complexity": p.get("complexity") or card.get("complexity"), "license": p["license"]})
     best = sols[0]
     extra = f" ({best['complexity']})" if best.get("complexity") else ""
+    call = next((x["call"] for x in sols if x.get("call")), None)
+    if call:
+        extra += f"; ready-made solver: {call}"
     return {"verdict": "solved", "answer": f"A known solution exists: {best['name']}{extra}.",
             "solutions": sols, "warnings": warn, "task": r["task"]}
 
