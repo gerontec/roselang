@@ -24,9 +24,11 @@ import time
 import urllib.error
 import urllib.request
 
+import readme_clean
 import rose_db as R
 
 TOP_URL = "https://hugovk.dev/top-pypi-packages/top-pypi-packages.min.json"
+SHARE_ALIKE = re.compile(r"\b(A?GPL|LGPL|GNU (Affero |Lesser )?General Public|CC[- ]BY[- ]SA|EUPL)", re.I)
 UA = "roselang-importer/0.1 (+https://github.com/gerontec/roselang)"
 CACHE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "data", "pypi")
 
@@ -144,8 +146,15 @@ def card(row, rank, d):
         intent += f" [keywords: {kw}]"
     if tp:
         intent += " [topics: " + "; ".join(tp[:8]) + "]"
+    lic = licence(info)
+    # README extract: the package's own text, so it follows the package licence; share-alike ones are left out
+    readme = "" if SHARE_ALIKE.search(lic or "") else \
+        readme_clean.extract(info.get("description") or "", info.get("description_content_type"))
+    about = readme.split("\n\n")[0][:300] if readme and not readme.startswith(("Features:", "Example:")) else ""
+    if about and about.lower() != summary.lower():
+        intent += f" [about: {' '.join(about.split())}]"
     intent += f" [install: pip install {name}]"
-    payload = {"package": name, "version": info.get("version"), "license": licence(info),
+    payload = {"package": name, "version": info.get("version"), "license": lic, "readme": readme or None,
                "requires_python": info.get("requires_python"), "install": inst,
                "downloads_30d": row["download_count"], "rank": rank, "docs": docs, "topics": tp,
                "status": "solved", "domain": "software"}
@@ -168,8 +177,11 @@ def do_import(dry):
     print(f"{len(cards)} cards from {len(rows)} projects: {stats}", flush=True)
     if dry:
         for c in cards:
-            if c["name"].lower() in ("networkx", "python-control", "control", "pulp", "simpy", "transitions", "pint"):
-                print(c["ref"], "|", c["intent"][:200], "|", c["payload"]["install"], c["payload"]["license"])
+            if c["name"].lower() in ("networkx", "pulp", "simpy", "pint", "numpy"):
+                print(c["ref"], "|", c["intent"][:300], "|", c["payload"]["install"], c["payload"]["license"])
+                print(c["payload"]["readme"], "\n")
+        n = sum(1 for c in cards if c["payload"]["readme"])
+        print(f"with README extract: {n}/{len(cards)}")
         return 0
     con = R.connect()
     cur = con.cursor()
