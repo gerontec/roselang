@@ -9,7 +9,7 @@ import os
 from .nodes import Const, Law, Open
 from .parser import parse
 
-STD = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "std")
+STD = os.path.join(os.path.dirname(os.path.abspath(__file__)), "std")
 _index = None
 _files = {}
 

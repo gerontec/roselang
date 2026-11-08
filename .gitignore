@@ -1,5 +1,8 @@
 log/
 __pycache__/
 local.env
-std/catalog.vec
+rose/std/catalog.vec
 data/
+build/
+dist/
+*.egg-info/

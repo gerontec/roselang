@@ -16,6 +16,14 @@ compiles it to Python (C, IEC 61131-3 ST and ESPHome C++ planned).
 > Want to help? See [`TODO.md`](TODO.md).
 
 ```sh
+pip install git+https://github.com/gerontec/roselang     # distribution "roselang", import name "rose"
+rosec plan "speed of light in vacuum"
+python3 -c 'import rose; print(rose.use("law:kinetic_energy"))'
+```
+
+From a checkout:
+
+```sh
 python3 tests/run_tests.py                       # self-test, no network
 ./rosec test examples/kinetic.rose
 ./rosec plan "prove that every even integer greater than 2 is the sum of two primes"
@@ -40,7 +48,7 @@ test speed_for(200 kJ, 1000 kg) == 20 m/s within 1 %
 | [`docs/CONCEPT.md`](docs/CONCEPT.md) | full concept: principles, language, corpus sources and licences, verification levels, where the knowledge lives, benchmark and go/no-go rule, roadmap |
 | [`spec/grammar.ebnf`](spec/grammar.ebnf) | grammar draft v0 |
 | [`spec/mcp-tools.md`](spec/mcp-tools.md) | tool interface (CLI `--json`; optional MCP adapter) and diagnostic codes |
-| [`std/`](std) | generated standard library and knowledge catalog (do not edit; `tools/export_std.py`) |
+| [`rose/std/`](rose/std) | generated standard library and knowledge catalog (do not edit; `tools/export_std.py`) |
 | [`schema/rose_schema.sql`](schema/rose_schema.sql) | MariaDB 11.8 corpus schema (`rose_*`, `VECTOR(1024)` + HNSW) |
 | [`rose/`](rose) | compiler v1 (`rosec`): parser, unit checker, solve, tables, Python codegen, corpus access |
 | [`tools/`](tools) | corpus importers (Wikidata, CODATA, OEIS) and embedding |

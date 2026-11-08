@@ -10,7 +10,7 @@ Only CC0 / public-domain sources (Wikidata, CODATA) - share-alike data (OEIS) st
   std/catalog.jsonl    one card per unit of every non-share-alike source (also cards without Rose
                        source): the compiler's built-in knowledge for `rosec plan/search/get`
   std/catalog.vec      optional: int8 bge-m3 vectors in catalog order (--vectors, not in git)
-Usage: export_std.py [--out ../std] [--vectors]
+Usage: export_std.py [--out ../rose/std] [--vectors]
 """
 import argparse
 import json
@@ -44,7 +44,7 @@ def qstr(s):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--out", default=os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "std"))
+    ap.add_argument("--out", default=os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "rose", "std"))
     ap.add_argument("--vectors", action="store_true")
     a = ap.parse_args()
     out = os.path.abspath(a.out)

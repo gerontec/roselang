@@ -88,6 +88,11 @@ Pick one, open an issue saying you work on it, keep the PR small.
 - [ ] `--self-contained` mode for Rosetta Code submissions (E304), see M8.
 - [ ] Quantity literal ambiguity: `9 kW/m` when `m` is also a variable – define and test the rule.
 
+### Packaging
+- [x] `pyproject.toml`: distribution `roselang` (the name `rose` is taken on PyPI), import `rose`, command `rosec`;
+      wheel carries `rose/std/` (3.7 MB compressed).
+- [ ] Publish to PyPI (needs the maintainer's account and token).
+
 ### Built-in knowledge (M2)
 - [ ] `rosec plan` to ≥ 10/12: synonyms/aliases in the lexical index, P vs NP warning, no warning for a proved
       conjecture that has an open generalisation.

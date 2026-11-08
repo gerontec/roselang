@@ -31,8 +31,8 @@ for f in sorted(glob.glob(os.path.join(HERE, "*.rose"))):
 # the generated standard library must parse completely (every `use` of std parses its whole file)
 sys.path.insert(0, os.path.dirname(HERE))
 from rose.parser import parse  # noqa: E402
-for f in sorted(glob.glob(os.path.join(HERE, "..", "std", "**", "*.rose"), recursive=True)):
-    name = os.path.relpath(f, os.path.join(HERE, ".."))
+for f in sorted(glob.glob(os.path.join(HERE, "..", "rose", "std", "**", "*.rose"), recursive=True)):
+    name = os.path.relpath(f, os.path.join(HERE, "..", "rose"))
     try:
         n = len(parse(open(f, encoding="utf-8").read(), name).items)
         print(f"ok   std {name:<26} {n} items")
