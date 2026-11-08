@@ -10,9 +10,14 @@ is safe to eat or to take.
           (Kew, CC BY 3.0). Cards bio:taxon.<name>; status 'caution' when food or poison is recorded.
   drugs   Wikidata (CC0): compounds with an ATC code (P267) that are found in an organism (P703,
           mostly from LOTUS) - plants, fungi, bacteria. Cards bio:drug.<name>. A found-in claim
-          without a reference is listed as such. Fully synthetic drugs are left out.
+          without a reference is listed as such.
+          Plus synthetic and semi-synthetic drugs known before ivermectin (1981): active ingredients of
+          the FDA Orange Book (public domain) approved in the US before 1 January 1982, salts merged
+          into the active moiety, ATC code by name from Wikidata. Natural products that are also in
+          that list get the approval note.
 
-Inputs: data/plants/grin_dl/*.txt (7z e taxonomy_data.cab), data/plants/wcvp_dl/wcvp_dwca.zip.
+Inputs: data/plants/grin_dl/*.txt (7z e taxonomy_data.cab), data/plants/wcvp_dl/wcvp_dwca.zip,
+        data/pharma/ob_dl/products.txt (unzip of https://www.fda.gov/media/76860/download).
 Usage: import_plants.py taxa|drugs [--dry-run]
 """
 import argparse
@@ -39,6 +44,35 @@ CAUTION = ("[CAUTION: whether a plant is safe to eat depends on the plant part, 
            "amount, and above all on correct identification (poisonous look-alikes) - Rose only shows what the "
            "sources record and does not confirm that anything is safe to eat]")
 csv.field_size_limit(10 ** 9)
+ORANGE_BOOK = os.path.join(BASE, "..", "pharma", "ob_dl", "products.txt")
+# salt, ester and hydrate words after the active moiety (Orange Book ingredient strings)
+SALT = set("""HYDROCHLORIDE HCL SULFATE SODIUM POTASSIUM CALCIUM MAGNESIUM ZINC ALUMINUM LITHIUM CITRATE
+ACETATE PHOSPHATE MALEATE TARTRATE BITARTRATE SUCCINATE FUMARATE MESYLATE BESYLATE TOSYLATE BROMIDE
+HYDROBROMIDE IODIDE CHLORIDE NITRATE LACTATE GLUCONATE STEARATE PALMITATE DIPROPIONATE PROPIONATE
+VALERATE BUTYRATE CYPIONATE ENANTHATE DECANOATE UNDECYLENATE BENZOATE SALICYLATE PAMOATE NAPSYLATE
+HYCLATE MONOHYDRATE DIHYDRATE TRIHYDRATE HYDRATE ANHYDROUS BENZATHINE PROCAINE MEGLUMINE TROMETHAMINE
+DISODIUM DIPOTASSIUM METHYLBROMIDE METHYLSULFATE SACCHARATE ASPARTATE ESTOLATE ETHYLSUCCINATE
+LACTOBIONATE GLUCEPTATE PHOSPHATE, SODIUM, SUCCINATE, ACETONIDE""".replace(",", "").split())
+
+
+def orange_book_before_1982():
+    """active moiety -> ingredient strings approved in the US before 1982 (Orange Book wording:
+    'Approved Prior to Jan 1, 1982'). Combination products count for each of their ingredients."""
+    out = collections.defaultdict(set)
+    with open(ORANGE_BOOK, encoding="latin-1") as fh:
+        head = fh.readline().rstrip("\n").split("~")
+        for line in fh:
+            r = dict(zip(head, line.rstrip("\n").split("~")))
+            if "Prior" not in r.get("Approval_Date", ""):
+                continue
+            for ing in re.split(r"[;/]", r["Ingredient"]):
+                ing = re.sub(r",\s*(MICROCRYSTALLINE|ULTRAMICROCRYSTALLINE|DIBASIC|MONOBASIC)$", "", ing.strip().rstrip(")").strip())
+                w = ing.split()
+                while len(w) > 1 and w[-1] in SALT:
+                    w.pop()
+                if w:
+                    out[" ".join(w)].add(ing)
+    return out
 
 
 def grin(name):
@@ -229,6 +263,33 @@ def drugs(a):
         time.sleep(0.3)
     for c in comp.values():
         c["refs"] = {t: title[r] for t, r in c["refs"].items() if r in title}
+
+    # drugs approved in the US before 1982: match the active moiety to a Wikidata item with an ATC code
+    ob = orange_book_before_1982()
+    q2 = """SELECT ?c ?l (GROUP_CONCAT(DISTINCT ?atc; separator=' ') AS ?atcs) WHERE { ?c wdt:P267 ?atc .
+      { ?c rdfs:label ?l } UNION { ?c skos:altLabel ?l } FILTER(lang(?l)='en') } GROUP BY ?c ?l"""
+    r2 = s.get("https://query.wikidata.org/sparql", params={"query": q2, "format": "json"}, timeout=300)
+    r2.raise_for_status()
+    by_name, atc_of, label_of = collections.defaultdict(set), {}, {}
+    for b in r2.json()["results"]["bindings"]:
+        qid = b["c"]["value"].rsplit("/", 1)[1]
+        by_name[b["l"]["value"].upper()].add(qid)
+        atc_of[qid] = set(b["atcs"]["value"].split())
+    approved, unmatched = {}, {}
+    for moiety, forms in ob.items():
+        cands = by_name.get(moiety) or set().union(*(by_name.get(f, set()) for f in forms))
+        if len(cands) == 1:
+            approved.setdefault(next(iter(cands)), set()).update(forms)
+        else:
+            unmatched[moiety] = forms
+    print(f"Orange Book before 1982: {len(ob)} active moieties, {len(approved)} matched to Wikidata (ATC), "
+          f"{len(unmatched)} not matched", flush=True)
+    missing = [qid for qid in approved if qid not in comp]
+    for k in range(0, len(missing), 50):                 # English labels of the synthetic ones
+        e = s.get("https://www.wikidata.org/w/api.php", params={"action": "wbgetentities", "ids": "|".join(missing[k:k + 50]),
+                  "props": "labels", "languages": "en", "format": "json"}, timeout=60).json()["entities"]
+        label_of.update({qid: (v.get("labels", {}).get("en") or {}).get("value") for qid, v in e.items()})
+        time.sleep(0.3)
     con = R.connect()
     cur = con.cursor()
     sid = R.ensure_source(cur, "wikidata", "https://www.wikidata.org", "CC0-1.0", False,
@@ -237,21 +298,27 @@ def drugs(a):
     for q_, c in sorted(comp.items()):
         sourced = sorted(t for t, n in c["taxa"].items() if n)
         bare = sorted(t for t, n in c["taxa"].items() if not n)
-        parts = [f"{c['label']} - drug (ATC {', '.join(sorted(c['atc']))}), a natural product"]
+        # LOTUS also records trace detections (diazepam in wheat): 'recorded as found in', not 'made by'
+        parts = [f"{c['label']} - drug (ATC {', '.join(sorted(c['atc']))}), recorded in Wikidata as found in organisms"]
         if sourced and len(sourced) <= 3:                # few producers: name the publication behind each claim
-            parts.append(f"found in {len(sourced)} organism(s): " + "; ".join(
+            parts.append(f"- {len(sourced)} organism(s): " + "; ".join(
                 t + (f" (source: {c['refs'][t]})" if t in c["refs"] else "") for t in sourced))
         elif sourced:
-            parts.append(f"found in {len(sourced)} organism(s): " + "; ".join(sourced[:15]) + (" ..." if len(sourced) > 15 else ""))
+            parts.append(f"- {len(sourced)} organism(s): " + "; ".join(sourced[:15]) + (" ..." if len(sourced) > 15 else ""))
         if bare:
             parts.append("[found-in claim WITHOUT a source in Wikidata - unconfirmed: " + "; ".join(bare[:10]) + "]")
+        if q_ in approved:
+            parts.append("[a found-in record can be a trace detection; the drug itself may be made synthetically]")
+            parts.append(f"[US approval before 1982 (FDA Orange Book): {'; '.join(sorted(approved[q_])[:6]).lower()}]")
         parts.append("[pointer only: dose, preparation and safety are not covered - see the drug's own documentation]")
         intent = " ".join(parts)
+        st["approved_before_1982"] += q_ in approved
         st["with_source"] += bool(sourced)
         st["only_unsourced"] += not sourced
         payload = {"domain": "pharmacology", "status": "defined" if sourced else "disputed", "wikidata": q_,
                    "atc": sorted(c["atc"]), "found_in": sourced, "found_in_unsourced": bare,
-                   "found_in_refs": {t: c["refs"][t] for t in sourced if t in c["refs"]}}
+                   "found_in_refs": {t: c["refs"][t] for t in sourced if t in c["refs"]},
+                   "approved_us_before_1982": sorted(approved.get(q_, [])) or None}
         if a.dry_run:
             if c["label"] in ("ephedrine", "methamphetamine", "cathine", "avermectin", "morphine", "artemisinin"):
                 print(intent[:700])
@@ -263,7 +330,35 @@ def drugs(a):
         uid = R.upsert_unit(cur, ref=ref, kind="bio", name=c["label"], intent=intent, source_id=sid,
                             source_url=f"https://www.wikidata.org/wiki/{q_}", payload=payload)
         R.set_alias(cur, uid, "wikidata", q_)
+    # synthetic / semi-synthetic: approved before 1982, no producing organism recorded
+    osid = R.ensure_source(cur, "fda-orange-book", "https://www.fda.gov/drugs/drug-approvals-and-databases/orange-book-data-files",
+                           "LicenseRef-USGov-PD", False, "FDA Orange Book data files: active ingredients approved in the "
+                           "US before 1982; US federal work; ATC codes from Wikidata (CC0)")
+    rows = [(qid, label_of.get(qid) or min(forms).lower(), sorted(atc_of[qid]), forms) for qid, forms in approved.items() if qid not in comp]
+    rows += [(None, m.lower(), [], forms) for m, forms in unmatched.items()]
+    for qid, label, atc, forms in sorted(rows, key=lambda x: x[1]):
+        intent = (f"{label} - drug" + (f" (ATC {', '.join(atc)})" if atc else "") + ", known before ivermectin: US approval "
+                  f"before 1982 (FDA Orange Book: {'; '.join(sorted(forms)[:6]).lower()}); no producing organism recorded "
+                  "(synthetic or semi-synthetic) [pointer only: dose, preparation and safety are not covered - see the drug's "
+                  "own documentation]")
+        payload = {"domain": "pharmacology", "status": "defined", "wikidata": qid, "atc": atc,
+                   "approved_us_before_1982": sorted(forms)}
+        st["synthetic_before_1982"] += 1
+        st["synthetic_without_wikidata"] += qid is None
+        if a.dry_run:
+            if label in ("diazepam", "ibuprofen", "aspirin", "acetaminophen", "paracetamol", "metamfetamine", "methamphetamine"):
+                print(intent[:500])
+            continue
+        hit = R.unit_by_alias(cur, "wikidata", qid) if qid else R.unit_by_alias(cur, "orangebook", label)
+        ref = hit[1] if hit and hit[1].startswith("bio:drug.") else R.free_ref(cur, f"bio:drug.{R.slug(label)}", hit[0] if hit else None)
+        if hit and hit[1] != ref:
+            cur.execute("UPDATE rose_unit SET ref=%s, kind='bio' WHERE unit_id=%s", (ref, hit[0]))
+        uid = R.upsert_unit(cur, ref=ref, kind="bio", name=label, intent=intent, source_id=osid,
+                            source_url=f"https://www.wikidata.org/wiki/{qid}" if qid else
+                            "https://www.accessdata.fda.gov/scripts/cder/ob/", payload=payload)
+        R.set_alias(cur, uid, "wikidata" if qid else "orangebook", qid or label)
     if not a.dry_run:
+        R.mark_imported(cur, osid)
         con.commit()
     print("drugs", dict(st), flush=True)
 

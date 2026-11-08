@@ -305,7 +305,8 @@ What the sources record, never a judgement of safety.
 | Cards | Source | Content | Count |
 |---|---|---|---|
 | `bio:taxon.<species>` | USDA GRIN taxonomy download (economic uses, *World Economic Plants*), names and synonyms from WCVP (Kew) | species with a recorded use as human food, food additive, medicine, social use (stimulant, hallucinogen, masticatory), pesticide or poison; family, English common names, up to 8 synonyms, GRIN and POWO links; infraspecific taxa and synonyms merged into the accepted species | 5 549 (1 612 food, 1 532 poison, 151 both) |
-| `bio:drug.<compound>` | Wikidata (CC0), found-in-taxon (P703) mostly from LOTUS | compounds with an ATC code that are found in an organism – plants, fungi, bacteria; producing organisms, and for up to three organisms the publication behind each claim (title, year, DOI) | 423 (7 only with unsourced claims) |
+| `bio:drug.<compound>` | Wikidata (CC0), found-in-taxon (P703) mostly from LOTUS | compounds with an ATC code that are recorded as found in an organism – plants, fungi, bacteria; the organisms, and for up to three organisms the publication behind each claim (title, year, DOI) | 423 (7 only with unsourced claims) |
+| `bio:drug.<compound>` | FDA Orange Book data files (US federal work), ATC code by name from Wikidata | drugs known before ivermectin: active ingredients approved in the US before 1 January 1982 ("Approved Prior to Jan 1, 1982"), salts merged into the active moiety; 150 of them are also found-in cards and get the note | 601 more (197 without a Wikidata match, e.g. carbamazepine, radiopharmaceuticals) |
 
 Rules:
 
@@ -315,13 +316,16 @@ Rules:
   nothing about the part.
 - **Verdict `caution`, never `solved`**, for a match with food or poison records. The answer says
   that safety depends on part, ripeness, preparation, amount and above all correct identification.
-- **Natural only, with the source of each claim.** Fully synthetic drugs are left out. A found-in
-  claim without a reference is shown as unconfirmed; a claim with a reference names it, so that a
+- **Found in organisms, with the source of each claim.** A found-in claim without a reference is
+  shown as unconfirmed; a found-in record can be a trace detection (LOTUS lists diazepam in wheat
+  and potato), so cards say "recorded as found in", not "made by"; a claim with a reference names it, so that a
   single old report is visible as such (amphetamine and methamphetamine in two Texas acacias:
   *Phytochemistry* 1997 and 1998, one research group).
-- **Planned: synthetic drugs known before ivermectin** (avermectin discovered 1975, ivermectin
-  marketed 1981) – the first WHO Model List of Essential Medicines (1977). Wikidata holds the list
-  only as a document, without editions or members, so this needs the list itself as a source.
+- **Synthetic drugs: only those known before ivermectin** (avermectin discovered 1975, ivermectin
+  marketed 1981): FDA Orange Book, US approval before 1982. Limits: US market only (metamizole is
+  missing), products withdrawn before the first edition (1980) are missing, and the date is an
+  approval, not the discovery. Not usable: Rote Liste and Gelbe Liste (licensed), ChEMBL
+  (`first_approval`, but CC BY-SA), DrugBank (CC BY-NC); the WHO list of 1977 is not in Wikidata.
 - Gaps: compounds without an ATC code (avermectin – only its semi-synthetic derivative ivermectin
   has one, and that is found in no organism); the discovery history (from which organism a drug was
   first isolated, and when) is not in Wikidata for these compounds (P575 empty), only where a
