@@ -3,7 +3,7 @@
 
 Selection (one SPARQL query per class, union of item ids):
   - items with a defining formula (P2534), without individual numbers (primes etc.)
-  - theorems (incl. subclasses), conjectures, physical laws, unsolved problems
+  - theorems (incl. subclasses), conjectures, physical laws, open problems, mathematical problems
   - items with "proved by" (P1318) and parts of problem lists such as the Millennium
     Prize Problems (Q727000)
 Details per item come from the Wikidata API (wbgetentities), because SPARQL only
@@ -37,12 +37,13 @@ SELECTIONS = {
     "theorem": "?i wdt:P31/wdt:P279* wd:Q65943 .",
     "conjecture": "?i wdt:P31 wd:Q319141 .",
     "physical_law": "?i wdt:P31/wdt:P279* wd:Q214070 .",
-    "unsolved_problem": "?i wdt:P31 wd:Q1790144 .",
+    "open_problem": "?i wdt:P31 wd:Q1321906 .",
+    "mathematical_problem": "?i wdt:P31 wd:Q1166625 .",
     "proved_by": "?i wdt:P1318 ?b .",
     "problem_list_member": "?i wdt:P361 ?l . VALUES ?l { wd:Q727000 } .",
 }
 
-Q_THEOREM, Q_CONJECTURE, Q_UNSOLVED = "Q65943", "Q319141", "Q1790144"
+Q_THEOREM, Q_CONJECTURE, Q_UNSOLVED = "Q65943", "Q319141", "Q1321906"  # theorem, conjecture, open problem
 Q_PHYS = {"Q214070", "Q107715", "Q9357058", "Q71550118", "Q2994821"}  # physical law/quantity/theory, ISQ derived/base quantity
 Q_CONST = {"Q173227", "Q186509"}  # physical constant, mathematical constant
 
