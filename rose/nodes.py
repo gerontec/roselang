@@ -246,6 +246,15 @@ class Table:
 
 
 @dataclass
+class Open:
+    """Negative knowledge: a problem without known solution. Never usable as a building block."""
+    name: str
+    intent: str
+    refs: list
+    pos: Pos = field(default_factory=Pos)
+
+
+@dataclass
 class Test:
     expr: Any
     within: Any

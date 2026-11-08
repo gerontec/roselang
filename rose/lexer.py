@@ -8,7 +8,7 @@ KEYWORDS = {
     "let", "if", "elif", "else", "for", "in", "while", "return", "test", "within", "const", "law", "var",
     "eq", "valid", "ref", "solve", "given", "and", "or", "not", "mod", "true", "false",
     "table", "hit", "rule", "check", "out", "machine", "ctrl", "model", "state", "on", "when", "param",
-    "timer", "sample", "tune",
+    "timer", "sample", "tune", "open",
 }
 OPS = ["..", "==", "!=", "<=", ">=", "->", "<", ">", "+", "-", "*", "/", "^", "=", "(", ")", "[", "]",
        "{", "}", ",", ":", ".", "%", "@"]

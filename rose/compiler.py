@@ -112,6 +112,7 @@ class Compiler:
         self.lock = []         # pinned corpus units
         self.solve_n = 0
         self.tests = []
+        self.opens = {}        # name -> Open (negative knowledge)
 
     # ---- diagnostics ----
     def d(self, code, msg, node=None, fix=None):
@@ -162,6 +163,8 @@ class Compiler:
                 self.declare_table(it)
             elif isinstance(it, Law):
                 self.laws[it.name] = LawInfo(it)
+            elif isinstance(it, Open):
+                self.opens[it.name] = it
         for it in mod.items:
             if isinstance(it, Const):
                 self.compile_const(it)
@@ -182,8 +185,38 @@ class Compiler:
                 self.d("R199", f"target '{t}' is planned (M5/M6); v1 generates python only")
         return self.render(mod)
 
+    def open_problem(self, name, node):
+        self.d("E305", f"'{name}' is an open problem - no known solution exists (negative knowledge). "
+                       "It cannot be used as a building block.", node,
+               [{"why": "solve a bounded or numerical sub-question instead, or state it as an assumption"}])
+
     # ---- use ----
+    def bind_std(self, u: Use):
+        """Resolve a use from the generated standard library std/ (knowledge as Rose source)."""
+        from . import std
+        hit = std.lookup(u.ref)
+        if hit is None:
+            return False
+        item, meta = hit
+        self.lock.append({"ref": u.ref, "level": meta.get("level"), "license": meta.get("license"),
+                          "source": "std/" + meta["file"], "url": meta.get("url")})
+        if isinstance(item, Open):
+            self.open_problem(item.intent.split(" - ")[0], u)
+        elif isinstance(item, Law):
+            info = LawInfo(item, u.ref)
+            self.laws[u.local] = info
+            self.laws.setdefault(item.name, info)
+            self.compile_law(info)
+        elif isinstance(item, Const):
+            code, _ = self.expr(item.expr, {})
+            py = "_c_" + item.name
+            self.helpers.append(f"{py} = {code}  # {u.ref}")
+            self.objects[u.local] = ("const", py, self.ty(item.type))
+        return True
+
     def bind_use(self, u: Use):
+        if self.bind_std(u):
+            return
         if self.corpus is None or not self.corpus.online:
             self.d("E301", f"cannot resolve '{u.ref}': corpus offline"
                            + (f" ({self.corpus.error})" if self.corpus else ""), u)
@@ -643,6 +676,9 @@ class Compiler:
             return repr(n), Ty.Ty("Enum", members=(n,))
         if n == "pi":
             return "math.pi", Ty.REAL
+        if n in self.opens:
+            self.open_problem(self.opens[n].name, e)
+            return "None", Ty.ANY
         self.d("E206", f"unknown name '{n}'", e)
         return n, Ty.ANY
 

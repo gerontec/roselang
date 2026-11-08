@@ -89,6 +89,8 @@ class Parser:
                 items.append(self.table())
             elif self.is_("test"):
                 items.append(self.test())
+            elif self.is_("open"):
+                items.append(self.open_decl())
             elif self.cur.text in UNSUPPORTED_V1 and self.cur.kind == "kw":
                 items.append(self.skip_block())
             else:
@@ -422,6 +424,24 @@ class Parser:
         if self.accept(".."):
             return ("range", e, self.add_expr())
         return ("eq", e)
+
+    def open_decl(self):
+        p = self.pos()
+        self.expect("open")
+        name = self.ident("name of the open problem")
+        self.expect("intent")
+        if self.cur.kind != "str":
+            raise self.err("intent needs a string")
+        intent = self.cur.text
+        self.i += 1
+        refs = []
+        while self.accept("ref"):
+            scheme = self.cur.text
+            self.i += 1
+            self.expect(":")
+            refs.append(f"{scheme}:{self.ref_name()}")
+        self.expect("end")
+        return Open(name, intent, refs, p)
 
     def test(self):
         p = self.pos()

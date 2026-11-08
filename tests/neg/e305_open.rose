@@ -1,0 +1,6 @@
+module neg.e305
+open goldbach intent "every even integer greater than 2 is the sum of two primes [open problem]" end
+
+fn proof(n: Int) -> Bool
+  intent "trying to use an open problem as a building block must fail"
+= goldbach
