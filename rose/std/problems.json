@@ -56,7 +56,8 @@
   "E_actuator": "\\b(heaters?|heating element|pumps?|valves?|compressors?|fans?|motors?|heizung|heizstab|heizer|pumpen?|ventile?|verdichter|l(ü|u)fter|motor)\\b",
   "O_model_sim": "\\b(simulat\\w*|model (the|a|its)? ?(dynamics|behaviou?r|system)|dynamic model|modell\\w*|simulier\\w*)\\b",
   "E_physical": "\\b(thermal|heat|temperature|electrical|circuit|voltage|motor|pump|tank|pipe|spring|damper|gear|mass|w(ä|a)rme|temperatur|elektrisch|schaltung|pumpe|beh(ä|a)lter|rohr|feder|getriebe)\\b",
-  "O_switch_threshold": "\\b(switch\\w*|turn\\w*|schalt\\w*)\\b[^.]{0,30}\\bon\\b[^.]{0,30}\\b(below|above|under|over|at|unter|(ü|u)ber|bei)\\b[^.]{0,40}\\boff\\b|\\bein\\w*\\b[^.]{0,30}\\b(unter|(ü|u)ber)\\b[^.]{0,40}\\baus\\w*"
+  "O_switch_threshold": "\\b(switch\\w*|turn\\w*|schalt\\w*)\\b[^.]{0,30}\\bon\\b[^.]{0,30}\\b(below|above|under|over|at|unter|(ü|u)ber|bei)\\b[^.]{0,40}\\boff\\b|\\bein\\w*\\b[^.]{0,30}\\b(unter|(ü|u)ber)\\b[^.]{0,40}\\baus\\w*",
+  "C_min_runtime": "\\bat least \\d+ ?(minutes?|min|seconds?|s|hours?|h)\\b|\\bminimum (on|off|run(ning)?) ?time\\b|\\bmindest\\w*(zeit|dauer)\\b|\\bmindestens \\d+ ?(minuten|min|sekunden|s|stunden|h)\\b"
  },
  "problems": [
   {
@@ -1408,7 +1409,7 @@
    "id": "on_off_control",
    "kind": "ctrl",
    "name": "on/off (two-point) control with hysteresis",
-   "description": "keep a quantity near a setpoint by switching an actuator on and off with a hysteresis band (thermostat)",
+   "description": "keep a quantity near a setpoint by switching an actuator on and off with a hysteresis band (thermostat); with minimum on/off times it becomes a state machine (machine:hysteresis_min_runtime)",
    "aliases": [
     "thermostat",
     "bang-bang control",
@@ -1429,6 +1430,7 @@
     "E_physical"
    ],
    "forbids": [
+    "C_min_runtime",
     "O_tuning"
    ],
    "complexity": "closed-form rule; minimum on/off times against wear",
