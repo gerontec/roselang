@@ -30,8 +30,6 @@ def main():
     text = requests.get(URL, headers={"User-Agent": R.USER_AGENT}, timeout=60).text
     lines = text.splitlines()
     head = next(i for i, l in enumerate(lines) if l.lstrip().startswith("Quantity"))
-    h = lines[head]
-    c_val, c_unc, c_unit = h.index("Value"), h.index("Uncertainty"), h.index("Unit")
     year = re.search(r"(\d{4}) CODATA", text)
     year = year.group(1) if year else "?"
     con = R.connect()
@@ -40,10 +38,12 @@ def main():
                           f"CODATA {year} recommended values of the fundamental physical constants")
     n = 0
     for l in lines[head + 2:]:
-        if not l.strip():
+        # columns are separated by two or more blanks; digit groups inside a value by one
+        parts = re.split(r"\s{2,}", l.strip())
+        if len(parts) < 3:
             continue
-        name = l[:c_val].strip()
-        val_s, unc_s, unit = l[c_val:c_unc].strip(), l[c_unc:c_unit].strip(), l[c_unit:].strip()
+        name, val_s, unc_s = parts[0], parts[1], parts[2]
+        unit = parts[3] if len(parts) > 3 else ""
         value = num(val_s)
         if not name or value is None:
             continue
