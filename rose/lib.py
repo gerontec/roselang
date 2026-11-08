@@ -20,7 +20,7 @@ import warnings
 from . import std
 from . import units as U
 
-__all__ = ["Q", "Task", "law", "use", "table", "plan", "search", "get", "lock", "approx",
+__all__ = ["exists", "Q", "Task", "law", "use", "table", "plan", "search", "get", "lock", "approx",
            "RoseError", "UnitError", "LawError", "OpenProblem", "UnknownRef", "TableError", "ContractError"]
 
 
@@ -405,6 +405,40 @@ def use(ref):
         valid = {n: (_q_from_rose(lo), _q_from_rose(hi)) for n, lo, hi in item.valid}
         return Law(item.name, eqs, units, defaults, valid, ref=ref, intent=item.intent)
     raise RoseError("E302", f"'{ref}' has no python binding")
+
+
+def exists(task, k=3):
+    """Does a known solution exist for this task? Only points to it - does not solve anything.
+    -> {"verdict": "solved" | "open" | "unknown", "answer": one sentence, "solutions": [{ref, name,
+       url, complexity}], "warnings": [...]}"""
+    return verdict(_knowledge().plan(task, k=max(k, 5)), _knowledge(), k)
+
+
+def verdict(r, kb, k=3):
+    warn = r["warnings"]
+    if any(w.startswith("NEGATIVE KNOWLEDGE") for w in warn):
+        name = warn[0].split("'")[1] if "'" in warn[0] else "this problem"
+        return {"verdict": "open", "answer": f"No known solution: {name} is an open problem.",
+                "solutions": [], "warnings": warn, "task": r["task"]}
+    if any(w.startswith("CORPUS GAP") for w in warn) or not r["paths"]:
+        return {"verdict": "unknown", "answer": "Rose knows no solved problem that matches this task.",
+                "solutions": [], "warnings": warn, "task": r["task"]}
+    sols = []
+    for p in r["paths"][:k]:
+        card = kb.get(p["ref"]) or {}
+        url = card.get("url")
+        if not url:
+            for ref in card.get("see", []):
+                c2 = kb.get(ref)
+                if c2 and c2.get("url"):
+                    url = c2["url"]
+                    break
+        sols.append({"ref": p["ref"], "name": p["name"], "url": url, "level": p["level"],
+                     "complexity": p.get("complexity") or card.get("complexity"), "license": p["license"]})
+    best = sols[0]
+    extra = f" ({best['complexity']})" if best.get("complexity") else ""
+    return {"verdict": "solved", "answer": f"A known solution exists: {best['name']}{extra}.",
+            "solutions": sols, "warnings": warn, "task": r["task"]}
 
 
 def plan(task, k=8):

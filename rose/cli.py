@@ -1,5 +1,6 @@
 """rosec - the Rose compiler command line.
 
+  rosec exists "<task text>" [--json]          is there a known solution? (points to it, solves nothing)
   rosec plan "<task text>" [--json] [-k 8]     classify a new task, list the best solution paths
   rosec search "<query>" [--kind law] [--json]
   rosec check FILE.rose [--json]
@@ -61,6 +62,8 @@ def cmd_compile(a, write=True):
 def main(argv=None):
     ap = argparse.ArgumentParser(prog="rosec", description=f"Rose compiler {VERSION}")
     sub = ap.add_subparsers(dest="cmd", required=True)
+    p = sub.add_parser("exists"); p.add_argument("task"); p.add_argument("--json", action="store_true")
+    p.add_argument("-k", type=int, default=3)
     p = sub.add_parser("plan"); p.add_argument("task"); p.add_argument("--json", action="store_true")
     p.add_argument("-k", type=int, default=8)
     p = sub.add_parser("search"); p.add_argument("query"); p.add_argument("--kind")
@@ -69,11 +72,11 @@ def main(argv=None):
         p = sub.add_parser(name); p.add_argument("file"); p.add_argument("-o", "--out")
         p.add_argument("--json", action="store_true")
     p = sub.add_parser("get"); p.add_argument("ref"); p.add_argument("--json", action="store_true")
-    for name in ("plan", "search", "get"):
+    for name in ("exists", "plan", "search", "get"):
         sub.choices[name].add_argument("--db", action="store_true", help="use the corpus database")
     a = ap.parse_args(argv)
 
-    if a.cmd in ("plan", "search", "get"):
+    if a.cmd in ("exists", "plan", "search", "get"):
         corpus = knowledge(a.db)
         if not corpus.online:
             print(f"knowledge unavailable: {corpus.error}", file=sys.stderr)
@@ -94,6 +97,16 @@ def main(argv=None):
                     print("note:", n, file=sys.stderr)
                 for h in hits:
                     print(f"{h['similarity']:.3f}  {h['kind']:<7} {h['level']:<9} {h['ref']:<55} {h['name'][:60]}")
+            return 0
+        if a.cmd == "exists":
+            from .lib import verdict
+            v = verdict(corpus.plan(a.task, k=max(a.k, 5)), corpus, a.k)
+            if a.json:
+                print(json.dumps(v, ensure_ascii=False, indent=1))
+                return 0
+            print(f"{v['verdict'].upper()}: {v['answer']}")
+            for x in v["solutions"]:
+                print(f"  - {x['name']}  [{x['ref']}]  {x['url'] or ''}")
             return 0
         r = corpus.plan(a.task, k=a.k)
         if a.json:

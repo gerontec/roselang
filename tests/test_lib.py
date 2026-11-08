@@ -206,6 +206,23 @@ class RosettaPack(unittest.TestCase):
         self.assertEqual(rose.search("100 doors toggle", k=1)[0]["ref"], "rc:100_doors")
 
 
+class Exists(unittest.TestCase):
+    def test_solved_points_to_solution(self):
+        v = rose.exists("plan a tour for a delivery van that visits 30 customers and returns to the depot "
+                        "with the shortest total distance")
+        self.assertEqual(v["verdict"], "solved")
+        self.assertEqual(v["solutions"][0]["ref"], "problem:travelling_salesperson")
+        self.assertTrue(v["solutions"][0]["url"])
+
+    def test_open_problem(self):
+        v = rose.exists("prove that every even integer greater than 2 is the sum of two primes")
+        self.assertEqual(v["verdict"], "open")
+        self.assertIn("Goldbach", v["answer"])
+
+    def test_unknown(self):
+        self.assertEqual(rose.exists("qwxz frobnicate the blorf")["verdict"], "unknown")
+
+
 class Tables(unittest.TestCase):
     INPUTS = {"soc": ("%", 0, 100), "grid_ok": bool}
     RULES = [(">= 20 %", True, "battery"), ("< 20 %", True, "grid"),

@@ -1,7 +1,7 @@
 """Rose. `import rose` gives the Python module (rose/lib.py, benchmark variant B2);
 the compiler is `python3 -m rose` / `rosec` (rose/cli.py)."""
 
-_API = {"Q", "law", "use", "table", "plan", "search", "get", "lock", "approx", "RoseError", "UnitError",
+_API = {"exists", "Q", "law", "use", "table", "plan", "search", "get", "lock", "approx", "RoseError", "UnitError",
         "LawError", "OpenProblem", "UnknownRef", "TableError", "ContractError"}
 
 
