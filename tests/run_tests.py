@@ -39,5 +39,9 @@ for f in sorted(glob.glob(os.path.join(HERE, "..", "rose", "std", "**", "*.rose"
     except Exception as e:
         fails += 1
         print(f"FAIL std {name:<26} {e}")
+# the Python module (variant B2)
+r = subprocess.run([sys.executable, os.path.join(HERE, "test_lib.py")], capture_output=True, text=True, timeout=120)
+fails += r.returncode != 0
+print(f"{'ok  ' if r.returncode == 0 else 'FAIL'} lib test_lib.py              {r.stderr.strip().splitlines()[-3] if r.returncode == 0 else r.stderr[-600:]}")
 print("all ok" if not fails else f"{fails} failure(s)")
 sys.exit(1 if fails else 0)

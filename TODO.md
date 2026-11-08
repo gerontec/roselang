@@ -104,6 +104,7 @@ Pick one, open an issue saying you work on it, keep the PR small.
 - [ ] Variants A (LLM alone), B (LLM + `rosec plan`, plain Python), **B2 (LLM + Python module `rose` on the same catalog)**, C (LLM + Rose).
 - [x] Python module `rose` for B2 (`rose/lib.py`): `use()`, `law().solve()`, `Q` quantities, `table()`, `plan()`, `lock()`.
 - [x] Check comparison without LLM (`bench/compare_b2.py`): Rose 10/10 before running; module 4 at definition, 4 at call, 2 never.
+- [x] Test suite of the module: `tests/test_lib.py` (36 tests, unittest, part of `run_tests.py`).
 - [ ] Contracts (`require`/`ensure`) in the module; B2 versions of all examples (`bench/b2/`).
 - [ ] Report pass@1, tokens, check rounds, unit and table errors; decide language vs. module.
 
