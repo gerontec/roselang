@@ -91,6 +91,10 @@ _U = {
     "Gy": Unit(1, dim(L=2, T=-2)), "Sv": Unit(1, dim(L=2, T=-2)), "kat": Unit(1, dim(T=-1, N=1)),
     "L": Unit(1e-3, dim(L=3)), "l": Unit(1e-3, dim(L=3)), "t": Unit(1e3, M),
     "degC": Unit(1, TH, offset=273.15, absolute=True),
+    # atomic-scale units used by CODATA (values CODATA 2022; c exact)
+    "u": Unit(1.66053906892e-27, M), "Da": Unit(1.66053906892e-27, M),
+    "E_h": Unit(4.3597447222060e-18, dim(L=2, M=1, T=-2)),
+    "c": Unit(299792458, dim(L=1, T=-1)),
 }
 PREFIX = {"Y": 1e24, "Z": 1e21, "E": 1e18, "P": 1e15, "T": 1e12, "G": 1e9, "M": 1e6, "k": 1e3, "h": 1e2,
           "da": 1e1, "d": 1e-1, "c": 1e-2, "m": 1e-3, "u": 1e-6, "µ": 1e-6, "n": 1e-9, "p": 1e-12,
@@ -131,7 +135,7 @@ def parse_unit(text: str) -> Unit:
                 j += 1
             toks.append(s[i:j]); i = j; continue
         j = i
-        while j < len(s) and (s[j].isalpha() or s[j] in "%µ"):
+        while j < len(s) and (s[j].isalpha() or s[j] in "%µ" or (s[j] == "_" and j > i)):
             j += 1
         if j == i:
             raise ValueError(f"bad character {c!r} in unit {text!r}")

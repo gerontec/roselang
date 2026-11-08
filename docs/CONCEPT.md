@@ -377,6 +377,14 @@ the LLM takes the local route or writes online BLAST.
 
 Metrics: pass@1, tokens in/out, number of check rounds, run time, unit errors, table/machine errors.
 
+**First measurement of the checks (2026-11-08, `bench/compare_b2.py`, no LLM involved):** the same
+10 faulty programs written in Rose and with the Python module `rose` (`rose/lib.py`, same units,
+knowledge and table check). Rose finds 10/10 before anything runs. The module finds 4 when the
+code is defined (inconsistent law, open problem, incomplete or overlapping table), 4 only when
+the faulty line executes, and 2 never: an error in a branch the test does not take, and plain
+numbers passed where quantities are expected. This answers what static checking buys; whether
+it outweighs the cost of an unfamiliar language for the LLM is the M7 benchmark.
+
 **Decision rule:** if C is not clearly better than B2, the language is dropped and Rose lives on
 as a Python module plus the generated catalog. The real question is whether **static** checking before the
 run (units, complete tables, `E305` for open problems) is measurably better than the same checks

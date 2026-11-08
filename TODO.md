@@ -97,7 +97,9 @@ Pick one, open an issue saying you work on it, keep the PR small.
 ### Benchmark (M7) – the decision
 - [ ] Task set: Rosetta leave-one-out + 30 engineering tasks (control, state machines, energy flows) + 10 bio tasks.
 - [ ] Variants A (LLM alone), B (LLM + `rosec plan`, plain Python), **B2 (LLM + Python module `rose` on the same catalog)**, C (LLM + Rose).
-- [ ] Python module `rose` for B2: `use()`, `solve()`, quantities, lock file – same knowledge, runtime checks.
+- [x] Python module `rose` for B2 (`rose/lib.py`): `use()`, `law().solve()`, `Q` quantities, `table()`, `plan()`, `lock()`.
+- [x] Check comparison without LLM (`bench/compare_b2.py`): Rose 10/10 before running; module 4 at definition, 4 at call, 2 never.
+- [ ] Contracts (`require`/`ensure`) in the module; B2 versions of all examples (`bench/b2/`).
 - [ ] Report pass@1, tokens, check rounds, unit and table errors; decide language vs. module.
 
 ### Later (M8)

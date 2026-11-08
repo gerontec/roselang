@@ -28,5 +28,16 @@ for f in sorted(glob.glob(os.path.join(HERE, "*.rose"))):
     r = subprocess.run([sys.executable, "-I", "-c", code], capture_output=True, text=True, timeout=20)
     fails += r.returncode != 0
     print(f"{'ok  ' if r.returncode == 0 else 'FAIL'} pos {os.path.basename(f):<22} {r.stdout.strip().splitlines()[-1] if r.stdout.strip() else r.stderr[-300:]}")
+# the generated standard library must parse completely (every `use` of std parses its whole file)
+sys.path.insert(0, os.path.dirname(HERE))
+from rose.parser import parse  # noqa: E402
+for f in sorted(glob.glob(os.path.join(HERE, "..", "std", "**", "*.rose"), recursive=True)):
+    name = os.path.relpath(f, os.path.join(HERE, ".."))
+    try:
+        n = len(parse(open(f, encoding="utf-8").read(), name).items)
+        print(f"ok   std {name:<26} {n} items")
+    except Exception as e:
+        fails += 1
+        print(f"FAIL std {name:<26} {e}")
 print("all ok" if not fails else f"{fails} failure(s)")
 sys.exit(1 if fails else 0)
