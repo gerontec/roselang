@@ -12,3 +12,4 @@ packs/*/rose_*/catalog.jsonl
 packs/*/rose_*/impl.jsonl
 rose/std/knowledge.sqlite.gz
 rose/std/knowledge.key
+.venv-libs/
