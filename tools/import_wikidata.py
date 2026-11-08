@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Import solved (and open) mathematics and physics from Wikidata into wagodb.rose_*.
+"""Import solved (and open) mathematics and physics from Wikidata into the rose_* tables.
 
 Selection (one SPARQL query per class, union of item ids):
   - items with a defining formula (P2534), without individual numbers (primes etc.)
@@ -73,7 +73,7 @@ def sparql_ids(where: str) -> list[str]:
     raise RuntimeError("SPARQL rate limited")
 
 
-def get_entities(ids: list[str], props="labels|descriptions|claims", langs="en|de") -> dict:
+def get_entities(ids: list[str], props="labels|descriptions|claims", langs="en") -> dict:
     out = {}
     for k in range(0, len(ids), 50):
         chunk = ids[k:k + 50]
@@ -217,8 +217,8 @@ def main():
             stats["skipped"] += 1
             continue
         c = e.get("claims", {})
-        en, de = label(e, "en"), label(e, "de")
-        if not (en or de):
+        en = label(e, "en")
+        if not en:  # English only
             stats["skipped"] += 1
             continue
         types = set(item_ids(c, "P31"))
@@ -255,13 +255,12 @@ def main():
                 if t.get("snaktype") == "value":
                     proved_when = t["datavalue"]["value"]["time"][1:5]
         part_of = [{"id": p, "label": label(allents.get(p, {}))} for p in item_ids(c, "P361")]
-        payload = {"wikidata": q, "labels": {"en": en, "de": de},
-                   "descriptions": {"en": descr(e, "en"), "de": descr(e, "de")},
+        payload = {"wikidata": q, "label": en, "description": descr(e, "en"),
                    "tex": tex, "dim": dim, "symbols": symbols, "types": sorted(types),
                    "status": status, "domain": domain, "proved_by": provers, "proved_year": proved_when,
                    "part_of": part_of, "selected_by": sorted(selected[q])}
-        name = en or de
-        intent_parts = [p for p in (en, descr(e, "en"), de if de != en else None, descr(e, "de")) if p]
+        name = en
+        intent_parts = [p for p in (en, descr(e, "en")) if p]
         intent = " - ".join(intent_parts)
         if status == "open":
             intent += " [OPEN PROBLEM - no known solution, do not claim or search for a general one]"

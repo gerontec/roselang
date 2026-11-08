@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Import the OEIS (names.gz + stripped.gz) into wagodb.rose_*.
+"""Import the OEIS (names.gz + stripped.gz) into the rose_* tables.
 
 Each sequence becomes kind=math, ref oeis:Annnnnn, name = OEIS name,
 payload.terms = the leading terms (as strings, they exceed 64 bit).

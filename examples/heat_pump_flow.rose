@@ -1,4 +1,4 @@
-module house.heat_pump_flow
+module hvac.heat_pump_flow
 target esphome, python
 
 use law:water_heat_flow                       # P = mdot * cp * dT, from Wikidata + Modelica MSL

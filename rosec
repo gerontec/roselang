@@ -1,3 +1,6 @@
 #!/bin/sh
-# Rose compiler entry point
-exec python3 -c 'import sys; sys.path.insert(0, sys.argv.pop(1)); from rose.cli import main; sys.exit(main())' "$(dirname "$(readlink -f "$0")")" "$@"
+# Rose compiler entry point. Optional local settings (ROSE_DB_GROUP, ROSE_DB_NAME, ROSE_EMBED_URL)
+# go into local.env next to this script; that file is not tracked.
+DIR="$(dirname "$(readlink -f "$0")")"
+[ -f "$DIR/local.env" ] && . "$DIR/local.env" && export ROSE_DB_GROUP ROSE_DB_NAME ROSE_EMBED_URL
+exec python3 -c 'import sys; sys.path.insert(0, sys.argv.pop(1)); from rose.cli import main; sys.exit(main())' "$DIR" "$@"

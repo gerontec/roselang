@@ -34,7 +34,7 @@ test required_flow(9 kW, 5 K) == 0.430 kg/s within 1 %
 
 | Path | What |
 |---|---|
-| [`docs/KONZEPT.md`](docs/KONZEPT.md) | full concept (German): principles, language, corpus sources and licences, verification levels, MCP integration, benchmark and go/no-go rule, roadmap |
+| [`docs/CONCEPT.md`](docs/CONCEPT.md) | full concept: principles, language, corpus sources and licences, verification levels, MCP integration, benchmark and go/no-go rule, roadmap |
 | [`spec/grammar.ebnf`](spec/grammar.ebnf) | grammar draft v0 |
 | [`spec/mcp-tools.md`](spec/mcp-tools.md) | MCP tool specification and diagnostic codes |
 | [`schema/rose_schema.sql`](schema/rose_schema.sql) | MariaDB 11.8 corpus schema (`rose_*`, `VECTOR(1024)` + HNSW) |

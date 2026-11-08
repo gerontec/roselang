@@ -1,9 +1,9 @@
 # MCP server `rose` – tool specification (draft)
 
-Host: dell, 192.168.5.23 · Transport: stdio via `ssh -T 192.168.5.23 ~/mcp/rose/rose-mcp.sh`
-(same pattern as the existing `mariadb` MCP), optional streamable HTTP.
-Storage: `wagodb.rose_*` (see [`schema/rose_schema.sql`](../schema/rose_schema.sql)).
-Embeddings: bge-m3 FP16 on llama-server :8084.
+Transport: stdio (e.g. over `ssh -T <host> rose-mcp`), optional streamable HTTP.
+Reference deployment: 192.168.5.23.
+Storage: tables `rose_*` (see [`schema/rose_schema.sql`](../schema/rose_schema.sql)).
+Embeddings: bge-m3 (1024 dimensions) via an OpenAI-compatible endpoint (`ROSE_EMBED_URL`).
 
 Design rules
 
@@ -73,26 +73,14 @@ Design rules
 
 ## Bio units: local DIAMOND shortcut
 
-`kind = bio` never creates a new search path. The compiler maps it onto the existing
-gerontec/blastDiamond stack on the dell:
+`kind = bio` never creates a new search path. The compiler maps it onto a local DIAMOND copy of
+NCBI nr with its metadata in SQL (reference implementation:
+[gerontec/blastDiamond](https://github.com/gerontec/blastDiamond)):
 
 | Unit | Compiles to |
 |---|---|
-| `bio:meta.*` (accession, taxon, lineage, count, new since) | SQL on `wagodb.blast_*` |
-| `bio:seq.get` | `dmnd_getseq.py` (offset table of `nr_full.dmnd`) |
-| `bio:search.blastp` / `blastx` | job in `blast_job` (internal) or `POST ?r=search` with `X-Api-Key` (external), two-stage: MariaDB pre-selection → sub-.dmnd → DIAMOND with `--dbsize` of the full nr |
-| `bio:amylo` | `POST ?r=amylo` (Tesla P4) |
+| `bio:meta.*` (accession, taxon, lineage, count, new since) | SQL on the sequence metadata |
+| `bio:seq.get` | residues from the local database (offset table) |
+| `bio:search.blastp` / `blastx` | a job in the backend's queue, two-stage: SQL pre-selection → sub-database → DIAMOND with `--dbsize` of the full nr |
 
-Generated code never calls `diamond` directly, so the worker's RAM planning stays the
-only one.
-
-## Example session
-
-```text
-→ rose.search {"query": "mass flow from thermal power and temperature spread", "kind": "law"}
-← [{"ref": "law:water_heat_flow", "signature": "P = mdot*cp*dT", "level": "cross_checked", ...}]
-→ rose.law_solve {"ref": "law:water_heat_flow", "unknown": "mdot", "given": {"P": "9 kW", "dT": "5 K"}}
-← {"form": "mdot = P/(cp*dT)", "value": "0.430 kg/s", "valid": true}
-→ rose.check {"source": "..."}
-← {"ok": false, "diagnostics": [{"code": "E202", "at": {"line": 7}, "fix": [{"with": "9 kW"}]}]}
-```
+Generated code never calls `diamond` directly, so the backend's memory planning stays the only one.

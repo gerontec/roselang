@@ -1,4 +1,4 @@
-module house.buffer_ctrl
+module hvac.buffer_ctrl
 target st, esphome
 
 use model:fopdt                                # first order plus dead time plant model

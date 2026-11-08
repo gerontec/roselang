@@ -1,18 +1,12 @@
 #!/usr/bin/env python3
-"""Import already solved biology problems into wagodb.rose_* (kind=bio).
+"""Import solved bioinformatics problems from the public Rosalind problem list (kind=bio).
 
-Sources:
-  own      - the user's own solved bio problems on the dell: scripts of the DIAMOND/nr pipeline
-             (gerontec/blastDiamond), reports, AmyloDeep, ivermectin simulation. Module docstring
-             -> intent, path + role in payload. Reference cards: the code stays where it is.
-  rosalind - the public Rosalind problem list (title + URL only; problem texts are copyrighted,
-             robots.txt is respected: no ?page= URLs).
-Run on the dell (reads local files). Usage: import_bio.py [--dry-run]
+Only title + URL are stored (reference cards): the problem texts are copyrighted.
+robots.txt is respected (no ?page= URLs). Bio methods and laws from Wikidata come from
+import_wikidata.py (biology fields and core methods).
+Usage: import_bio.py [--dry-run]
 """
 import argparse
-import ast
-import glob
-import os
 import re
 import sys
 
@@ -20,52 +14,7 @@ import requests
 
 import rose_db as R
 
-HOME = os.path.expanduser("~")
-REPO = os.path.join(HOME, "src/blastDiamond")
-OWN_GLOBS = [
-    f"{REPO}/pipeline/*.py", f"{REPO}/examples/*.py", f"{REPO}/amyloid/*.py",
-    f"{HOME}/python/rep_new*.py", f"{HOME}/python/blast_*.py", f"{HOME}/python/dmnd_*.py",
-    f"{HOME}/python/nr_*.py", f"{HOME}/python/amylo*.py", f"{HOME}/python/ace2*.py",
-    f"{HOME}/iver_sim/ol_amyloid/*.py", f"{HOME}/iver_sim/*.py",
-]
-# scripts that answer a question (as opposed to keeping the infrastructure running)
-SOLUTION = re.compile(r"(^rep_|spike_|amylo_gpu|nr_seq\.py|dmnd_getseq|dmnd_preselect|blast_api_worker|"
-                      r"nr_seqhash|blast_compare|ace2|iver|sim)")
 ROSALIND = ["https://rosalind.info/problems/list-view/", "https://rosalind.info/problems/tree-view/"]
-
-
-def docstring(path):
-    try:
-        return ast.get_docstring(ast.parse(open(path, encoding="utf-8", errors="replace").read())) or ""
-    except SyntaxError:
-        return ""
-
-
-def own_units():
-    seen = {}
-    for g in OWN_GLOBS:
-        for p in sorted(glob.glob(g)):
-            base = os.path.basename(p)
-            # the public repo copy wins over the working copy in ~/python
-            if base in seen and not p.startswith(REPO):
-                continue
-            seen[base] = p
-    for base, p in sorted(seen.items()):
-        doc = docstring(p).strip()
-        if not doc:
-            continue
-        first = doc.split("\n\n")[0].replace("\n", " ").strip()
-        role = "solution" if SOLUTION.search(base) else "infrastructure"
-        public = p.startswith(REPO)
-        url = ("https://github.com/gerontec/blastDiamond/blob/main/" + os.path.relpath(p, REPO)) if public else None
-        yield {
-            "ref": f"bio:own.{R.slug(os.path.splitext(base)[0])}",
-            "name": f"{base}: {first[:200]}",
-            "intent": f"[own {role}] {first[:900]}",
-            "url": url,
-            "payload": {"host": "dell", "path": p, "role": role, "public_repo": public,
-                        "doc": doc[:4000], "domain": "biology"},
-        }
 
 
 def rosalind_units():
@@ -96,26 +45,20 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--dry-run", action="store_true")
     a = ap.parse_args()
-    own, ros = list(own_units()), list(rosalind_units())
-    print(f"own: {len(own)} ({sum(u['payload']['role'] == 'solution' for u in own)} solutions)  rosalind: {len(ros)}")
+    ros = list(rosalind_units())
+    print(f"rosalind: {len(ros)}")
     if a.dry_run:
-        for u in own[:5] + ros[:3]:
+        for u in ros[:5]:
             print(u["ref"], "|", u["intent"][:120])
         return 0
     con = R.connect()
     cur = con.cursor()
-    s_own = R.ensure_source(cur, "gerontec-bio", "https://github.com/gerontec/blastDiamond", "LicenseRef-own", False,
-                            "own solved bio problems on the dell (DIAMOND nr pipeline, reports, AmyloDeep)")
-    s_ros = R.ensure_source(cur, "rosalind", "https://rosalind.info", "LicenseRef-reference-only", False,
-                            "Rosalind problem titles and links only")
-    for u in own:
-        R.upsert_unit(cur, ref=u["ref"], kind="bio", name=u["name"], intent=u["intent"], source_id=s_own,
-                      source_url=u["url"], payload=u["payload"])
+    sid = R.ensure_source(cur, "rosalind", "https://rosalind.info", "LicenseRef-reference-only", False,
+                          "Rosalind problem titles and links only")
     for u in ros:
-        R.upsert_unit(cur, ref=u["ref"], kind="bio", name=u["name"], intent=u["intent"], source_id=s_ros,
+        R.upsert_unit(cur, ref=u["ref"], kind="bio", name=u["name"], intent=u["intent"], source_id=sid,
                       source_url=u["url"], payload=u["payload"])
-    R.mark_imported(cur, s_own)
-    R.mark_imported(cur, s_ros)
+    R.mark_imported(cur, sid)
     con.commit()
     print("done")
 

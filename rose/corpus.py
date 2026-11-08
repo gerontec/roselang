@@ -1,6 +1,6 @@
-"""Access to the Rose corpus in MariaDB (wagodb.rose_*): resolve refs, search, plan.
+"""Access to the Rose corpus in MariaDB (tables rose_*): resolve refs, search, plan.
 
-Connection: ~/.my.cnf section [wagodb]. Embeddings: bge-m3 at ROSE_EMBED_URL
+Connection: ~/.my.cnf section $ROSE_DB_GROUP, database $ROSE_DB_NAME (default "rose" for both). Embeddings: bge-m3 at ROSE_EMBED_URL
 (default http://127.0.0.1:8084/v1/embeddings). ROSE_OFFLINE=1 disables the corpus.
 """
 import json
@@ -22,7 +22,8 @@ class Corpus:
         try:
             import pymysql
             self.con = pymysql.connect(read_default_file=os.path.expanduser("~/.my.cnf"),
-                                       read_default_group="wagodb", database="wagodb", charset="utf8mb4",
+                                       read_default_group=os.environ.get("ROSE_DB_GROUP", "rose"),
+                                       database=os.environ.get("ROSE_DB_NAME", "rose"), charset="utf8mb4",
                                        connect_timeout=5)
         except Exception as e:  # corpus is optional for local-only programs
             self.error = str(e)

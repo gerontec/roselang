@@ -1,9 +1,9 @@
 module bio.new_spike
 target python
 
-# Bio tasks always take the local DIAMOND nr on the dell (gerontec/blastDiamond):
+# Bio tasks always take a local DIAMOND nr backend (e.g. gerontec/blastDiamond):
 # 1) narrow in MariaDB (taxon with sub-taxa, length, new_days) -> sub-.dmnd
-# 2) search fine-grained with --dbsize of the full nr, via the blast_job queue
+# 2) search fine-grained with --dbsize of the full nr, via the backend's job queue
 # Never NCBI online BLAST (E601), never an unfiltered search over all of nr (E602).
 
 use bio:search.blastp as blastp
@@ -17,7 +17,7 @@ do
                 new_days = 90, sensitivity = very_sensitive, max_targets = all)
 end
 
-# A counting question is not a search: pure SQL on wagodb.blast_*
+# A counting question is not a search: pure SQL on the sequence metadata
 fn spike_length_count() -> Int
   intent "number of SARS-CoV-2 sequences of spike length in nr"
 do

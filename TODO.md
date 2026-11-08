@@ -1,7 +1,7 @@
 # TODO – contributing to Rose
 
 Rose is an experiment with a built-in exit: if the language does not beat a plain Python
-module on the same corpus (benchmark variant **B2**, see [`docs/KONZEPT.md`](docs/KONZEPT.md) §11),
+module on the same corpus (benchmark variant **B2**, see [`docs/CONCEPT.md`](docs/CONCEPT.md) §11),
 the language is dropped and Rose lives on as a library. Contributions that help answer that
 question honestly are the most valuable ones.
 
@@ -21,13 +21,15 @@ Humans and LLM agents are both welcome. The rules below apply to both.
 4. **One change per commit, with a test.** Every new diagnostic gets a negative test in
    `tests/neg/<code>[_suffix].rose`; every feature gets a positive test in `tests/*.rose`.
    `python3 tests/run_tests.py` must stay green.
-5. **English** for identifiers, comments, API fields, DB columns and commit messages.
-   The concept document is German; translations are welcome as separate files.
-6. **Licences are data.** Keep the SPDX id of every imported source. Do not import
+5. **English only**: code, identifiers, comments, docs, corpus texts, commit messages.
+6. **No project-specific content** in the compiler or the corpus: no private installations,
+   plant configurations or personal scripts. Rose is a general tool.
+7. **Licences are data.** Keep the SPDX id of every imported source. Do not import
    Project Euler solutions (publication not allowed) or Stack Overflow code. Rosetta Code
    is GFDL (share-alike) – keep it separable (`--license permissive`).
-7. **Bio tasks use the local DIAMOND nr** (see [gerontec/blastDiamond](https://github.com/gerontec/blastDiamond)),
-   never NCBI online BLAST, and never call `diamond` directly – go through the job queue.
+8. **Bio tasks use a local DIAMOND nr backend** (reference implementation:
+   [gerontec/blastDiamond](https://github.com/gerontec/blastDiamond)), never NCBI online BLAST, and
+   never call `diamond` directly – go through the backend's job queue.
 
 ## Getting started
 
@@ -84,7 +86,7 @@ Pick one, open an issue saying you work on it, keep the PR small.
       (spec: [`spec/mcp-tools.md`](spec/mcp-tools.md)).
 
 ### Benchmark (M7) – the decision
-- [ ] Task set: Rosetta leave-one-out + 30 house-automation tasks + 10 bio tasks.
+- [ ] Task set: Rosetta leave-one-out + 30 engineering tasks (control, state machines, energy flows) + 10 bio tasks.
 - [ ] Variants A (LLM alone), B (LLM + MCP, plain Python), **B2 (LLM + MCP + Python module `rose`)**, C (LLM + MCP + Rose).
 - [ ] Python module `rose` for B2: `use()`, `solve()`, quantities, `rose.lock` – same corpus, runtime checks.
 - [ ] Report pass@1, tokens, check rounds, unit and table errors; decide language vs. module.

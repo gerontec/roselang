@@ -1,6 +1,5 @@
--- Rose corpus schema for MariaDB >= 11.7 (dell runs 11.8, database wagodb).
--- Status: DRAFT. Syntax verified 2026-11-08 against a MariaDB 11.8.9 container; NOT applied on dell. Prefix rose_ like vec_/iv_/blast_ in wagodb.
--- Read-only access for agents goes through the existing mcp_ro user (SELECT on wagodb).
+-- Rose corpus schema for MariaDB >= 11.7 (VECTOR + HNSW). All tables carry the prefix rose_.
+-- Verified against MariaDB 11.8. Agents should read through a SELECT-only database user.
 
 CREATE TABLE IF NOT EXISTS rose_source (
   source_id    SMALLINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,

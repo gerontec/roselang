@@ -1,7 +1,7 @@
 module energy.discharge
 target python, c
 
-# Same method as the batmonitor decision tables: decision only, no amounts.
+# Decision only, no amounts.
 # The checker splits soc at the thresholds into [0,10) [10,20) [20,100]
 # and enumerates all 3 x 2 cells: complete and free of overlap.
 

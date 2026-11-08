@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Import the CODATA fundamental physical constants (NIST allascii.txt) into wagodb.rose_*.
+"""Import the CODATA fundamental physical constants (NIST allascii.txt) into the rose_* tables.
 
 Each constant becomes kind=const, ref const:codata.<slug>, with Rose source
     const <slug>: Real[<unit>] = <value> <unit>

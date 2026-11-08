@@ -1,6 +1,6 @@
-"""Shared helpers for the Rose corpus importers (MariaDB wagodb, tables rose_*).
+"""Shared helpers for the Rose corpus importers (MariaDB, tables rose_*).
 
-Connection settings come from ~/.my.cnf, section [wagodb] (host, user, password).
+Connection: ~/.my.cnf section $ROSE_DB_GROUP (default "rose"), database $ROSE_DB_NAME (default "rose").
 """
 import hashlib
 import json
@@ -10,14 +10,16 @@ import unicodedata
 
 import pymysql
 
+DB_GROUP = os.environ.get("ROSE_DB_GROUP", "rose")   # section in ~/.my.cnf (host, user, password)
+DB_NAME = os.environ.get("ROSE_DB_NAME", "rose")
 USER_AGENT = "roselang-import/0.1 (https://github.com/gerontec/roselang)"
 
 
 def connect():
     return pymysql.connect(
         read_default_file=os.path.expanduser("~/.my.cnf"),
-        read_default_group="wagodb",
-        database="wagodb",
+        read_default_group=DB_GROUP,
+        database=DB_NAME,
         charset="utf8mb4",
         autocommit=False,
     )
