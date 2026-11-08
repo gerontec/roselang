@@ -299,6 +299,7 @@ Cards shipped in release 0.1.0 (counted in the installed package, 2026-11-08):
 | **Wikidata** | defining formulas (P2534) with symbols and ISQ dimensions, theorems, conjectures, physical laws, open problems, "proved by" (P1318), algorithms and computational problems, control and automata concepts, biology methods | CC0 | 12 144 | `std/*.rose` + catalog |
 | **Modelica Standard Library** 4.x | class index: path, description, source line – models, blocks, functions, state graphs (no equations) | BSD-3 | 3 484 | catalog |
 | **Python libraries** | public solver functions: SciPy 723, networkx 587, python-control 154, transitions 37, Python stdlib 26, dd 17, sympy 15, automata-lib 12, OR-Tools 7 (path, signature, first docstring paragraph) | BSD-3 / MIT / Apache-2.0 / PSF | 1 578 | catalog |
+| **PyPI** | top 15 000 packages by downloads: summary, licence, installable on CPython 3.14, cleaned README extract (§6.1) | metadata as published; extracts under each package's licence, share-alike left out | 14 498 | catalog (kind `lib`) |
 | **Rosetta Code** | all 1 363 tasks with 2 606 Python 3 solutions (compile-checked) | GFDL 1.3 | 1 363 | `sets/rosetta*.jsonl.gz` |
 | **CODATA 2022** | fundamental physical constants with uncertainty | public domain (NIST) | 355 | `std/const/codata.rose` |
 | **Rosalind** | classic bioinformatics problems | titles and links only | 104 | catalog |
@@ -316,6 +317,61 @@ provenance).
 **Licences are part of the data model.** Every implementation carries its SPDX id;
 `rosec compile` writes a lock file (`.lock.json`) with provenance and licence of every unit and supports
 `--license permissive`, which excludes share-alike sources.
+
+### 6.1 Public package overview (PyPI) – plan of 2026-11-08
+
+**Gap.** As far as we could find, there is no public, cleaned overview of what Python packages are
+*for* that can be searched by task. What exists: raw dumps (PyPI on BigQuery, metadata dumps on
+Hugging Face) with READMEs full of badges and HTML; name and summary search (pypi.org,
+libraries.io); documentation services for LLMs for selected libraries, online (Context7) or
+written by the projects themselves (llms.txt). PyPI has no counterpart of CPAN's conventions (POD
+with NAME/SYNOPSIS/METHODS, MetaCPAN full-text search, CPAN Testers): its metadata carries a
+one-line summary, keywords and optional classifiers; everything else is free-text README.
+
+**Size (measured 2026-11-08).**
+
+| | CPAN (Perl) | PyPI (Python) |
+|---|---|---|
+| total | 42 128 distributions, 262 833 modules | 934 596 projects |
+| technical | 2 175 distributions (by namespace: Math, Geo, Algorithm, Device, Bio, …) | 2 168 in the top 15 000 alone (by Topic classifier; only 51 % declare one) |
+| catalogue data per module | structured (POD, SYNOPSIS, test reports) | free text; rebuilt here |
+
+**Levels and decisions.**
+
+| Level | Content | Scope | Status |
+|---|---|---|---|
+| 1 | metadata + cleaned README extract | top 15 000 by downloads (hugovk/top-pypi-packages), **in the core package** as cards `pypi:<name>` (kind `lib`) | done: 14 498 cards |
+| 1 | same | **all PyPI projects**, a separate dataset, not shipped in the package | running (~1 day, resumable) |
+| 2 | public functions with signatures (install + import in a sandbox) | only 1 000–2 000 technical packages, with a public-API filter | later; a trial showed mostly internal noise without a filter (pandas: 1 168 objects) |
+| 3 | test results per release and version (as CPAN Testers) | – | not planned: needs a test network, not one machine |
+
+**One record per project** (level 1): name, version, summary, keywords, Topic classifiers, licence,
+share-alike flag, `requires_python`, **installable on CPython 3.14 / Linux x86_64** (`wheel`, `sdist`
+or not – decided with `packaging.tags` against the interpreter of the build host), date of the last
+release, links (PyPI, docs, homepage, source) and a **README extract** of at most 800 characters:
+opening text, feature list, one real code example (not `pip install`), section names; badges,
+images, HTML and link targets removed (`tools/readme_clean.py`).
+
+**Rules.**
+- *Metadata only.* Nothing is installed or run for level 1; the selection of the core package
+  follows downloads, because most of the ~935 000 projects are empty, abandoned or squatted names,
+  and some are malicious – a weak model must not be pointed to them.
+- *Licences.* Metadata is used as each project published it (`LicenseRef-PyPI-metadata`). A README
+  extract is the project's own text under its licence; for share-alike licences (GPL family, CC
+  BY-SA, EUPL) it is left out and only the metadata is kept.
+- *Ranking.* Package cards are broad pointers: their prior is below specific cards (0.70–0.85 by
+  download rank), so a problem class or a concrete solver function still wins.
+- *Polite fetching.* PyPI JSON API, 4 connections with a pause, identified user agent, cache with
+  resume; the BigQuery dump is the alternative for bulk refreshes.
+
+**Publication.**
+- [`docs/pypi/`](pypi/README.md): browsable Markdown by topic for the top 15 000 (180 pages; large
+  topics split into parts), generated by `tools/pypi_overview.py`.
+- The full dataset (all projects, `pypi-<letter>.jsonl.gz` + `STATS.md`, `tools/pypi_dataset.py`) is
+  too large for the git history; it is to be published as a release asset or dataset next to the
+  repository – where, is decided before the first upload.
+- Refresh: re-run monthly (download ranks change); a daily delta from PyPI's update feed is
+  possible but not built.
 
 ## 7. Verification levels
 
