@@ -54,7 +54,13 @@ CORE = [
      "created in the last N days; plain SQL on the metadata, no search"),
     ("bio:meta.taxon", "bio", "taxon with lineage", "(name or taxid) -> bio.Taxon",
      "taxonomy lookup: lineage and sub-taxa of an organism"),
+    ("bio:backend.nr_local", "bio", "build guide: local NCBI nr backend for DIAMOND homology search",
+     "(guide)",
+     "how to set up the local protein database for homology search: download NCBI nr, build the DIAMOND "
+     "database (463 GB), taxonomy and metadata in SQL, daily delta with makedb --append, two-stage search "
+     "with pre-selection and --dbsize; requirements for disk, RAM and time; needed before bio:search.blastp"),
 ]
+URLS = {"bio:backend.nr_local": "https://github.com/gerontec/roselang/blob/main/docs/bio/NR_BACKEND.md"}
 
 
 def main():
@@ -64,7 +70,7 @@ def main():
                           "Rose core units: controllers, state machines, plant models, bio mapping")
     for ref, kind, name, sig, intent in CORE:
         R.upsert_unit(cur, ref=ref, kind=kind, name=name, intent=intent, signature=sig, source_id=sid,
-                      source_url="https://github.com/gerontec/roselang",
+                      source_url=URLS.get(ref, "https://github.com/gerontec/roselang"),
                       payload={"core": True, "domain": "bio" if kind == "bio" else "control"})
     R.mark_imported(cur, sid)
     con.commit()

@@ -281,6 +281,10 @@ code never calls `diamond` itself, so the backend's memory planning stays the on
 questions are SQL, not searches. Reference implementation of such a backend:
 [gerontec/blastDiamond](https://github.com/gerontec/blastDiamond).
 
+Rose does not ship or host the database (463 GB, changes daily, buildable by anyone from public
+NCBI data); [`docs/bio/NR_BACKEND.md`](bio/NR_BACKEND.md) is the build guide with the measured
+requirements, found by `rose.exists()` as `bio:backend.nr_local`.
+
 Bio knowledge comes from Wikidata (bioinformatics methods, laws of genetics and enzyme kinetics,
 linked to 19 biology fields), the Rosalind problem list (titles and links only) and the **Gene
 Ontology** (all 38 092 non-obsolete terms: processes, functions, components, with synonyms).
