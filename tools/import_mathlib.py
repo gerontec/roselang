@@ -128,7 +128,7 @@ def units(repo):
                     parts.append("; ".join(d["named"]))
                 if d["doc"]:
                     parts.append(d["doc"][:500])
-                parts.append(humanize(d["name"]) + " : " + d["statement"][:600])
+                parts.append(humanize(d["name"]) + " : " + d["statement"].lstrip(": ")[:600])
                 yield {"ref": "mathlib:" + d["name"], "name": d["name"][:255], "intent": " - ".join(parts),
                        "url": f"https://github.com/leanprover-community/mathlib4/blob/{commit}/{rel}#L{d['line']}",
                        "payload": {"lean": d["name"], "statement": d["statement"], "doc": d["doc"],
