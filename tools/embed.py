@@ -10,6 +10,7 @@ import os
 import sys
 import time
 
+import pymysql
 import requests
 
 import rose_db as R
@@ -56,8 +57,10 @@ def main():
     cur.execute("SELECT u.unit_id, u.name, u.intent, e.text_sha FROM rose_unit u "
                 "JOIN rose_source s USING (source_id) LEFT JOIN rose_embedding e USING (unit_id) "
                 f"WHERE {' AND '.join(where)} ORDER BY u.unit_id", args)
+    rows = cur.fetchall()
+    con.commit()  # end the read snapshot: other writers (a parallel embed run) must not conflict (error 1020)
     todo = []
-    for uid, name, intent, old in cur.fetchall():
+    for uid, name, intent, old in rows:
         t = embed_text(name, intent)
         h = R.sha256(t)
         if old != h:
@@ -69,11 +72,19 @@ def main():
     for k in range(0, len(todo), a.batch):
         chunk = todo[k:k + a.batch]
         vecs = embed([t for _, t, _ in chunk])
-        cur.executemany(
-            "INSERT INTO rose_embedding (unit_id, model_id, text_sha, v) VALUES (%s,%s,%s,VEC_FromText(%s)) "
-            "ON DUPLICATE KEY UPDATE model_id=VALUES(model_id), text_sha=VALUES(text_sha), v=VALUES(v)",
-            [(uid, mid, h, json.dumps(v)) for (uid, _, h), v in zip(chunk, vecs)])
-        con.commit()
+        for attempt in range(5):
+            try:
+                cur.executemany(
+                    "INSERT INTO rose_embedding (unit_id, model_id, text_sha, v) VALUES (%s,%s,%s,VEC_FromText(%s)) "
+                    "ON DUPLICATE KEY UPDATE model_id=VALUES(model_id), text_sha=VALUES(text_sha), v=VALUES(v)",
+                    [(uid, mid, h, json.dumps(v)) for (uid, _, h), v in zip(chunk, vecs)])
+                con.commit()
+                break
+            except pymysql.err.OperationalError as e:
+                con.rollback()
+                if e.args[0] not in (1020, 1213) or attempt == 4:  # snapshot conflict / deadlock: retry
+                    raise
+                time.sleep(1 + attempt)
         done += len(chunk)
         if done % (a.batch * 50) < a.batch:
             print(f"  {done}/{len(todo)}  {done / (time.time() - t0):.0f}/s", flush=True)
