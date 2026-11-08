@@ -9,7 +9,7 @@ end
 
 
 open abc_conjecture
-  intent "abc conjecture - number theory conjecture [OPEN PROBLEM - no known solution, do not claim or search for a general one]"
+  intent "abc conjecture - number theory conjecture [also: Oesterlé–Masser conjecture; Oesterlé-Masser conjecture; Oesterlé Masser conjecture] [OPEN PROBLEM - no known solution, do not claim or search for a general one]"
   ref wikidata:Q306393
 end
 
@@ -123,7 +123,7 @@ end
 
 
 open beals_conjecture
-  intent "Beal's conjecture - conjecture in number theory [OPEN PROBLEM - no known solution, do not claim or search for a general one]"
+  intent "Beal's conjecture - conjecture in number theory [also: Beal conjecture] [OPEN PROBLEM - no known solution, do not claim or search for a general one]"
   ref wikidata:Q508173
 end
 
@@ -159,7 +159,7 @@ end
 
 
 open bingborsuk_conjecture
-  intent "Bing–Borsuk conjecture [OPEN PROBLEM - no known solution, do not claim or search for a general one]"
+  intent "Bing–Borsuk conjecture [also: Bing-Borsuk conjecture] [OPEN PROBLEM - no known solution, do not claim or search for a general one]"
   ref wikidata:Q55605472
 end
 
@@ -243,19 +243,19 @@ end
 
 
 open bunyakovsky_conjecture
-  intent "Bunyakovsky conjecture - conjecture that gives a criterion for a univariate integer-coefficient polynomial to give infinitely many prime values [OPEN PROBLEM - no known solution, do not claim or search for a general one]"
+  intent "Bunyakovsky conjecture - conjecture that gives a criterion for a univariate integer-coefficient polynomial to give infinitely many prime values [also: Bouniakowsky conjecture] [OPEN PROBLEM - no known solution, do not claim or search for a general one]"
   ref wikidata:Q1139180
 end
 
 
 open ca_duality
-  intent "CA-duality - conjecture in quantum gravity [OPEN PROBLEM - no known solution, do not claim or search for a general one]"
+  intent "CA-duality - conjecture in quantum gravity [also: complexity equals action duality] [OPEN PROBLEM - no known solution, do not claim or search for a general one]"
   ref wikidata:Q111936853
 end
 
 
 open caratheodory_conjecture
-  intent "Carathéodory conjecture - conjecture in differential geometry [OPEN PROBLEM - no known solution, do not claim or search for a general one]"
+  intent "Carathéodory conjecture - conjecture in differential geometry [also: Caratheodory conjecture] [OPEN PROBLEM - no known solution, do not claim or search for a general one]"
   ref wikidata:Q5037753
 end
 
@@ -291,7 +291,7 @@ end
 
 
 open collatz_conjecture
-  intent "Collatz conjecture - conjecture in mathematics that concerns sequences [OPEN PROBLEM - no known solution, do not claim or search for a general one]"
+  intent "Collatz conjecture - conjecture in mathematics that concerns sequences [also: 3n+1 conjecture; Ulam conjecture; Kakutani's problem; Thwaites conjecture; Hasse's algorithm; Syracuse problem; 3x+1 problem; Hailstone problem] [OPEN PROBLEM - no known solution, do not claim or search for a general one]"
   ref wikidata:Q837314
 end
 
@@ -309,7 +309,7 @@ end
 
 
 open cosmological_constant_problem
-  intent "cosmological constant problem - major unsolved problem in physics [OPEN PROBLEM - no known solution, do not claim or search for a general one]"
+  intent "cosmological constant problem - major unsolved problem in physics [also: vacuum catastrophe] [OPEN PROBLEM - no known solution, do not claim or search for a general one]"
   ref wikidata:Q4379531
 end
 
@@ -351,7 +351,7 @@ end
 
 
 open dinitzgarggoemans_conjecture
-  intent "Dinitz–Garg–Goemans conjecture - graph-theoretical conjecture on single-source unsplittable flows [OPEN PROBLEM - no known solution, do not claim or search for a general one]"
+  intent "Dinitz–Garg–Goemans conjecture - graph-theoretical conjecture on single-source unsplittable flows [also: Goemans' conjecture, cost conjecture] [OPEN PROBLEM - no known solution, do not claim or search for a general one]"
   ref wikidata:Q140738503
 end
 
@@ -393,7 +393,7 @@ end
 
 
 open egan_conjecture
-  intent "Egan Conjecture - conjecture in geometry [OPEN PROBLEM - no known solution, do not claim or search for a general one]"
+  intent "Egan Conjecture - conjecture in geometry [also: Egan conjecture] [OPEN PROBLEM - no known solution, do not claim or search for a general one]"
   ref wikidata:Q123512422
 end
 
@@ -447,7 +447,7 @@ end
 
 
 open erdosheilbronn_conjecture
-  intent "Erdős–Heilbronn conjecture - conjecture giving a lower bound on the cardinality of a restricted sumset [OPEN PROBLEM - no known solution, do not claim or search for a general one]"
+  intent "Erdős–Heilbronn conjecture - conjecture giving a lower bound on the cardinality of a restricted sumset [also: Erdős-Heilbronn conjecture] [OPEN PROBLEM - no known solution, do not claim or search for a general one]"
   ref wikidata:Q130240262
 end
 
@@ -519,7 +519,7 @@ end
 
 
 open first_hardylittlewood_conjecture
-  intent "First Hardy–Littlewood conjecture - conjecture about prime constellations [OPEN PROBLEM - no known solution, do not claim or search for a general one]"
+  intent "First Hardy–Littlewood conjecture - conjecture about prime constellations [also: Hardy-Littlewood conjecture; Hardy–Littlewood conjecture; First Hardy-Littlewood conjecture] [OPEN PROBLEM - no known solution, do not claim or search for a general one]"
   ref wikidata:Q18450813
 end
 
@@ -561,7 +561,7 @@ end
 
 
 open generalized_poincare_conjecture
-  intent "generalized Poincaré conjecture - topological conjecture [OPEN PROBLEM - no known solution, do not claim or search for a general one]"
+  intent "generalized Poincaré conjecture - topological conjecture [also: generalized Poincare conjecture; generalised Poincaré conjecture] [OPEN PROBLEM - no known solution, do not claim or search for a general one]"
   ref wikidata:Q5532452
 end
 
@@ -591,7 +591,7 @@ end
 
 
 open goldbachs_conjecture
-  intent "Goldbach's conjecture - Conjecture that every even integer greater than 2 is the sum of two primes [OPEN PROBLEM - no known solution, do not claim or search for a general one]"
+  intent "Goldbach's conjecture - Conjecture that every even integer greater than 2 is the sum of two primes [also: Goldbach conjecture] [OPEN PROBLEM - no known solution, do not claim or search for a general one]"
   ref wikidata:Q485520
 end
 
@@ -639,7 +639,7 @@ end
 
 
 open great_rationality_debate
-  intent "Great Rationality Debate - question of whether humans are rational or not [OPEN PROBLEM - no known solution, do not claim or search for a general one]"
+  intent "Great Rationality Debate - question of whether humans are rational or not [also: rationality debate; GRD] [OPEN PROBLEM - no known solution, do not claim or search for a general one]"
   ref wikidata:Q18207531
 end
 
@@ -669,13 +669,13 @@ end
 
 
 open hajos_conjecture
-  intent "Hajós' conjecture - conjecture in graph theory [OPEN PROBLEM - no known solution, do not claim or search for a general one]"
+  intent "Hajós' conjecture - conjecture in graph theory [also: Hajós' graph-coloring conjecture; Hajós conjecture; Hajós graph-coloring conjecture] [OPEN PROBLEM - no known solution, do not claim or search for a general one]"
   ref wikidata:Q27889470
 end
 
 
 open halls_conjecture
-  intent "Hall's conjecture - conjecture [OPEN PROBLEM - no known solution, do not claim or search for a general one]"
+  intent "Hall's conjecture - conjecture [also: Marshall Hall’s conjecture] [OPEN PROBLEM - no known solution, do not claim or search for a general one]"
   ref wikidata:Q1165804
 end
 
@@ -759,7 +759,7 @@ end
 
 
 open hilberts_twelfth_problem
-  intent "Hilbert's twelfth problem - mathematical hypothesis [OPEN PROBLEM - no known solution, do not claim or search for a general one]"
+  intent "Hilbert's twelfth problem - mathematical hypothesis [also: twelfth problem of Hilbert] [OPEN PROBLEM - no known solution, do not claim or search for a general one]"
   ref wikidata:Q1093498
 end
 
@@ -795,7 +795,7 @@ end
 
 
 open inscribed_square_problem
-  intent "inscribed square problem - unsolved problem in geometry of whether every simple closed curve in the plane contains four points at the corners of a square [OPEN PROBLEM - no known solution, do not claim or search for a general one]"
+  intent "inscribed square problem - unsolved problem in geometry of whether every simple closed curve in the plane contains four points at the corners of a square [also: Toeplitz's conjecture] [OPEN PROBLEM - no known solution, do not claim or search for a general one]"
   ref wikidata:Q2264221
 end
 
@@ -813,7 +813,7 @@ end
 
 
 open kakeya_needle_problem
-  intent "Kakeya needle problem - mathematical problem [OPEN PROBLEM - no known solution, do not claim or search for a general one]"
+  intent "Kakeya needle problem - mathematical problem [also: Kakeya conjecture] [OPEN PROBLEM - no known solution, do not claim or search for a general one]"
   ref wikidata:Q3406254
 end
 
@@ -885,7 +885,7 @@ end
 
 
 open lander_parkin_and_selfridge_conjecture
-  intent "Lander, Parkin, and Selfridge conjecture - unsolved conjecture in number theory [OPEN PROBLEM - no known solution, do not claim or search for a general one]"
+  intent "Lander, Parkin, and Selfridge conjecture - unsolved conjecture in number theory [also: LPS conjecture] [OPEN PROBLEM - no known solution, do not claim or search for a general one]"
   ref wikidata:Q15427141
 end
 
@@ -909,7 +909,7 @@ end
 
 
 open lemoines_conjecture
-  intent "Lemoine's conjecture - conjecture that any odd integer >5 equals an odd prime plus an even semiprime [OPEN PROBLEM - no known solution, do not claim or search for a general one]"
+  intent "Lemoine's conjecture - conjecture that any odd integer >5 equals an odd prime plus an even semiprime [also: Levy's conjecture] [OPEN PROBLEM - no known solution, do not claim or search for a general one]"
   ref wikidata:Q1129629
 end
 
@@ -951,7 +951,7 @@ end
 
 
 open lovasz_conjecture
-  intent "Lovász conjecture - unproven conjecture, that every finite connected vertex-transitive graph contains a Hamiltonian path [OPEN PROBLEM - no known solution, do not claim or search for a general one]"
+  intent "Lovász conjecture - unproven conjecture, that every finite connected vertex-transitive graph contains a Hamiltonian path [also: Lovasz conjecture] [OPEN PROBLEM - no known solution, do not claim or search for a general one]"
   ref wikidata:Q957938
 end
 
@@ -993,7 +993,7 @@ end
 
 
 open minkowskis_conjecture
-  intent "Minkowski's conjecture - conjecture on product of n non-homogeneous linear forms [OPEN PROBLEM - no known solution, do not claim or search for a general one]"
+  intent "Minkowski's conjecture - conjecture on product of n non-homogeneous linear forms [also: inhomogeneous Minkowski conjecture; nonhomogeneous Minkowski's conjecture] [OPEN PROBLEM - no known solution, do not claim or search for a general one]"
   ref wikidata:Q4138795
 end
 
@@ -1017,7 +1017,7 @@ end
 
 
 open montgomerys_pair_correlation_conjecture
-  intent "Montgomery's pair correlation conjecture - mathematical conjecture stated by Hugh Montgomery [OPEN PROBLEM - no known solution, do not claim or search for a general one]"
+  intent "Montgomery's pair correlation conjecture - mathematical conjecture stated by Hugh Montgomery [also: Montgomery–Odlyzko Law] [OPEN PROBLEM - no known solution, do not claim or search for a general one]"
   ref wikidata:Q6905620
 end
 
@@ -1107,7 +1107,7 @@ end
 
 
 open p_versus_np_problem
-  intent "P versus NP problem - unsolved problem in computer science about time complexity [OPEN PROBLEM - no known solution, do not claim or search for a general one]"
+  intent "P versus NP problem - unsolved problem in computer science about time complexity [also: P versus NP; P=NP; P is not NP; P = NP; P != NP; P ?= NP; P≟NP; P ≟ NP; P vs. NP] [OPEN PROBLEM - no known solution, do not claim or search for a general one]"
   ref wikidata:Q746242
 end
 
@@ -1179,13 +1179,13 @@ end
 
 
 open ramanujanpetersson_conjecture
-  intent "Ramanujan–Petersson conjecture - conjecture [OPEN PROBLEM - no known solution, do not claim or search for a general one]"
+  intent "Ramanujan–Petersson conjecture - conjecture [also: Ramanujan's conjecture] [OPEN PROBLEM - no known solution, do not claim or search for a general one]"
   ref wikidata:Q630650
 end
 
 
 open reconstruction_conjecture
-  intent "reconstruction conjecture - graphs are uniquely determined by their subgraphs [OPEN PROBLEM - no known solution, do not claim or search for a general one]"
+  intent "reconstruction conjecture - graphs are uniquely determined by their subgraphs [also: Ulam's conjecture; Kelly–Ulam conjecture] [OPEN PROBLEM - no known solution, do not claim or search for a general one]"
   ref wikidata:Q7302789
 end
 
@@ -1197,13 +1197,13 @@ end
 
 
 open restriction_conjecture
-  intent "restriction conjecture - conjecture about the behavior of the Fourier transform on curved hypersurfaces [OPEN PROBLEM - no known solution, do not claim or search for a general one]"
+  intent "restriction conjecture - conjecture about the behavior of the Fourier transform on curved hypersurfaces [also: Fourier restriction conjecture] [OPEN PROBLEM - no known solution, do not claim or search for a general one]"
   ref wikidata:Q135423966
 end
 
 
 open riemann_hypothesis
-  intent "Riemann hypothesis - conjecture in mathematics linked to the repartition of prime numbers [OPEN PROBLEM - no known solution, do not claim or search for a general one]"
+  intent "Riemann hypothesis - conjecture in mathematics linked to the repartition of prime numbers [also: RH; Riemann Hypothesis] [OPEN PROBLEM - no known solution, do not claim or search for a general one]"
   ref wikidata:Q205966
 end
 
@@ -1269,7 +1269,7 @@ end
 
 
 open scholz_conjecture
-  intent "Scholz conjecture - conjecture [OPEN PROBLEM - no known solution, do not claim or search for a general one]"
+  intent "Scholz conjecture - conjecture [also: Scholz–Brauer conjecture] [OPEN PROBLEM - no known solution, do not claim or search for a general one]"
   ref wikidata:Q643614
 end
 
@@ -1287,7 +1287,7 @@ end
 
 
 open second_neighborhood_problem
-  intent "second neighborhood problem - unsolved problem about oriented graphs [OPEN PROBLEM - no known solution, do not claim or search for a general one]"
+  intent "second neighborhood problem - unsolved problem about oriented graphs [also: second neighborhood conjecture; Seymour’s distance two conjecture] [OPEN PROBLEM - no known solution, do not claim or search for a general one]"
   ref wikidata:Q60792926
 end
 
@@ -1353,7 +1353,7 @@ end
 
 
 open strassens_conjecture
-  intent "Strassen's conjecture [OPEN PROBLEM - no known solution, do not claim or search for a general one]"
+  intent "Strassen's conjecture [also: Strassen conjecture] [OPEN PROBLEM - no known solution, do not claim or search for a general one]"
   ref wikidata:Q4138798
 end
 
@@ -1395,7 +1395,7 @@ end
 
 
 open synchronizing_word
-  intent "Synchronizing word - mathematical conjecture [OPEN PROBLEM - no known solution, do not claim or search for a general one]"
+  intent "Synchronizing word - mathematical conjecture [also: Černý conjecture] [OPEN PROBLEM - no known solution, do not claim or search for a general one]"
   ref wikidata:Q7662204
 end
 
@@ -1431,7 +1431,7 @@ end
 
 
 open terraforming
-  intent "terraforming - hypothetical planetary engineering process [OPEN PROBLEM - no known solution, do not claim or search for a general one]"
+  intent "terraforming - hypothetical planetary engineering process [also: terraformation; Earth-shaping; ecopoiesis] [OPEN PROBLEM - no known solution, do not claim or search for a general one]"
   ref wikidata:Q204520
 end
 
@@ -1491,7 +1491,7 @@ end
 
 
 open union_closed_sets_conjecture
-  intent "Union-closed sets conjecture - 1979 conjecture in combinatorics [OPEN PROBLEM - no known solution, do not claim or search for a general one]"
+  intent "Union-closed sets conjecture - 1979 conjecture in combinatorics [also: Frankl's conjecture] [OPEN PROBLEM - no known solution, do not claim or search for a general one]"
   ref wikidata:Q2993338
 end
 

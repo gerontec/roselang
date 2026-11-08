@@ -4,12 +4,11 @@ module std.law
 
 law absolute_chemical_activity
   intent "absolute chemical activity"
-  var R: Real
-  var T: Real
-  var exp_: Real
+  var R: Real[m^2*kg/(s^2*K*mol)] = 8.314462618 J*mol^-1*K^-1
+  var T: Real[K]
   var lambda_X: Real
-  var mu_X: Real
-  eq  lambda_X = exp_ * mu_X / (R * T)
+  var mu_X: Real[m^2*kg/(s^2*mol)]
+  eq  lambda_X = exp(mu_X / (R * T))
   ref wikidata:Q56638155
 end
 
@@ -237,7 +236,7 @@ end
 
 law angular_wavenumber_2
   intent "angular wavenumber"
-  var hbar: Real[m^2*kg/s]
+  var hbar: Real[m^2*kg/s] = 1.054571817e-34 J*s
   var k: Real[1/m]
   var p: Real[m*kg/s]
   eq  k = p / hbar
@@ -288,7 +287,7 @@ end
 law arrhenius_number
   intent "Arrhenius number"
   var E_0: Real[m^2*kg/(s^2*mol)]
-  var R: Real[m^2*kg/(s^2*K*mol)]
+  var R: Real[m^2*kg/(s^2*K*mol)] = 8.314462618 J*mol^-1*K^-1
   var T: Real[K]
   var alpha: Real
   eq  alpha = E_0 / (R * T)
@@ -829,8 +828,8 @@ end
 
 law compton_wavelength
   intent "Compton wavelength"
-  var c_0: Real[m/s]
-  var h: Real[m^2*kg/s]
+  var c_0: Real[m/s] = 299792458.0 m*s^-1
+  var h: Real[m^2*kg/s] = 6.62607015e-34 J*Hz^-1
   var lambda_C: Real[m]
   var m: Real[kg]
   eq  lambda_C = h / (m * c_0)
@@ -981,7 +980,7 @@ end
 
 law de_broglie_equation
   intent "de Broglie equation"
-  var h: Real[m^2*kg/s]
+  var h: Real[m^2*kg/s] = 6.62607015e-34 J*Hz^-1
   var lambda: Real[m]
   var p: Real[m*kg/s]
   eq  lambda = h / p
@@ -991,7 +990,7 @@ end
 
 law de_broglie_wavelength
   intent "de Broglie wavelength"
-  var h: Real[m^2*kg/s]
+  var h: Real[m^2*kg/s] = 6.62607015e-34 J*Hz^-1
   var lambda: Real[m]
   var p: Real[m*kg/s]
   eq  lambda = h / p
@@ -1024,7 +1023,7 @@ end
 law debye_temperature
   intent "Debye temperature"
   var Theta_D: Real[K]
-  var hbar: Real[m^2*kg/s]
+  var hbar: Real[m^2*kg/s] = 1.054571817e-34 J*s
   var k: Real[m^2*kg/(s^2*K)]
   var omega_D: Real[Hz]
   eq  Theta_D = (hbar * omega_D) / k
@@ -1364,7 +1363,7 @@ end
 law energy_momentum_relation
   intent "energy-momentum relation"
   var E: Real[J]
-  var c: Real[m/s]
+  var c: Real[m/s] = 299792458.0 m*s^-1
   var m: Real[kg]
   var p: Real[m*kg/s]
   eq  E ^ 2 = p ^ 2 * c ^ 2 + m ^ 2 * c ^ 4
@@ -1385,11 +1384,10 @@ end
 
 law entropy
   intent "entropy"
-  var S: Real
+  var S: Real[m^2*kg/(s^2*K)]
   var W: Real
-  var k: Real
-  var ln_: Real
-  eq  S = k * ln_ * W
+  var k: Real[m^2*kg/(s^2*K)]
+  eq  S = k * ln(W)
   ref wikidata:Q45003
 end
 
@@ -1919,7 +1917,7 @@ end
 
 law ideal_gas_law
   intent "ideal gas law"
-  var R: Real[m^2*kg/(s^2*K*mol)]
+  var R: Real[m^2*kg/(s^2*K*mol)] = 8.314462618 J*mol^-1*K^-1
   var T: Real[K]
   var V: Real[m^3]
   var n: Real[mol]
@@ -2189,7 +2187,7 @@ law lande_factor
   var J: Real
   var g: Real
   var mu: Real[m^2*A]
-  var mu_B: Real[m^2*A]
+  var mu_B: Real[m^2*A] = 9.2740100657e-24 J*T^-1
   eq  g = mu / (J * mu_B)
   ref wikidata:Q1191684
 end
@@ -2253,7 +2251,7 @@ end
 law level_width
   intent "level width"
   var Gamma: Real[J]
-  var hbar: Real[m^2*kg/s]
+  var hbar: Real[m^2*kg/s] = 1.054571817e-34 J*s
   var tau: Real[s]
   eq  Gamma = hbar / tau
   ref wikidata:Q98082340
@@ -2373,10 +2371,9 @@ end
 
 law loss_angle
   intent "loss angle"
-  var arctan: Real
   var d: Real
   var delta: Real
-  eq  delta = arctan * d
+  eq  delta = atan(d)
   ref wikidata:Q20820438
 end
 
@@ -2691,7 +2688,7 @@ end
 law massenergy_equivalence
   intent "mass–energy equivalence"
   var E: Real[J]
-  var c: Real[m/s]
+  var c: Real[m/s] = 299792458.0 m*s^-1
   var m: Real[kg]
   eq  E = m * c ^ 2
   ref wikidata:Q35875
@@ -3016,9 +3013,8 @@ end
 law napierian_absorbance
   intent "Napierian absorbance"
   var A_n: Real
-  var ln_: Real
   var tau: Real
-  eq  A_n = -ln_ * tau
+  eq  A_n = -ln(tau)
   ref wikidata:Q85664557
 end
 
@@ -3060,7 +3056,7 @@ law nuclear_g_factor
   var I: Real
   var g: Real
   var mu: Real[m^2*A]
-  var mu_N: Real[m^2*A]
+  var mu_N: Real[m^2*A] = 5.0507837393e-27 J*T^-1
   eq  g = mu / (I * mu_N)
   ref wikidata:Q97591250
 end
@@ -3236,18 +3232,6 @@ law peclet_number_for_mass_transfer
 end
 
 
-law pendulum
-  intent "pendulum"
-  var fracd_2thetadt_2: Real
-  var g: Real
-  var l: Real
-  var sin_: Real
-  var theta: Real
-  eq  fracd_2thetadt_2 + g / l * sin_ * theta = 0
-  ref wikidata:Q20702
-end
-
-
 law period_of_binary_digits
   intent "period of binary digits"
   var T_b: Real[s]
@@ -3307,7 +3291,7 @@ end
 law photon_energy
   intent "photon energy"
   var Q_p: Real[J]
-  var h: Real[m^2*kg/s]
+  var h: Real[m^2*kg/s] = 6.62607015e-34 J*Hz^-1
   var nu: Real[Hz]
   eq  Q_p = h * nu
   ref wikidata:Q25303639
@@ -3318,7 +3302,7 @@ law photon_number
   intent "photon number"
   var N_p: Real
   var Q_e: Real[J]
-  var h: Real[m^2*kg/s]
+  var h: Real[m^2*kg/s] = 6.62607015e-34 J*Hz^-1
   var nu: Real[Hz]
   eq  N_p = Q_e / (h * nu)
   ref wikidata:Q83698917
@@ -3338,7 +3322,7 @@ end
 law planckeinstein_relation
   intent "Planck–Einstein relation"
   var E: Real[J]
-  var h: Real[m^2*kg/s]
+  var h: Real[m^2*kg/s] = 6.62607015e-34 J*Hz^-1
   var nu: Real[Hz]
   eq  E = h * nu
   ref wikidata:Q12757333
@@ -3348,7 +3332,7 @@ end
 law planckeinstein_relation_2
   intent "Planck–Einstein relation"
   var E: Real[J]
-  var h: Real[m^2*kg/s]
+  var h: Real[m^2*kg/s] = 6.62607015e-34 J*Hz^-1
   var nu: Real[Hz]
   eq  E = h * nu
   ref wikidata:Q18388892
@@ -3455,10 +3439,8 @@ end
 law pseudorapidity
   intent "pseudorapidity"
   var eta: Real
-  var ln_: Real
-  var tan_: Real
   var theta: Real
-  eq  eta = -ln_ * tan_ * theta / 2
+  eq  eta = -ln(tan(theta / 2))
   ref wikidata:Q2064924
 end
 
@@ -3589,7 +3571,7 @@ end
 law refractive_index
   intent "refractive index"
   var c: Real[m/s]
-  var c_0: Real[m/s]
+  var c_0: Real[m/s] = 299792458.0 m*s^-1
   var n: Real
   eq  n = c_0 / c
   ref wikidata:Q174102
@@ -3718,7 +3700,7 @@ end
 law relativistic_beta
   intent "relativistic beta"
   var beta: Real
-  var c: Real[m/s]
+  var c: Real[m/s] = 299792458.0 m*s^-1
   var v: Real[m/s]
   eq  beta = v / c
   ref wikidata:Q4897242
@@ -3738,7 +3720,7 @@ end
 law rest_energy
   intent "rest energy"
   var E_0: Real[J]
-  var c_0: Real[m/s]
+  var c_0: Real[m/s] = 299792458.0 m*s^-1
   var m_0: Real[kg]
   eq  E_0 = m_0 * c_0 ^ 2
   ref wikidata:Q11663629
@@ -4228,10 +4210,8 @@ law spherical_law_of_cosines
   var a: Real
   var b: Real
   var c: Real
-  var cos_: Real
   var gamma: Real
-  var sin_: Real
-  eq  cos_ * c = cos_ * a * cos_ * b + sin_ * a * sin_ * b * cos_ * gamma
+  eq  cos(c) = cos(a) * cos(b) + sin(a) * sin(b) * cos(gamma)
   ref wikidata:Q2996944
 end
 
@@ -4635,11 +4615,10 @@ end
 law tsiolkovsky_rocket_equation
   intent "Tsiolkovsky rocket equation"
   var Deltav: Real
-  var ln_: Real
   var m_0: Real
   var m_f: Real
   var v_e: Real
-  eq  Deltav = v_e * ln_ * m_0 / m_f
+  eq  Deltav = v_e * ln(m_0 / m_f)
   ref wikidata:Q834199
 end
 
@@ -4657,8 +4636,8 @@ law unruh_effect
   intent "Unruh effect"
   var T: Real[K]
   var a: Real[m/s^2]
-  var c: Real[m/s]
-  var hbar: Real[m^2*kg/s]
+  var c: Real[m/s] = 299792458.0 m*s^-1
+  var hbar: Real[m^2*kg/s] = 1.054571817e-34 J*s
   var k_B: Real[m^2*kg/(s^2*K)]
   eq  T = (hbar * a) / (2 * pi * c * k_B)
   ref wikidata:Q1568269
@@ -4676,10 +4655,9 @@ end
 
 law versine
   intent "versine"
-  var cos_: Real
   var theta: Real
   var versin: Real
-  eq  versin * (theta) = 1 - cos_ * (theta)
+  eq  versin * (theta) = 1 - cos(theta)
   ref wikidata:Q1364682
 end
 
@@ -4755,7 +4733,7 @@ end
 
 law wavelength_in_vacuum
   intent "wavelength in vacuum"
-  var c_0: Real[m/s]
+  var c_0: Real[m/s] = 299792458.0 m*s^-1
   var lambda_0: Real[m]
   var nu: Real[Hz]
   eq  lambda_0 = c_0 / nu
@@ -4774,7 +4752,7 @@ end
 
 law wavenumber_in_vacuum
   intent "wavenumber in vacuum"
-  var c_0: Real[m/s]
+  var c_0: Real[m/s] = 299792458.0 m*s^-1
   var nu: Real[1/m]
   var nu2: Real[Hz]
   eq  nu = nu2 / c_0

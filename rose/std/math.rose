@@ -58,9 +58,9 @@ end
 
 law conductance_quantum
   intent "conductance quantum"
-  var G_0: Real[S]
+  var G_0: Real[S] = 7.748091729e-05 S
   var e: Real[C]
-  var h: Real[m^2*kg/s]
+  var h: Real[m^2*kg/s] = 6.62607015e-34 J*Hz^-1
   eq  G_0 = (2 * e ^ 2) / h
   ref wikidata:Q13570090
 end
@@ -127,9 +127,9 @@ end
 
 law first_radiation_constant_for_spectral_radiance
   intent "first radiation constant for spectral radiance"
-  var c: Real[m/s]
-  var c_1L: Real[m^4*kg/s^3]
-  var h: Real[m^2*kg/s]
+  var c: Real[m/s] = 299792458.0 m*s^-1
+  var c_1L: Real[m^4*kg/s^3] = 1.191042972e-16 W*m^2*sr^-1
+  var h: Real[m^2*kg/s] = 6.62607015e-34 J*Hz^-1
   eq  c_1L = 2 * h * c ^ 2
   ref wikidata:Q117771430
 end
@@ -166,7 +166,7 @@ end
 law impedance_of_vacuum
   intent "impedance of vacuum"
   var Z_0: Real[Ohm]
-  var c_0: Real[m/s]
+  var c_0: Real[m/s] = 299792458.0 m*s^-1
   var mu_0: Real[m*kg/(s^2*A^2)]
   eq  Z_0 = c_0 * mu_0
   ref wikidata:Q269492
@@ -185,11 +185,9 @@ end
 
 law magic_angle
   intent "magic angle"
-  var arccos: Real
-  var arctan: Real
   var sqrt2: Real
   var sqrt3: Real
-  eq  arccos * 1 / sqrt3 = arctan * sqrt2
+  eq  acos(1 / sqrt3) = atan(sqrt2)
   ref wikidata:Q6730900
 end
 
@@ -207,7 +205,7 @@ end
 law molar_gas_constant
   intent "molar gas constant"
   var N_A: Real[1/mol]
-  var R: Real[m^2*kg/(s^2*K*mol)]
+  var R: Real[m^2*kg/(s^2*K*mol)] = 8.314462618 J*mol^-1*K^-1
   var k: Real[m^2*kg/(s^2*K)]
   eq  R = k * N_A
   ref wikidata:Q182333
@@ -216,7 +214,7 @@ end
 
 law molar_mass_constant
   intent "molar mass constant"
-  var M_u: Real[kg/mol]
+  var M_u: Real[kg/mol] = 0.00100000000105 kg*mol^-1
   var N_A: Real[1/mol]
   var m_u: Real[kg]
   eq  M_u = N_A * m_u
@@ -227,9 +225,9 @@ end
 law nuclear_magneton
   intent "nuclear magneton"
   var e: Real[C]
-  var hbar: Real[m^2*kg/s]
+  var hbar: Real[m^2*kg/s] = 1.054571817e-34 J*s
   var m_p: Real[kg]
-  var mu_N: Real[m^2*A]
+  var mu_N: Real[m^2*A] = 5.0507837393e-27 J*T^-1
   eq  mu_N = (e * hbar) / (2 * m_p)
   ref wikidata:Q1166093
 end
@@ -246,7 +244,7 @@ end
 
 law permittivity_of_vacuum
   intent "permittivity of vacuum"
-  var c_0: Real[m/s]
+  var c_0: Real[m/s] = 299792458.0 m*s^-1
   var mu_0: Real[m*kg/(s^2*A^2)]
   var varepsilon_0: Real[s^4*A^2/(m^3*kg)]
   eq  varepsilon_0 = 1 / (mu_0 * c_0 ^ 2)
@@ -327,9 +325,9 @@ end
 
 law von_klitzing_constant
   intent "von Klitzing constant"
-  var R_K: Real[Ohm]
+  var R_K: Real[Ohm] = 25812.80745 ohm
   var e: Real[C]
-  var h: Real[m^2*kg/s]
+  var h: Real[m^2*kg/s] = 6.62607015e-34 J*Hz^-1
   eq  R_K = h / (e ^ 2)
   ref wikidata:Q304770
 end
@@ -1015,9 +1013,8 @@ end
 law lambert_w_function
   intent "Lambert W function"
   var W_z: Real
-  var exp_: Real
   var z: Real
-  eq  z = W_z * exp_ * W_z
+  eq  z = W_z * exp(W_z)
   ref wikidata:Q429331
 end
 
@@ -1072,9 +1069,8 @@ end
 
 law machin_like_formula
   intent "Machin-like formula"
-  var arctan: Real
   var pi_: Real
-  eq  pi_ / 4 = 4 * arctan * 1 / 5 - arctan * 1 / 239
+  eq  pi_ / 4 = 4 * atan(1 / 5) - atan(1 / 239)
   ref wikidata:Q3077635
 end
 
@@ -1587,10 +1583,9 @@ end
 law von_neumann_entropy
   intent "von Neumann entropy"
   var S: Real
-  var log: Real
   var rho: Real
   var tr: Real
-  eq  S = -tr * rho * log * rho
+  eq  S = -tr * rho * ln(rho)
   ref wikidata:Q6961323
 end
 

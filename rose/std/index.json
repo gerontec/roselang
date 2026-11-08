@@ -3114,7 +3114,7 @@
 "law:absolute_chemical_activity": {
 "file": "law.rose",
 "kind": "law",
-"level": "parsed",
+"level": "tested",
 "license": "CC0-1.0",
 "name": "absolute_chemical_activity",
 "url": "https://www.wikidata.org/wiki/Q56638155"
@@ -4162,7 +4162,7 @@
 "law:entropy": {
 "file": "law.rose",
 "kind": "law",
-"level": "parsed",
+"level": "tested",
 "license": "CC0-1.0",
 "name": "entropy",
 "url": "https://www.wikidata.org/wiki/Q45003"
@@ -4906,7 +4906,7 @@
 "law:loss_angle": {
 "file": "law.rose",
 "kind": "law",
-"level": "parsed",
+"level": "tested",
 "license": "CC0-1.0",
 "name": "loss_angle",
 "url": "https://www.wikidata.org/wiki/Q20820438"
@@ -5410,7 +5410,7 @@
 "law:napierian_absorbance": {
 "file": "law.rose",
 "kind": "law",
-"level": "parsed",
+"level": "tested",
 "license": "CC0-1.0",
 "name": "napierian_absorbance",
 "url": "https://www.wikidata.org/wiki/Q85664557"
@@ -5574,14 +5574,6 @@
 "license": "CC0-1.0",
 "name": "peclet_number_for_mass_transfer",
 "url": "https://www.wikidata.org/wiki/Q104542217"
-},
-"law:pendulum": {
-"file": "law.rose",
-"kind": "law",
-"level": "parsed",
-"license": "CC0-1.0",
-"name": "pendulum",
-"url": "https://www.wikidata.org/wiki/Q20702"
 },
 "law:period_of_binary_digits": {
 "file": "law.rose",
