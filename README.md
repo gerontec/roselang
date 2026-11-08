@@ -13,7 +13,7 @@ compiles it to Python (C, IEC 61131-3 ST and ESPHome C++ planned).
 > CODATA, Gene Ontology, Rosalind). Compiler handles `fn`, `const`, `use`, `law` + `solve`,
 > `table`, `test` and emits Python. `rosec plan` acceptance: 7/12.
 > Not yet: Rosetta Code import, `machine`/`ctrl`, C/ST/ESPHome targets.
-> Want to help? See [`TODO.md`](TODO.md).
+> Want to help? See [`TODO.md`](https://github.com/gerontec/roselang/blob/main/TODO.md).
 
 ```sh
 pip install git+https://github.com/gerontec/roselang     # distribution "roselang", import name "rose"
@@ -45,16 +45,16 @@ test speed_for(200 kJ, 1000 kg) == 20 m/s within 1 %
 
 | Path | What |
 |---|---|
-| [`docs/CONCEPT.md`](docs/CONCEPT.md) | full concept: principles, language, corpus sources and licences, verification levels, where the knowledge lives, benchmark and go/no-go rule, roadmap |
-| [`spec/grammar.ebnf`](spec/grammar.ebnf) | grammar draft v0 |
-| [`spec/mcp-tools.md`](spec/mcp-tools.md) | tool interface (CLI `--json`; optional MCP adapter) and diagnostic codes |
-| [`rose/std/`](rose/std) | generated standard library and knowledge catalog (do not edit; `tools/export_std.py`) |
-| [`schema/rose_schema.sql`](schema/rose_schema.sql) | MariaDB 11.8 corpus schema (`rose_*`, `VECTOR(1024)` + HNSW) |
-| [`rose/`](rose) | compiler v1 (`rosec`): parser, unit checker, solve, tables, Python codegen, corpus access |
-| [`tools/`](tools) | corpus importers (Wikidata, CODATA, OEIS) and embedding |
-| [`tests/`](tests) | self-test: positive programs and negative programs per diagnostic code |
-| [`TODO.md`](TODO.md) | open tasks and rules for contributors (humans and LLMs) |
-| [`examples/`](examples) | `fn`, `law`, `ctrl`, `machine`, `table`, `bio` examples |
+| [`docs/CONCEPT.md`](https://github.com/gerontec/roselang/blob/main/docs/CONCEPT.md) | full concept: principles, language, corpus sources and licences, verification levels, where the knowledge lives, benchmark and go/no-go rule, roadmap |
+| [`spec/grammar.ebnf`](https://github.com/gerontec/roselang/blob/main/spec/grammar.ebnf) | grammar draft v0 |
+| [`spec/mcp-tools.md`](https://github.com/gerontec/roselang/blob/main/spec/mcp-tools.md) | tool interface (CLI `--json`; optional MCP adapter) and diagnostic codes |
+| [`rose/std/`](https://github.com/gerontec/roselang/tree/main/rose/std) | generated standard library and knowledge catalog (do not edit; `tools/export_std.py`) |
+| [`schema/rose_schema.sql`](https://github.com/gerontec/roselang/blob/main/schema/rose_schema.sql) | MariaDB 11.8 corpus schema (`rose_*`, `VECTOR(1024)` + HNSW) |
+| [`rose/`](https://github.com/gerontec/roselang/tree/main/rose) | compiler v1 (`rosec`): parser, unit checker, solve, tables, Python codegen, corpus access |
+| [`tools/`](https://github.com/gerontec/roselang/tree/main/tools) | corpus importers (Wikidata, CODATA, OEIS) and embedding |
+| [`tests/`](https://github.com/gerontec/roselang/tree/main/tests) | self-test: positive programs and negative programs per diagnostic code |
+| [`TODO.md`](https://github.com/gerontec/roselang/blob/main/TODO.md) | open tasks and rules for contributors (humans and LLMs) |
+| [`examples/`](https://github.com/gerontec/roselang/tree/main/examples) | `fn`, `law`, `ctrl`, `machine`, `table`, `bio` examples |
 
 ## Key ideas
 
