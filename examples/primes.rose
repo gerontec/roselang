@@ -1,0 +1,17 @@
+module demo.primes
+target python, c
+
+use rc:Sieve_of_Eratosthenes as sieve        # Rosetta Code task, implementation chosen per target
+use oeis:A000040 as primes                   # the prime numbers, used only in the contract
+
+fn primes_below(n: Int{>= 2}) -> List[Int]
+  intent "all primes smaller than n"
+  ensure sorted(result) and all(result, primes.contains)
+  cost   O(n log log n)
+do
+  return sieve(n - 1)
+end
+
+test primes_below(10) == [2, 3, 5, 7]
+test primes_below(2)  == []
+test len(primes_below(1000)) == 168

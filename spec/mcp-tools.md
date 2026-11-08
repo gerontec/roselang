@@ -1,0 +1,78 @@
+# MCP server `rose` – tool specification (draft)
+
+Host: dell, 192.168.5.23 · Transport: stdio via `ssh -T 192.168.5.23 ~/mcp/rose/rose-mcp.sh`
+(same pattern as the existing `mariadb` MCP), optional streamable HTTP.
+Storage: `wagodb.rose_*` (see [`schema/rose_schema.sql`](../schema/rose_schema.sql)).
+Embeddings: bge-m3 FP16 on llama-server :8084.
+
+Design rules
+
+- Filtering, ranking, type and unit matching happen **in SQL on the server**, never in the model.
+- Responses are small: a result list returns *signature cards*, not code. Default `k = 5`, max `k = 10`.
+- Every result carries `level` and `license` so the model can prefer verified, permissive units.
+- All errors are JSON objects with `code`, `message`, optional `fix`.
+
+## Signature card (common result shape)
+
+```json
+{
+  "ref": "rc:Sieve_of_Eratosthenes",
+  "kind": "algo",
+  "name": "Sieve of Eratosthenes",
+  "intent": "all primes up to limit",
+  "signature": "(limit: Int{>= 2}) -> List[Int]",
+  "dims": null,
+  "level": "cross_checked",
+  "targets": ["python", "c", "st"],
+  "license": "GFDL-1.3-or-later",
+  "score": 0.81
+}
+```
+
+## Tools
+
+| Tool | Input | Output |
+|---|---|---|
+| `rose.search` | `query: str`, `kind?: algo\|math\|law\|const\|model\|ctrl\|machine\|table`, `target?: str`, `min_level?: str`, `license?: any\|permissive`, `k?: int` | list of signature cards |
+| `rose.match_signature` | `signature: str` (Rose type, e.g. `"(Real[W], Real[K]) -> Real[kg/s]"`), `kind?`, `k?` | list of signature cards, exact dimension match first |
+| `rose.get` | `ref: str`, `with?: [source, tests, provenance, deps]` | card + requested parts (Rose source, test vectors, origin URL, dependencies) |
+| `rose.examples` | `ref: str`, `lang: str`, `k?: int` | implementations in that language with `level`, `license`, `source_url` (only tool that returns foreign code) |
+| `rose.law_solve` | `ref: str`, `unknown: str`, `given?: {sym: quantity}` | closed form, dimension check, validity range; numeric value if all givens are set |
+| `rose.check` | `source: str`, `file?: str` | `{ok: bool, diagnostics: [...]}` (codes E1xx–E5xx, R2xx) |
+| `rose.compile` | `source: str`, `target: python\|c\|st\|esphome`, `license?: any\|permissive`, `self_contained?: bool` | `{code, lock, diagnostics}`; `lock` = pinned refs with hash, level, license |
+| `rose.test` | `source: str`, `target?: str` | test results from the sandbox (no network, MemoryMax, ≤ 20 s) |
+| `rose.submit` | `source: str`, `author: str`, `note?: str` | `{submission_id, status: staged}`; promoted only after green `rose.test` |
+| `rose.explain` | `code: str` | explanation and example fix for a diagnostic code |
+
+## Diagnostic codes (initial set)
+
+| Code | Name | Meaning |
+|---|---|---|
+| E101 | syntax | parse error with expected tokens |
+| E201 | unit-mismatch | incompatible units in an expression |
+| E202 | missing-unit | numeric literal where a quantity is required |
+| E203 | affine-temperature | `degC + degC` or similar |
+| E301 | unknown-ref | `use` target not in corpus (with `did_you_mean`) |
+| E302 | no-impl-for-target | unit has no implementation for the target |
+| E303 | license-excluded | unit excluded by `--license permissive` |
+| E304 | self-reference | `--self-contained`: the task itself is imported |
+| E410 | ctrl-without-sample-time | `ctrl` without `sample` |
+| E411 | unbounded-output | `ctrl` output without range |
+| E501 | nondeterministic | two transitions enabled at once |
+| E502 | unreachable-state | state never reached from `initial` |
+| E503 | deadlock | reachable state without outgoing transition (and not final) |
+| E511 | table-incomplete | input combination without rule (with counterexample) |
+| E512 | table-overlap | input combination matched by > 1 rule under `hit unique` |
+| R201 | known-solution | hand-written body resembles a corpus unit |
+| R202 | lower-level-chosen | a higher-level unit with the same signature exists |
+
+## Example session
+
+```text
+→ rose.search {"query": "mass flow from thermal power and temperature spread", "kind": "law"}
+← [{"ref": "law:water_heat_flow", "signature": "P = mdot*cp*dT", "level": "cross_checked", ...}]
+→ rose.law_solve {"ref": "law:water_heat_flow", "unknown": "mdot", "given": {"P": "9 kW", "dT": "5 K"}}
+← {"form": "mdot = P/(cp*dT)", "value": "0.430 kg/s", "valid": true}
+→ rose.check {"source": "..."}
+← {"ok": false, "diagnostics": [{"code": "E202", "at": {"line": 7}, "fix": [{"with": "9 kW"}]}]}
+```

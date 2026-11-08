@@ -1,0 +1,21 @@
+module energy.discharge
+target python, c
+
+# Same method as the batmonitor decision tables: decision only, no amounts.
+# The checker splits soc at the thresholds into [0,10) [10,20) [20,100]
+# and enumerates all 3 x 2 cells: complete and free of overlap.
+
+table discharge_source
+  intent "choose energy source by battery SOC and grid state"
+  hit    unique
+  in     soc: Real[%]{0 .. 100}, grid_ok: Bool
+  out    src: {battery, grid, none}
+  rule   soc >= 20 %,  true  -> battery
+  rule   soc <  20 %,  true  -> grid
+  rule   soc >= 10 %,  false -> battery
+  rule   soc <  10 %,  false -> none
+  check  complete, no_overlap
+end
+
+test discharge_source(soc = 15 %, grid_ok = false) == battery
+test discharge_source(soc = 5 %,  grid_ok = true)  == grid

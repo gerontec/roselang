@@ -1,0 +1,21 @@
+module house.buffer_ctrl
+target st, esphome
+
+use model:fopdt                                # first order plus dead time plant model
+
+ctrl buffer_temp
+  intent "keep buffer tank temperature at setpoint via compressor demand"
+  use    ctrl:pid.parallel.antiwindup as pid
+  sample 10 s
+  in     y: Real[degC]                         # measured buffer temperature
+  in     w: Real[degC]                         # setpoint
+  out    u: Real[%]{0 .. 100}                  # compressor demand, bounded (E411 otherwise)
+  param  kp = 8 %/K, ti = 600 s, td = 0 s
+  tune   simc(model: fopdt(k = 0.4 K/%, tau = 1800 s, theta = 120 s))
+do
+  u = pid(e = w - y, kp = kp, ti = ti, td = td)
+end
+
+# step response against the plant model: settles into +-0.5 K within 2 h
+test simulate(buffer_temp, fopdt(k = 0.4 K/%, tau = 1800 s, theta = 120 s),
+              w = step(40 degC, 45 degC, at = 0 s), horizon = 2 h).settled(0.5 K)

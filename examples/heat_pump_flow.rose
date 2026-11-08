@@ -1,0 +1,28 @@
+module house.heat_pump_flow
+target esphome, python
+
+use law:water_heat_flow                       # P = mdot * cp * dT, from Wikidata + Modelica MSL
+use machine:hysteresis_min_runtime as guard   # proven: deterministic, reachable, no deadlock
+
+const p_nominal: Real[W] = 9 kW
+const spread:    Real[K] = 5 K
+
+fn required_flow(p: Real[W], dT: Real[K]) -> Real[kg/s]
+  intent "mass flow needed to carry thermal power p at temperature spread dT"
+do
+  return solve water_heat_flow for mdot given P = p, dT = dT
+end
+
+machine circulation_pump
+  intent "circulation pump on below 45 degC, off above 50 degC, at least 5 min on"
+  in     t_buf: Real[degC]
+  param  t_on = 45 degC, t_off = 50 degC, min_run = 300 s
+  timer  run
+  state  Off initial, On
+  on Off when t_buf < t_on                      -> On  do start run
+  on On  when t_buf > t_off and run >= min_run  -> Off
+  out    pump: Bool = state == On
+  check  deterministic, reachable, no_deadlock
+end
+
+test required_flow(p_nominal, spread) == 0.430 kg/s within 1 %

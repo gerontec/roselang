@@ -1,0 +1,112 @@
+(* Rose v0 grammar draft (ISO EBNF). Status: concept, not implemented.
+   Blocks end with `end`; indentation has no meaning.
+   Comments: '#' to end of line. One canonical form, enforced by `rose fmt`. *)
+
+file        = module_decl , { target_decl } , { use_decl } , { item } ;
+module_decl = "module" , qname ;
+target_decl = "target" , ident , { "," , ident } ;
+use_decl    = "use" , ref , [ "as" , ident ] ;
+ref         = scheme , ":" , refname , [ "@" , version ] ;
+scheme      = "rc" | "oeis" | "math" | "law" | "const" | "model"
+            | "ctrl" | "machine" | "table" | "wikidata" | "local" ;
+refname     = qname | string ;
+version     = ident | "sha:" , hex ;
+
+item        = fn_decl | law_decl | ctrl_decl | machine_decl | table_decl
+            | model_decl | test_decl | const_decl ;
+
+(* ---------- functions ---------- *)
+fn_decl     = "fn" , ident , "(" , [ params ] , ")" , "->" , type ,
+              intent , { contract } , ( "=" , expr | "do" , block , "end" ) ;
+params      = param , { "," , param } ;
+param       = ident , ":" , type ;
+intent      = "intent" , string ;
+contract    = "require" , expr | "ensure" , expr
+            | "effect" , effect , { "," , effect } | "cost" , complexity ;
+effect      = "none" | "io" | "time" | "rand" | "state" ;
+complexity  = "O(" , { any_char - ")" } , ")" ;
+
+block       = { stmt } ;
+stmt        = "let" , ident , [ ":" , type ] , "=" , expr
+            | ident , "=" , expr
+            | "if" , expr , "do" , block , { "elif" , expr , "do" , block } ,
+              [ "else" , block ] , "end"
+            | "for" , ident , "in" , expr , "do" , block , "end"
+            | "while" , expr , "do" , block , "end"
+            | "return" , expr
+            | expr ;
+
+(* ---------- types and quantities ---------- *)
+type        = base_type , [ "[" , unit_or_args , "]" ] , [ refinement ]
+            | "{" , ident , { "," , ident } , "}" ;                   (* enum *)
+base_type   = "Int" | "Real" | "Bool" | "Text" | "List" | "Map" | "Opt" | ident ;
+unit_or_args= unit | type , { "," , type } ;
+unit        = unit_term , { ( "*" | "/" ) , unit_term } ;
+unit_term   = ident , [ "^" , int ] | "(" , unit , ")" | "1" | "%" ;
+refinement  = "{" , ( cmp_op , expr | expr , ".." , expr ) , "}" ;
+quantity    = number , unit ;                     (* 9 kW, 5 K, 300 s *)
+
+(* ---------- physical laws (acausal) ---------- *)
+law_decl    = "law" , ident , intent , { law_var } , eq , { eq } ,
+              { "valid" , ident , "in" , range } , { "ref" , ref } , "end" ;
+law_var     = "var" , ident , ":" , type , [ "=" , expr ] ;
+eq          = "eq" , expr , "=" , expr ;
+solve_expr  = "solve" , ident , "for" , ident , "given" , binding , { "," , binding } ;
+binding     = ident , "=" , expr ;
+
+(* ---------- plant models ---------- *)
+model_decl  = "model" , ident , intent , { io_decl | param_decl } ,
+              { "der" , ident , "=" , expr | eq } , "end" ;
+
+(* ---------- controllers ---------- *)
+ctrl_decl   = "ctrl" , ident , intent , { use_decl } ,
+              "sample" , quantity ,                         (* mandatory *)
+              io_decl , { io_decl } , { param_decl } ,
+              [ "tune" , call ] , "do" , block , "end" ;
+io_decl     = ( "in" | "out" ) , ident , ":" , type , [ "=" , expr ] ;
+param_decl  = "param" , binding , { "," , binding } ;
+              (* every `out` of a ctrl must carry a range refinement: E411 *)
+
+(* ---------- state machines (synchronous, deterministic Mealy) ---------- *)
+machine_decl= "machine" , ident , intent , { io_decl | param_decl | timer_decl } ,
+              "state" , state , { "," , state } ,
+              transition , { transition } , { io_decl } , [ check ] , "end" ;
+state       = ident , [ "initial" ] ;
+timer_decl  = "timer" , ident , { "," , ident } ;
+transition  = "on" , ident , [ "when" , expr ] , "->" , ident ,
+              [ "do" , action , { "," , action } ] ;
+action      = "start" , ident | "stop" , ident | ident , "=" , expr ;
+
+(* ---------- decision tables (DMN-like) ---------- *)
+table_decl  = "table" , ident , intent , "hit" , ( "unique" | "first" ) ,
+              io_decl_list , io_decl_list , rule , { rule } , [ check ] , "end" ;
+io_decl_list= ( "in" | "out" ) , param , { "," , param } ;
+rule        = "rule" , cell , { "," , cell } , "->" , expr , { "," , expr } ;
+cell        = "-" | cmp_op , expr | expr | range ;
+check       = "check" , ident , { "," , ident } ;
+              (* deterministic, complete, no_overlap, reachable, no_deadlock *)
+
+(* ---------- tests, constants ---------- *)
+test_decl   = "test" , expr , [ "within" , expr ] ;
+const_decl  = "const" , ident , ":" , type , "=" , expr , [ "ref" , ref ] ;
+
+(* ---------- expressions ---------- *)
+expr        = or_expr | solve_expr ;
+or_expr     = and_expr , { "or" , and_expr } ;
+and_expr    = not_expr , { "and" , not_expr } ;
+not_expr    = [ "not" ] , cmp_expr ;
+cmp_expr    = add_expr , [ cmp_op , add_expr ] ;
+cmp_op      = "==" | "!=" | "<" | "<=" | ">" | ">=" ;
+add_expr    = mul_expr , { ( "+" | "-" ) , mul_expr } ;
+mul_expr    = pow_expr , { ( "*" | "/" | "mod" ) , pow_expr } ;
+pow_expr    = unary , [ "^" , unary ] ;
+unary       = [ "-" ] , primary ;
+primary     = quantity | number | string | "true" | "false" | qname
+            | call | list | "(" , expr , ")" ;
+call        = qname , "(" , [ arg , { "," , arg } ] , ")" ;
+arg         = [ ident , "=" ] , expr ;
+list        = "[" , [ expr , { "," , expr } ] , "]" ;
+range       = expr , ".." , expr ;
+
+qname       = ident , { "." , ident } ;
+ident       = letter , { letter | digit | "_" } ;
