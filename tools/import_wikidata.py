@@ -47,6 +47,22 @@ CORE_KIND = {
     "machine": {"Q176452", "Q1126309", "Q640119", "Q230885", "Q724168"},  # FSM, Mealy, Moore, state diagram, Petri net
     "table": {"Q747762", "Q24962978", "Q461528", "Q864155", "Q6667469"},  # decision table, DMN, Karnaugh, BDD, logic opt.
 }
+# radio technology (ids verified by label 2026-11-08): wireless network Q11375, modulation Q170474,
+# multiplexing Q222903, channel access method Q1665191, spread spectrum Q958957, radio propagation
+# model Q7281192, antenna Q131214, mobile phone network standard Q26763979, LPWAN Q20706829; fields
+# telecommunications engineering Q1061219, radio-frequency engineering Q1363977, wireless communication
+# Q249, radio Q872, radio propagation Q1474701
+RADIO_CORE = ["Q199324", "Q1638779", "Q29643", "Q79703", "Q25021569", "Q135803", "Q19686539",   # Zigbee, BLE, Wi-Fi, LTE, NB-IoT, Z-Wave, LoRaWAN
+              "Q477992", "Q601459", "Q1455719", "Q5680855", "Q1509342", "Q1474701",            # FSPL, Friis, Fresnel zone, Hata, link budget, propagation
+              "Q1331892", "Q944633", "Q294502", "Q375889", "Q1074780", "Q1756194",             # SDR, CSMA/CA, ALOHAnet, OFDM, chirp spread spectrum, Shannon-Hartley
+              "Q20706829", "Q222903", "Q1665191", "Q170474", "Q1363977", "Q249", "Q131214", "Q11375"]
+# knowledge classes for the field selection: the BIO list plus technical standard, communication
+# protocol, technique, computer network protocol, specification (verified by label 2026-11-08)
+RADIO_KNOWLEDGE_CLASSES = BIO_KNOWLEDGE_CLASSES + ["Q317623", "Q132364", "Q2695280", "Q15836568", "Q2101564"]
+# no people, organisations, businesses, manufactured products, or single installations and networks
+# (anything with a country or coordinates)
+NOT_KNOWLEDGE = ("FILTER NOT EXISTS { ?i wdt:P31 ?no . VALUES ?no { wd:Q5 wd:Q43229 wd:Q4830453 } } "
+                 "FILTER NOT EXISTS { ?i wdt:P176|wdt:P17|wdt:P625 ?m }")
 SELECTIONS = {
     "formula": f"?i wdt:P2534 ?f . FILTER NOT EXISTS {{ ?i wdt:P31 ?x . VALUES ?x {{ {NUMBER_CLASSES} }} }}",
     "theorem": "?i wdt:P31/wdt:P279* wd:Q65943 .",
@@ -76,8 +92,19 @@ SELECTIONS = {
     "machine_field": "?i wdt:P101|wdt:P361|wdt:P921|wdt:P2578|wdt:P2579 wd:Q214526 . ?i wdt:P31 ?k . VALUES ?k { "
                      + " ".join("wd:" + q for q in BIO_KNOWLEDGE_CLASSES) + " } .",
     "machine_model": "{ ?i wdt:P31/wdt:P279* wd:Q2651576 . } UNION { ?i wdt:P279* wd:Q176452 . }",
+    "radio_class": "{ ?i wdt:P279+ wd:Q11375 . } UNION "
+                   "{ ?i wdt:P279+ wd:Q170474 . } UNION { ?i wdt:P279+ wd:Q222903 . } UNION { ?i wdt:P279+ wd:Q1665191 . } "
+                   "UNION { ?i wdt:P31 wd:Q1665191 . } UNION { ?i wdt:P279* wd:Q958957 . } UNION "
+                   "{ ?i wdt:P31/wdt:P279* wd:Q7281192 . } UNION { ?i wdt:P279+ wd:Q7281192 . } UNION "
+                   "{ ?i wdt:P279+ wd:Q131214 . } UNION { ?i wdt:P31/wdt:P279* wd:Q26763979 . } UNION "
+                   "{ ?i wdt:P279+ wd:Q20706829 . } UNION { ?i wdt:P31 wd:Q20706829 . } " + NOT_KNOWLEDGE,
+    "radio_field": "?i wdt:P101|wdt:P361|wdt:P921|wdt:P2578|wdt:P2579 ?fld . VALUES ?fld { wd:Q1061219 wd:Q1363977 "
+                   "wd:Q249 wd:Q872 wd:Q1474701 } . ?i wdt:P31 ?k . VALUES ?k { " + " ".join(
+                       "wd:" + q for q in RADIO_KNOWLEDGE_CLASSES) + " } . " + NOT_KNOWLEDGE,
+    "radio_core": "VALUES ?i { " + " ".join("wd:" + q for q in RADIO_CORE) + " } .",
     "core_concepts": "VALUES ?i { " + " ".join("wd:" + q for q in sorted(set().union(*CORE_KIND.values()))) + " } .",
 }
+RADIO_SELECTIONS = {"radio_class", "radio_field", "radio_core"}
 ALGO_SELECTIONS = {"algorithm", "computational_problem", "optimization_problem"}
 Q_HARD = {"Q1137554": "NP-hard", "Q215206": "NP-complete"}   # complexity classes (verified by label)
 
@@ -192,10 +219,14 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--limit", type=int, default=0)
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--only", help="comma-separated selection name prefixes, e.g. radio (cards of other "
+                                   "selections stay as they are)")
     a = ap.parse_args()
 
     selected: dict[str, set] = {}
     for name, where in SELECTIONS.items():
+        if a.only and not name.startswith(tuple(a.only.split(","))):
+            continue
         ids = sparql_ids(where)
         print(f"select {name}: {len(ids)}", flush=True)
         for q in ids:
@@ -250,6 +281,11 @@ def main():
             stats["skipped"] += 1
             continue
         types = set(item_ids(c, "P31"))
+        if a.only:      # partial run: keep what the other selections chose this card for
+            hit = R.unit_by_alias(cur, "wikidata", q)
+            if hit:
+                cur.execute("SELECT JSON_EXTRACT(payload, '$.selected_by') FROM rose_unit WHERE unit_id=%s", (hit[0],))
+                selected[q] |= set(json.loads(cur.fetchone()[0] or "[]"))
         tex = [v for v, _, rank in values(c, "P2534") if isinstance(v, str) and rank != "deprecated"]
         dim = next((tex_dim(v) for v, _, _ in values(c, "P4020") if isinstance(v, str)), "")
         symbols = []
@@ -282,6 +318,8 @@ def main():
         if not tex and kind in ("math", "algo") and (core_kind or selected[q] & {"ctrl_field", "machine_field", "machine_model"}):
             kind = core_kind or ("ctrl" if "ctrl_field" in selected[q] else "machine")
             domain = "engineering" if kind == "ctrl" else "computer science"
+        if selected[q] & RADIO_SELECTIONS and domain == "math":
+            domain = "radio engineering"
         if selected[q] & {"bio_field", "bio_core"}:
             domain = "biology"
             if kind == "math" and not tex:
