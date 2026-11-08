@@ -441,6 +441,10 @@ Aufgaben, gleiche Modelle (Qwen3-4B lokal, DeepSeek über `ds`, Claude):
 - **A** LLM allein, schreibt direkt Python/C.
 - **B** LLM + MCP mit dem Korpus, schreibt aber direkt Python/C (Bausteine als
   Beispielcode).
+- **B2** LLM + MCP + **Python-Modul `rose`** (bzw. Perl-Modul): derselbe Korpus, `solve`,
+  Einheiten, `rose.lock` – aber als Bibliothek in normalem Python, Prüfungen zur Laufzeit
+  bzw. über ein Typprüfer-Plugin. Eine Erweiterung von Python selbst (PEP) ist keine
+  realistische Option.
 - **C** LLM + MCP + Rose.
 
 Aufgaben: (1) Rosetta-Tasks im **Leave-one-out** – der Task wird aus dem Index
@@ -452,9 +456,11 @@ zusätzlich, ob das LLM den lokalen Weg nimmt oder doch Online-BLAST schreibt.
 Kennzahlen: pass@1, Tokens ein/aus, Anzahl check-Runden, Laufzeit,
 Einheitenfehler, Fehler in Automaten/Tabellen.
 
-**Entscheidungsregel:** Ist C nicht deutlich besser als B (pass@1 und
-Fehlerarten), wird die Sprache eingestellt und nur der MCP-Korpus
-weitergeführt. B allein ist bereits ein Gewinn – der Korpus ist der Kern, die
+**Entscheidungsregel:** Ist C nicht deutlich besser als B2 (pass@1 und
+Fehlerarten), wird die Sprache eingestellt; Rose lebt dann als Python-Modul
+plus MCP-Korpus weiter. Die eigentliche Frage lautet: Bringt die **statische**
+Prüfung vor dem Lauf (Einheiten, vollständige Tabellen, `E305` bei offenen
+Problemen) messbar mehr als dieselben Prüfungen zur Laufzeit? B allein ist bereits ein Gewinn – der Korpus ist der Kern, die
 Sprache muss ihren Mehrwert beweisen.
 
 ## 12. Fahrplan
@@ -468,7 +474,7 @@ Sprache muss ihren Mehrwert beweisen.
 | **M4** | `law` + Import Wikidata/QUDT/CODATA/MSL-Thermik, `solve` mit SymPy | 50 Gesetze nach jeder Variable auflösbar, Dimensionen geprüft |
 | **M5** | `table`, `machine` mit vollständiger Aufzählung; Ziele ST und C | batmonitor-Tabellen als Rose nachgebaut, Differenztest gegen Original grün |
 | **M6** | `ctrl`-Bibliothek (PID mit Anti-Windup, Zweipunkt, Rampe, PT1-Filter, SIMC) + Ziel ESPHome | Simulation gegen `model:fopdt`, Sprungantwort im Toleranzband |
-| **M7** | Benchmark A/B/C, Entscheidung | Bericht mit Zahlen |
+| **M7** | Benchmark A/B/B2/C, Entscheidung Sprache vs. Python-Modul | Bericht mit Zahlen |
 | **M8** (in vielen Monaten, nur wenn M7 positiv) | Rose bei Rosetta Code als Sprache eintragen ([Add a Language](https://rosettacode.org/wiki/Rosetta_Code:Add_a_Language)): Sprachseite, Kategorie, Syntax-Highlighting, eigene Lösungen | die eigenen Rose-Lösungen sind lauffähig, `tested`, mit offenem Compiler nachvollziehbar |
 
 Technik: Python 3 auf dem dell, `lark` (Parser), `sympy` (Gesetze), `pint` +
