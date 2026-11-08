@@ -40,7 +40,18 @@
   "C_pairs_all": "\\b(all pairs|every pair|each pair|between all|distance table|allen paaren|entfernungstabelle)\\b",
   "C_time_windows": "\\b(time windows?|zeitfenster)\\b",
   "O_lp": "\\b(linear program\\w*|linear constraints|linear objective|lineare optimierung|lineares programm)\\b",
-  "O_root": "\\b(roots? of|zeros? of|solve the equation|equals zero|nullstellen?|gleichung l(ö|o)sen)\\b"
+  "O_root": "\\b(roots? of|zeros? of|solve the equation|equals zero|nullstellen?|gleichung l(ö|o)sen)\\b",
+  "E_boolean": "\\b(boolean|logic(al)? (function|expression|formula|circuit)|truth table|gates?|wahrheitstabelle|logische[nr]? (funktion|ausdruck|schaltung)|schaltfunktion)\\b",
+  "O_logic_min": "\\b(simplif\\w*|minimi[sz]\\w*|reduce|fewest gates|karnaugh|vereinfach\\w*|minimier\\w*)\\b",
+  "O_satisfy": "\\b(satisfiab\\w*|satisfying assignment|make (it|the formula) true|erf(ü|u)llbar\\w*)\\b",
+  "E_rules": "\\b(rules?|decision table|rule set|policy|regeln?|regelwerk|entscheidungstabelle)\\b",
+  "O_rule_check": "\\b(complete(ness)?|overlap\\w*|missing (case|rule)s?|gaps?|contradict\\w*|conflicting|vollst(ä|a)ndig\\w*|(ü|u)berschneid\\w*|l(ü|u)cken|widerspr(ü|u)ch\\w*)\\b",
+  "E_states": "\\b(states?|state machine|modes?|zust(ä|a)nde?|zustandsautomat|betriebsarten?)\\b",
+  "O_transitions": "\\b(transitions?|events?|switch(es|ing)? (between|from)|(ü|u)berg(ä|a)nge?|ereignisse?|wechsel\\w*)\\b",
+  "E_controller": "\\b(pid|controller|control loop|setpoint|regler|regelkreis|sollwert|regelung)\\b",
+  "O_tuning": "\\b(tun(e|ing)|gains?|parameters? for|einstell\\w*|parametrier\\w*|auslegen|auslegung)\\b",
+  "O_estimate": "\\b(estimat\\w*|noisy (measurements|sensor)|filter (the )?noise|kalman|observer|sch(ä|a)tz\\w*|verrauscht\\w*|beobachter)\\b",
+  "O_response": "\\b(step response|transfer function|bode|frequency response|impulse response|sprungantwort|(ü|u)bertragungsfunktion|frequenzgang)\\b"
  },
  "problems": [
   {
@@ -1079,6 +1090,310 @@
    "see": [
     "math:fundamental_theorem_of_linear_programming"
    ]
+  },
+  {
+   "id": "boolean_minimization",
+   "name": "Boolean function minimisation",
+   "description": "simplify a Boolean function or truth table to a minimal sum of products (fewest terms / gates)",
+   "aliases": [
+    "logic minimisation",
+    "Karnaugh map",
+    "Quine-McCluskey",
+    "Schaltfunktion vereinfachen"
+   ],
+   "requires": [
+    [
+     "E_boolean"
+    ],
+    [
+     "O_logic_min"
+    ]
+   ],
+   "optional": [],
+   "forbids": [
+    "O_satisfy"
+   ],
+   "complexity": "NP-hard in general (exact for few variables)",
+   "solvers": [
+    {
+     "name": "sympy.SOPform",
+     "ref": "py:sympy.logic.boolalg.SOPform",
+     "use": "minimal sum of products from minterms (Quine-McCluskey)",
+     "library": true
+    },
+    {
+     "name": "sympy.simplify_logic",
+     "ref": "py:sympy.logic.boolalg.simplify_logic",
+     "use": "simplify an expression",
+     "library": true
+    },
+    {
+     "name": "Quine-McCluskey",
+     "ref": "algo:quinemccluskey_algorithm",
+     "use": "exact, exponential"
+    }
+   ],
+   "see": [
+    "table:karnaugh_map",
+    "table:logic_optimization"
+   ],
+   "kind": "table"
+  },
+  {
+   "id": "boolean_satisfiability",
+   "name": "Boolean satisfiability (SAT)",
+   "description": "find an assignment of the variables that makes a Boolean formula true, or show there is none",
+   "aliases": [
+    "SAT",
+    "Erfüllbarkeitsproblem"
+   ],
+   "requires": [
+    [
+     "E_boolean",
+     "O_satisfy"
+    ],
+    [
+     "O_satisfy"
+    ]
+   ],
+   "optional": [],
+   "forbids": [],
+   "complexity": "NP-complete",
+   "solvers": [
+    {
+     "name": "sympy.satisfiable",
+     "ref": "py:sympy.logic.inference.satisfiable",
+     "use": "DPLL-based, small formulas",
+     "library": true
+    },
+    {
+     "name": "OR-Tools CP-SAT",
+     "ref": "py:ortools.sat.python.cp_model.CpModel",
+     "use": "large instances",
+     "library": true
+    },
+    {
+     "name": "DPLL",
+     "ref": "algo:dpll_algorithm",
+     "use": "complete backtracking search"
+    }
+   ],
+   "see": [
+    "algo:boolean_satisfiability_problem"
+   ]
+  },
+  {
+   "id": "decision_table_check",
+   "name": "decision table completeness and overlap check",
+   "description": "check that a set of rules covers every case and that no two rules contradict each other",
+   "aliases": [
+    "DMN hit policy check",
+    "rule set verification",
+    "Entscheidungstabelle prüfen"
+   ],
+   "requires": [
+    [
+     "E_rules"
+    ],
+    [
+     "O_rule_check"
+    ]
+   ],
+   "optional": [
+    "E_boolean"
+   ],
+   "forbids": [],
+   "complexity": "polynomial in the number of cells after splitting at the thresholds",
+   "solvers": [
+    {
+     "name": "Rose table with check complete, no_overlap",
+     "ref": "table:decision_unique",
+     "use": "exhaustive enumeration, E511/E512 with counterexample"
+    },
+    {
+     "name": "rose.table (Python module)",
+     "ref": null,
+     "use": "same check at definition time"
+    }
+   ],
+   "see": [
+    "table:decision_table",
+    "table:decision_model_and_notation"
+   ],
+   "kind": "table"
+  },
+  {
+   "id": "finite_state_machine",
+   "name": "finite-state machine design and check",
+   "description": "model behaviour as states and transitions triggered by events; check that every state is reachable and every event handled",
+   "aliases": [
+    "state machine",
+    "Mealy machine",
+    "Moore machine",
+    "Zustandsautomat"
+   ],
+   "requires": [
+    [
+     "E_states"
+    ],
+    [
+     "O_transitions"
+    ]
+   ],
+   "optional": [
+    "E_controller"
+   ],
+   "forbids": [],
+   "complexity": "polynomial (reachability, determinism, totality by enumeration)",
+   "solvers": [
+    {
+     "name": "Rose machine (planned, M5)",
+     "ref": "machine:hysteresis_min_runtime",
+     "use": "reference card"
+    },
+    {
+     "name": "graph reachability on the transition graph",
+     "ref": "py:networkx.algorithms.dag.descendants",
+     "use": "states reachable from the start",
+     "library": true
+    }
+   ],
+   "see": [
+    "machine:finite_state_machine",
+    "machine:mealy_machine",
+    "machine:moore_machine"
+   ],
+   "kind": "machine"
+  },
+  {
+   "id": "controller_tuning",
+   "name": "controller tuning (PID)",
+   "description": "choose PID gains for a control loop from a plant model or a step test",
+   "aliases": [
+    "PID tuning",
+    "Reglerauslegung",
+    "Ziegler-Nichols",
+    "SIMC"
+   ],
+   "requires": [
+    [
+     "E_controller"
+    ],
+    [
+     "O_tuning"
+    ]
+   ],
+   "optional": [
+    "O_response"
+   ],
+   "forbids": [],
+   "complexity": "closed-form rules (Ziegler-Nichols, SIMC) or optimisation",
+   "solvers": [
+    {
+     "name": "Ziegler-Nichols",
+     "ref": "algo:zieglernichols_method",
+     "use": "from the ultimate gain and period"
+    },
+    {
+     "name": "SIMC rules",
+     "ref": "ctrl:tuning.simc",
+     "use": "from a first-order-plus-dead-time model"
+    },
+    {
+     "name": "scipy.optimize.minimize on a simulated loop",
+     "ref": "py:scipy.optimize.minimize",
+     "use": "custom criteria",
+     "library": true
+    }
+   ],
+   "see": [
+    "ctrl:pid_controler",
+    "ctrl:pid.parallel.antiwindup"
+   ],
+   "kind": "ctrl"
+  },
+  {
+   "id": "state_estimation",
+   "name": "state estimation from noisy measurements",
+   "description": "estimate the internal state of a system from noisy measurements and a model",
+   "aliases": [
+    "Kalman filter",
+    "observer",
+    "Zustandsschätzung"
+   ],
+   "requires": [
+    [
+     "O_estimate"
+    ]
+   ],
+   "optional": [
+    "E_controller",
+    "E_states"
+   ],
+   "forbids": [],
+   "complexity": "polynomial (linear Kalman filter: matrix operations per step)",
+   "solvers": [
+    {
+     "name": "Kalman filter",
+     "ref": "algo:kalman_filter",
+     "use": "linear Gaussian systems"
+    },
+    {
+     "name": "first-order low-pass (PT1)",
+     "ref": "ctrl:pt1_filter",
+     "use": "simple smoothing"
+    }
+   ],
+   "see": [
+    "ctrl:state_observer"
+   ],
+   "kind": "ctrl"
+  },
+  {
+   "id": "system_response",
+   "name": "linear system response (step, frequency)",
+   "description": "step, impulse or frequency response of a linear system given as transfer function or state space",
+   "aliases": [
+    "step response",
+    "Bode plot",
+    "Sprungantwort",
+    "Frequenzgang"
+   ],
+   "requires": [
+    [
+     "O_response"
+    ]
+   ],
+   "optional": [
+    "E_controller"
+   ],
+   "forbids": [],
+   "complexity": "polynomial",
+   "solvers": [
+    {
+     "name": "scipy.signal.step",
+     "ref": "py:scipy.signal.step",
+     "use": "step response",
+     "library": true
+    },
+    {
+     "name": "scipy.signal.bode",
+     "ref": "py:scipy.signal.bode",
+     "use": "frequency response",
+     "library": true
+    },
+    {
+     "name": "scipy.signal.lti",
+     "ref": "py:scipy.signal.lti",
+     "use": "system object",
+     "library": true
+    }
+   ],
+   "see": [
+    "ctrl:transfer_function",
+    "ctrl:statespace_representation"
+   ],
+   "kind": "ctrl"
   }
  ]
 }

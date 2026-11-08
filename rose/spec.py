@@ -66,7 +66,7 @@ def cards():
         if p.get("aliases"):
             intent += " [also: " + "; ".join(p["aliases"]) + "]"
         intent += f" [{p['complexity']}] [solved by: {solvers}]"
-        yield {"ref": "problem:" + p["id"], "kind": "algo", "name": p["name"], "intent": intent,
+        yield {"ref": "problem:" + p["id"], "kind": p.get("kind", "algo"), "name": p["name"], "intent": intent,
                "level": "imported", "source": "rose-core", "license": "MIT", "url": None, "std": False,
                "complexity": p["complexity"], "solvers": p.get("solvers", []), "see": p.get("see", []),
                "requires": p["requires"], "status": "defined", "domain": "computer science"}
