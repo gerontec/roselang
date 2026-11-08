@@ -5,10 +5,15 @@ the answer to "is there a solution?" becomes a function that already exists, is 
   networkx  (BSD-3-Clause)  every public function/class of networkx.algorithms.*, by introspection
   scipy     (BSD-3-Clause)  public API (__all__) of the solver subpackages, by introspection
   ortools   (Apache-2.0)    curated entry points (SWIG modules cannot be introspected usefully)
+  sympy     (BSD-3-Clause)  curated logic/equation solvers (SOPform, satisfiable, dsolve, ...)
+  control   (BSD-3-Clause)  python-control: public top-level API (LTI systems, PID, LQR, Kalman, responses)
+  automata  (MIT)           automata-lib: DFA/NFA/GNFA, pushdown automata, Turing machines, regex
+  transitions (MIT)         state-machine classes (Machine, HierarchicalMachine, GraphMachine, ...)
+  dd        (BSD-3-Clause)  binary/multi-valued decision diagrams (BDD, MDD)
   python    (PSF-2.0)       a few standard-library solvers (bisect, heapq, graphlib, difflib, ...)
 Stored per card: public path, signature, first docstring paragraph, library version, docs URL.
 Nothing is executed except importing the libraries. On the build host they are installed with
-  python3 -m pip install --user --break-system-packages networkx scipy ortools
+  python3 -m pip install --user --break-system-packages networkx scipy ortools control automata-lib transitions dd
 (after checking with dpkg-query that dpkg does not hold the same library; numpy stays the .deb).
 Usage: import_pylib.py [--dry-run]
 """
@@ -49,7 +54,17 @@ ORTOOLS = [  # (public path, kind of problem, docs url)
 ]
 LIBS = {"networkx": ("https://networkx.org", "BSD-3-Clause"), "scipy": ("https://scipy.org", "BSD-3-Clause"),
         "ortools": ("https://developers.google.com/optimization", "Apache-2.0"),
-        "python": ("https://docs.python.org/3/library/", "PSF-2.0"), "sympy": ("https://www.sympy.org", "BSD-3-Clause")}
+        "python": ("https://docs.python.org/3/library/", "PSF-2.0"), "sympy": ("https://www.sympy.org", "BSD-3-Clause"),
+        "control": ("https://python-control.readthedocs.io", "BSD-3-Clause"),
+        "automata": ("https://caleb531.github.io/automata/", "MIT"),
+        "transitions": ("https://github.com/pytransitions/transitions", "MIT"),
+        "dd": ("https://github.com/tulip-control/dd", "BSD-3-Clause")}
+# control engineering, automata and decision diagrams: modules whose public classes/functions are pointers
+AUTOMATA = ["automata.fa.dfa", "automata.fa.nfa", "automata.fa.gnfa", "automata.pda.dpda", "automata.pda.npda",
+            "automata.tm.dtm", "automata.tm.ntm", "automata.tm.mntm", "automata.regex.regex"]
+TRANSITIONS = ["transitions.core", "transitions.extensions.nesting", "transitions.extensions.diagrams",
+               "transitions.extensions.locking", "transitions.extensions.asyncio", "transitions.extensions.markup"]
+DD = ["dd.autoref", "dd.bdd", "dd.mdd"]
 
 
 def summary(obj):
@@ -146,6 +161,58 @@ def sympy_units():
     return out
 
 
+def control_units():
+    """python-control: every public callable of the top-level namespace defined inside the package."""
+    import control
+    out, seen = [], set()
+    for name in sorted(dir(control)):
+        obj = getattr(control, name)
+        if not is_solver(name, obj) or not getattr(obj, "__module__", "").startswith("control") or id(obj) in seen:
+            continue
+        seen.add(id(obj))
+        out.append({"path": f"{obj.__module__}.{name}", "public": f"control.{name}", "obj": obj, "lib": "control",
+                    "version": control.__version__,
+                    "url": f"https://python-control.readthedocs.io/en/latest/generated/control.{name}.html"})
+    return out
+
+
+def module_units(lib, mods, url, version):
+    """Public classes/functions defined in the given modules (no re-exports, no private names)."""
+    out, seen = [], set()
+    for modname in mods:
+        try:
+            mod = importlib.import_module(modname)
+        except Exception as e:
+            print(f"  {lib}: {modname} not importable: {e}", file=sys.stderr)
+            continue
+        names = getattr(mod, "__all__", None) or dir(mod)
+        for name in names:
+            obj = getattr(mod, name, None)
+            if obj is None or not is_solver(name, obj) or getattr(obj, "__module__", "") != modname or id(obj) in seen:
+                continue
+            seen.add(id(obj))
+            out.append({"path": f"{modname}.{name}", "public": f"{modname}.{name}", "obj": obj, "lib": lib,
+                        "version": version, "url": url})
+    return out
+
+
+def automata_units():
+    from importlib.metadata import version
+    return module_units("automata", AUTOMATA, "https://caleb531.github.io/automata/api/", version("automata-lib"))
+
+
+def transitions_units():
+    import transitions
+    return module_units("transitions", TRANSITIONS, "https://github.com/pytransitions/transitions#readme",
+                        transitions.__version__)
+
+
+def dd_units():
+    import dd
+    from importlib.metadata import version
+    return module_units("dd", DD, "https://github.com/tulip-control/dd/blob/main/doc.md", version("dd"))
+
+
 def stdlib_units():
     out = []
     v = ".".join(map(str, sys.version_info[:3]))
@@ -170,7 +237,8 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--dry-run", action="store_true")
     a = ap.parse_args()
-    units = networkx_units() + scipy_units() + ortools_units() + sympy_units() + stdlib_units()
+    units = (networkx_units() + scipy_units() + ortools_units() + sympy_units() + control_units() + automata_units()
+             + transitions_units() + dd_units() + stdlib_units())
     by_lib = {}
     for u in units:
         by_lib[u["lib"]] = by_lib.get(u["lib"], 0) + 1
@@ -194,7 +262,8 @@ def main():
                    "signature": s, "doc": doc, "status": "solved", "domain": "computer science",
                    "kind_of_object": "class" if inspect.isclass(obj) else "function"}
         if a.dry_run:
-            if u["path"].endswith(("traveling_salesman_problem", "linear_sum_assignment", "RoutingModel", "TopologicalSorter")):
+            if u["path"].endswith(("traveling_salesman_problem", "linear_sum_assignment", "RoutingModel", "TopologicalSorter",
+                                   "control.pid_designer", ".lqr", "fa.dfa.DFA", "core.Machine", "autoref.BDD")):
                 print(u["path"], "|", intent[:220])
             continue
         rows.append(R.unit_row(ref="py:" + u["path"], kind="algo", name=u["public"], intent=intent,
