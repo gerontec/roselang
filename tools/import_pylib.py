@@ -7,8 +7,10 @@ the answer to "is there a solution?" becomes a function that already exists, is 
   ortools   (Apache-2.0)    curated entry points (SWIG modules cannot be introspected usefully)
   python    (PSF-2.0)       a few standard-library solvers (bisect, heapq, graphlib, difflib, ...)
 Stored per card: public path, signature, first docstring paragraph, library version, docs URL.
-Nothing is executed except importing the libraries. Run with the interpreter that has them, e.g.
-  ~/roselang/.venv-libs/bin/python tools/import_pylib.py [--dry-run]
+Nothing is executed except importing the libraries. On the build host they are installed with
+  python3 -m pip install --user --break-system-packages networkx scipy ortools
+(after checking with dpkg-query that dpkg does not hold the same library; numpy stays the .deb).
+Usage: import_pylib.py [--dry-run]
 """
 import argparse
 import importlib
