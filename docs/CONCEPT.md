@@ -12,6 +12,24 @@ Status and open work: [`TODO.md`](../TODO.md).
 
 ---
 
+## 0. Scope (decision 2026-11-08)
+
+The module's first job is to **show that a solution exists** – not to solve the problem:
+
+```text
+$ rosec exists "plan a tour for a delivery van that visits 30 customers and returns to the depot ..."
+SOLVED: A known solution exists: travelling salesperson problem (TSP) (NP-hard).
+  - travelling salesperson problem (TSP)  [problem:travelling_salesperson]  https://www.wikidata.org/wiki/Q322212
+$ rosec exists "is P equal to NP?"
+OPEN: No known solution: P versus NP problem is an open problem.
+```
+
+Three answers: **solved** (with pointers to the known solution and its source), **open** (negative
+knowledge) or **unknown** (nothing in the knowledge matches). Recognising the problem is done by
+Rose itself – words, quantities with dimensions, and the structure of the task (problem classes,
+§8.3) – not delegated to an LLM. The language and compiler (sections 5, 11) stay, but are no longer
+the first goal: composing and checking solutions comes after finding them.
+
 ## 1. Problem
 
 An LLM that receives a coding task writes almost everything from memory: a prime sieve, a PID
@@ -325,6 +343,16 @@ importers ─► corpus DB (rose_*) ─► verify ─► export_std.py ─► st
   [`schema/rose_schema.sql`](../schema/rose_schema.sql).
 - **Division of labour stays:** filtering, ranking and counting happen in the compiler, not in the
   LLM; responses are small (k ≤ 10).
+
+### 8.3 Recognising the problem
+
+Known techniques, combined: lexical retrieval (BM25 over name, description, aliases), **quantities
+and dimensions** taken from the task text (9 kW, 5 K → laws whose variables carry exactly these
+dimensions), and **specification matching** (Zaremski & Wing): curated problem classes
+(`rose/std/problems.json`) described by facets of their input, output, objective and constraints –
+"locations + round trip + visit all + minimise, one vehicle" is the travelling salesperson problem,
+"+ several vehicles or capacity" is vehicle routing. Dense retrieval (embeddings) is prepared but not
+yet measured.
 
 ## 9. Example: `rosec plan`
 

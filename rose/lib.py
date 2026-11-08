@@ -417,7 +417,8 @@ def exists(task, k=3):
 def verdict(r, kb, k=3):
     warn = r["warnings"]
     if any(w.startswith("NEGATIVE KNOWLEDGE") for w in warn):
-        name = warn[0].split("'")[1] if "'" in warn[0] else "this problem"
+        m = re.search(r"'(.+?)' is an open problem", warn[0])
+        name = m.group(1) if m else "this problem"
         return {"verdict": "open", "answer": f"No known solution: {name} is an open problem.",
                 "solutions": [], "warnings": warn, "task": r["task"]}
     if any(w.startswith("CORPUS GAP") for w in warn) or not r["paths"]:
