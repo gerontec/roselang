@@ -55,7 +55,8 @@
   "O_keep_at": "\\b(keep|hold|maintain|regulate|control)\\b[^.]{0,40}\\b(at|to|constant|between)\\b|\\b(halten|konstant|regeln|regulieren)\\b",
   "E_actuator": "\\b(heaters?|heating element|pumps?|valves?|compressors?|fans?|motors?|heizung|heizstab|heizer|pumpen?|ventile?|verdichter|l(ü|u)fter|motor)\\b",
   "O_model_sim": "\\b(simulat\\w*|model (the|a|its)? ?(dynamics|behaviou?r|system)|dynamic model|modell\\w*|simulier\\w*)\\b",
-  "E_physical": "\\b(thermal|heat|temperature|electrical|circuit|voltage|motor|pump|tank|pipe|spring|damper|gear|mass|w(ä|a)rme|temperatur|elektrisch|schaltung|pumpe|beh(ä|a)lter|rohr|feder|getriebe)\\b"
+  "E_physical": "\\b(thermal|heat|temperature|electrical|circuit|voltage|motor|pump|tank|pipe|spring|damper|gear|mass|w(ä|a)rme|temperatur|elektrisch|schaltung|pumpe|beh(ä|a)lter|rohr|feder|getriebe)\\b",
+  "O_switch_threshold": "\\b(switch\\w*|turn\\w*|schalt\\w*)\\b[^.]{0,30}\\bon\\b[^.]{0,30}\\b(below|above|under|over|at|unter|(ü|u)ber|bei)\\b[^.]{0,40}\\boff\\b|\\bein\\w*\\b[^.]{0,30}\\b(unter|(ü|u)ber)\\b[^.]{0,40}\\baus\\w*"
  },
  "problems": [
   {
@@ -1398,7 +1399,7 @@
    ],
    "see": [
     "ctrl:transfer_function",
-    "ctrl:statespace_representation",
+    "ctrl:state_space_representation",
     "msl:Modelica.Blocks.Continuous.FirstOrder"
    ],
    "kind": "ctrl"
@@ -1416,7 +1417,8 @@
    ],
    "requires": [
     [
-     "O_keep_at"
+     "O_keep_at",
+     "O_switch_threshold"
     ],
     [
      "E_actuator",
