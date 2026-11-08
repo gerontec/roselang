@@ -11,6 +11,7 @@ Usage: verify_laws.py [--limit N] [--ref law:...]
 import argparse
 import json
 import os
+import re
 import sys
 from collections import Counter
 
@@ -23,6 +24,27 @@ from rose.tex import TexError, tex_to_law  # noqa: E402
 def law_name(ref):
     n = ref.split(":", 1)[1].replace(".", "_")
     return n if not n[0].isdigit() else "l_" + n
+
+
+def constant_defaults(cur):
+    """Wikidata quantity id -> 'value unit' of the CODATA constant it denotes (e.g. the speed of light
+    behind the symbol c): matched by name, Wikidata label == CODATA name or its prefix."""
+    cur.execute("SELECT u.name, u.rose_src FROM rose_unit u JOIN rose_source s USING (source_id) "
+                "WHERE s.name='codata' AND u.rose_src IS NOT NULL")
+    codata = {}
+    for name, src in cur.fetchall():
+        m = re.match(r"\s*const\s+\w+\s*:\s*Real(?:\[[^\]]*\])?\s*=\s*(.+?)\s*(?:#.*)?$", src)
+        if m and "uncertainty" not in name.lower():
+            codata[name.lower()] = m.group(1)
+    cur.execute("SELECT a.value, u.name FROM rose_alias a JOIN rose_unit u USING (unit_id) "
+                "WHERE a.scheme='wikidata' AND u.kind='const'")
+    out = {}
+    for qid, name in cur.fetchall():
+        n = name.lower()
+        hit = codata.get(n) or next((v for k, v in sorted(codata.items()) if k.startswith(n + " ")), None)
+        if hit:
+            out[qid] = hit
+    return out
 
 
 def main():
@@ -43,9 +65,14 @@ def main():
         q += f" LIMIT {int(a.limit)}"
     cur.execute(q, args)
     rows = cur.fetchall()
+    consts = constant_defaults(cur)
+    print(f"constants usable as defaults: {len(consts)}")
     stats, reasons = Counter(), Counter()
     for uid, ref, name, intent, payload in rows:
         p = json.loads(payload)
+        for sym in p["symbols"]:
+            if sym.get("quantity") in consts:
+                sym["default"] = consts[sym["quantity"]]
         result = None
         last = None
         for tex in p["tex"]:

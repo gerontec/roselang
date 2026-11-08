@@ -108,7 +108,7 @@ def export_catalog(cur, out, index, vectors):
             p = json.loads(payload) if payload else {}
             card = {"ref": ref, "kind": kind, "name": name, "intent": intent, "level": level, "source": src,
                     "license": lic, "url": url, "std": ref in index}
-            for k in ("domain", "status", "proved_year"):
+            for k in ("domain", "status", "proved_year", "complexity"):
                 if p.get(k):
                     card[k] = p[k]
             if p.get("proved_by"):

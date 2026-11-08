@@ -229,11 +229,19 @@ class Conv:
         return out
 
 
+DERIV = re.compile(r"\\frac\s*\{\s*(?:\\mathrm\s*\{\s*)?d\s*(?:\}\s*)?(?:\^\s*\{?\s*\d+\s*\}?\s*)?[^}]*\}"
+                   r"\s*\{\s*(?:\\mathrm\s*\{\s*)?d\s*(?:\}\s*)?[A-Za-z\\]")
+
+
 def tex_to_law(name, intent, tex, symbols, ref=None):
-    """Returns (rose_src, typed) or raises TexError. typed = every used symbol has a dimension."""
+    """Returns (rose_src, typed) or raises TexError. typed = every used symbol has a dimension.
+    symbols: [{"tex", "symbol", "dim", "default"?}] - "default" (e.g. "299792458 m/s") for a symbol
+    that denotes a fundamental constant."""
     for k, why in REJECT.items():
         if k in tex:
             raise TexError(why)
+    if DERIV.search(tex) or any(DERIV.search(s.get("tex") or "") for s in symbols):
+        raise TexError("derivative")      # d^2theta/dt^2: also when the source lists it as a "symbol"
     toks = [t for t in tokens(tex.replace(":=", "=")) if t not in DROP]
     while toks and toks[-1] in (".", ",", ";"):
         toks.pop()
@@ -242,14 +250,17 @@ def tex_to_law(name, intent, tex, symbols, ref=None):
         raise TexError("not a single equation" if toks.count("=") == 0 else "chained equation")
     used_idents = set()
     symtab, dims = [], {}
+    defaults = {}
     for s in symbols:
         seq = tuple(strip_wrappers(list(norm_symbol_tokens(s["tex"]))))
-        if not seq:
-            continue
+        if not seq or (len(seq) == 1 and seq[0] in FUNCS):
+            continue                       # \sin listed as a symbol is the function, not a variable
         ident = safe_ident(s.get("symbol") or "x", used_idents)
         used_idents.add(ident)
         symtab.append((seq, ident))
         dims[ident] = s.get("dim") or ""
+        if s.get("default"):
+            defaults[ident] = s["default"]
     symtab.sort(key=lambda x: -len(x[0]))
     c = Conv(toks, symtab)
     lhs = c.expr(stop="=")
@@ -265,7 +276,8 @@ def tex_to_law(name, intent, tex, symbols, ref=None):
     for v in sorted(c.used):
         d = U.parse_dim_str(dims.get(v, "")) if typed else None
         unit = U.unit_name(d) if d is not None else None
-        lines.append(f"  var {v}: Real" + (f"[{unit}]" if unit and unit != "1" else ""))
+        lines.append(f"  var {v}: Real" + (f"[{unit}]" if unit and unit != "1" else "")
+                     + (f" = {defaults[v]}" if v in defaults and typed else ""))
     lines.append(f"  eq  {lhs} = {rhs}")
     if ref:
         lines.append(f"  ref {ref}")

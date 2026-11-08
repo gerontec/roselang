@@ -57,7 +57,14 @@ SELECTIONS = {
         "wd:" + q for q in BIO_KNOWLEDGE_CLASSES) + " } .",
     # ... plus core methods that Wikidata does not link to a field
     "bio_core": "VALUES ?i { " + " ".join("wd:" + q for q in BIO_CORE) + " } .",
+    # algorithms and computational problems (ids verified by label 2026-11-08): algorithm Q8366,
+    # computational problem Q3435924, optimization problem Q984063 - e.g. travelling salesperson
+    "algorithm": "?i wdt:P31/wdt:P279* wd:Q8366 .",
+    "computational_problem": "?i wdt:P31/wdt:P279* wd:Q3435924 .",
+    "optimization_problem": "?i wdt:P31/wdt:P279* wd:Q984063 .",
 }
+ALGO_SELECTIONS = {"algorithm", "computational_problem", "optimization_problem"}
+Q_HARD = {"Q1137554": "NP-hard", "Q215206": "NP-complete"}   # complexity classes (verified by label)
 
 Q_THEOREM, Q_CONJECTURE, Q_UNSOLVED = "Q65943", "Q319141", "Q1321906"  # theorem, conjecture, open problem
 Q_PHYS = {"Q214070", "Q107715", "Q9357058", "Q71550118", "Q2994821"}  # physical law/quantity/theory, ISQ derived/base quantity
@@ -79,7 +86,7 @@ def sparql_ids(where: str) -> list[str]:
     raise RuntimeError("SPARQL rate limited")
 
 
-def get_entities(ids: list[str], props="labels|descriptions|claims", langs="en") -> dict:
+def get_entities(ids: list[str], props="labels|descriptions|aliases|claims", langs="en") -> dict:
     out = {}
     for k in range(0, len(ids), 50):
         chunk = ids[k:k + 50]
@@ -216,7 +223,7 @@ def main():
     cur = con.cursor()
     sid = R.ensure_source(cur, "wikidata", "https://www.wikidata.org", "CC0-1.0", False,
                           "defining formulas, theorems, conjectures, physical laws, unsolved problems")
-    stats = {"law": 0, "math": 0, "const": 0, "open": 0, "bio": 0, "proved": 0, "open_status": 0, "defined": 0, "skipped": 0}
+    stats = {"law": 0, "math": 0, "const": 0, "open": 0, "bio": 0, "algo": 0, "proved": 0, "open_status": 0, "defined": 0, "skipped": 0}
     for n, q in enumerate(qids, 1):
         e = ents.get(q)
         if not e or "missing" in e:
@@ -250,6 +257,12 @@ def main():
         else:
             kind = "math"
         domain = "physics" if (dim or types & Q_PHYS or any(s["dim"] for s in symbols)) else "math"
+        complexity = None
+        if selected[q] & ALGO_SELECTIONS and not tex and kind == "math":
+            kind = "algo"
+            domain = "computer science"
+            complexity = next((Q_HARD[t] for t in types if t in Q_HARD), None) or next(
+                (h for h in ("NP-hard", "NP-complete") if h.lower() in (descr(e, "en") or "").lower()), None)
         if selected[q] & {"bio_field", "bio_core"}:
             domain = "biology"
             if kind == "math" and not tex:
@@ -264,10 +277,16 @@ def main():
         payload = {"wikidata": q, "label": en, "description": descr(e, "en"),
                    "tex": tex, "dim": dim, "symbols": symbols, "types": sorted(types),
                    "status": status, "domain": domain, "proved_by": provers, "proved_year": proved_when,
-                   "part_of": part_of, "selected_by": sorted(selected[q])}
+                   "part_of": part_of, "selected_by": sorted(selected[q]), "complexity": complexity,
+                   "aliases": [x["value"] for x in e.get("aliases", {}).get("en", [])][:10]}
         name = en
         intent_parts = [p for p in (en, descr(e, "en")) if p]
         intent = " - ".join(intent_parts)
+        if payload["aliases"]:
+            intent += " [also: " + "; ".join(payload["aliases"]) + "]"
+        if complexity:
+            intent += (f" [{complexity}: no polynomial-time exact algorithm is known - use an exact solver "
+                       "for small instances, otherwise heuristics or approximation algorithms]")
         if status == "open":
             intent += " [OPEN PROBLEM - no known solution, do not claim or search for a general one]"
         elif provers:

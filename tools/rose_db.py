@@ -83,9 +83,10 @@ UPSERT_SQL = (
     "INSERT INTO rose_unit (" + ",".join(UNIT_COLS) + ") VALUES (" + ",".join(["%s"] * len(UNIT_COLS)) + ") "
     "ON DUPLICATE KEY UPDATE kind=VALUES(kind), name=VALUES(name), intent=VALUES(intent), "
     "signature=COALESCE(VALUES(signature), signature), rose_src=COALESCE(VALUES(rose_src), rose_src), "
-    "payload=VALUES(payload), source_id=VALUES(source_id), source_url=VALUES(source_url), "
-    # a changed payload invalidates earlier verification
+    # a changed payload invalidates earlier verification; level must be set BEFORE payload, because
+    # MariaDB evaluates the assignments left to right (payload would already hold the new value)
     "level=IF(payload <=> VALUES(payload), level, VALUES(level)), "
+    "payload=VALUES(payload), source_id=VALUES(source_id), source_url=VALUES(source_url), "
     "unit_id=LAST_INSERT_ID(unit_id)"
 )
 
