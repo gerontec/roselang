@@ -74,13 +74,11 @@ def task_list(delay):
         block = m.group(1) if m else ""
         for href, title in re.findall(r'<li><a href="(/wiki/[^"#]+)" title="([^"]+)"', block):
             tasks.append((html.unescape(title), href))
-        nxt = re.search(r'<a href="(/w/index\.php\?title=Category:Programming_Tasks&amp;pagefrom=[^"]+)"[^>]*>next page',
-                        page)
+        nxt = re.search(r'<a href="([^"]*pagefrom=[^"#]+)[^"]*"[^>]*>next page</a>', page)
         path = None
         if nxt:
-            # same listing via the article path (robots.txt disallows /w/)
             q = urllib.parse.parse_qs(urllib.parse.urlparse(html.unescape(nxt.group(1))).query)
-            path = CATEGORY + "?pagefrom=" + urllib.parse.quote(q["pagefrom"][0])
+            path = CATEGORY + "?pagefrom=" + urllib.parse.quote_plus(q["pagefrom"][0])  # article path, not /w/
     return list(dict.fromkeys(tasks))
 
 
