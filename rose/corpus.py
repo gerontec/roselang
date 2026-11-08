@@ -7,7 +7,10 @@ import json
 import os
 from collections import Counter
 
-MIN_SIMILARITY = float(os.environ.get("ROSE_MIN_SIMILARITY", "0.55"))  # below: corpus does not know the task
+# Measured 2026-11-08 (bge-m3): right units 0.50-0.71, noise up to 0.55 - similarity alone cannot
+# separate "known" from "unknown"; below MIN the corpus surely has no match, below LOW it is a guess.
+MIN_SIMILARITY = float(os.environ.get("ROSE_MIN_SIMILARITY", "0.45"))
+LOW_CONFIDENCE = float(os.environ.get("ROSE_LOW_CONFIDENCE", "0.60"))
 LEVELS = ["imported", "parsed", "tested", "cross_checked", "proven"]
 EMBED_URL = os.environ.get("ROSE_EMBED_URL", "http://127.0.0.1:8084/v1/embeddings")
 
@@ -124,28 +127,33 @@ class Corpus:
         return out[:k], notes
 
     def plan(self, task, k=8):
-        """Classify a new task by the solved problems it resembles and list the best solution paths."""
+        """Classify a new task by the solved problems it resembles and list the best solution paths.
+        Category = category of the best evidence (highest similarity per category), not of the most
+        numerous source - otherwise 400 000 OEIS sequences outvote one matching law."""
         hits, notes = self.search(task, k=30)
-        weights = Counter()
-        for i, h in enumerate(hits[:15]):
-            cat = category(h)
-            weights[cat] += 1.0 / (1 + i)
-        best_sim = max((h["similarity"] for h in hits[:10]), default=0.0)
-        if best_sim < MIN_SIMILARITY:
-            return {"task": task, "category": "unknown", "confidence": 0.0, "distribution": {},
-                    "paths": [], "notes": notes,
-                    "warnings": [f"CORPUS GAP: no solved problem in the corpus resembles this task "
-                                 f"(best similarity {best_sim:.2f} < {MIN_SIMILARITY}). Do not pretend to "
-                                 "reuse a known solution; write and test it, then submit it."]}
-        total = sum(weights.values()) or 1.0
-        dist = {c: round(w / total, 2) for c, w in weights.most_common()}
-        cat = next(iter(dist), None)
         warnings = []
-        for h in hits[:5]:
-            if h["kind"] == "open":
+        # negative knowledge is checked first and always
+        for h in hits[:10]:
+            if h["kind"] == "open" and h["similarity"] >= MIN_SIMILARITY:
                 warnings.append(f"NEGATIVE KNOWLEDGE: '{h['name']}' is an open problem - no known solution. "
                                 "Do not claim or search for a general solution; solve a bounded or numerical "
                                 "sub-question instead.")
+        best_sim = max((h["similarity"] for h in hits[:10]), default=0.0)
+        if best_sim < MIN_SIMILARITY:
+            warnings.append(f"CORPUS GAP: no solved problem in the corpus resembles this task (best similarity "
+                            f"{best_sim:.2f} < {MIN_SIMILARITY}). Do not pretend to reuse a known solution; "
+                            "write and test it, then submit it.")
+            return {"task": task, "category": "unknown", "confidence": 0.0, "distribution": {},
+                    "paths": [], "warnings": warnings, "notes": notes}
+        best = {}
+        for h in hits:
+            c = category(h)
+            best[c] = max(best.get(c, 0.0), h["similarity"])
+        ranked = sorted(best.items(), key=lambda x: -x[1])
+        cat = ranked[0][0]
+        margin = ranked[0][1] - (ranked[1][1] if len(ranked) > 1 else 0.0)
+        if best_sim < LOW_CONFIDENCE:
+            notes.append(f"low confidence: best similarity {best_sim:.2f} < {LOW_CONFIDENCE}")
         paths = []
         for h in hits:
             if h["kind"] == "open":
@@ -155,8 +163,9 @@ class Corpus:
             paths.append(h)
             if len(paths) >= k:
                 break
-        return {"task": task, "category": cat, "confidence": dist.get(cat, 0.0), "distribution": dist,
-                "paths": paths, "warnings": warnings, "notes": notes}
+        return {"task": task, "category": cat, "confidence": round(margin, 3),
+                "distribution": {c: round(v, 3) for c, v in ranked}, "paths": paths,
+                "warnings": warnings, "notes": notes}
 
 
 def category(h):

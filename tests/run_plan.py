@@ -30,7 +30,7 @@ for case in cases:
     ok = all(v for _, v in checks)
     passed += ok
     print(f"{'ok  ' if ok else 'FAIL'} {case['task'][:70]}")
-    print(f"     category {r['category']} ({r['confidence']:.0%})  top: {', '.join(refs[:3])}")
+    print(f"     category {r['category']} (margin {r['confidence']:.2f})  top: {', '.join(refs[:3])}")
     if r["warnings"]:
         print(f"     warning: {r['warnings'][0][:110]}")
     if not ok:

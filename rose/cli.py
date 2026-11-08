@@ -89,8 +89,8 @@ def main(argv=None):
             print(json.dumps(r, ensure_ascii=False, indent=1))
             return 0
         print(f"task:      {r['task']}")
-        print(f"category:  {r['category']}  (confidence {r['confidence']:.0%})")
-        print("           " + ", ".join(f"{c} {w:.0%}" for c, w in r["distribution"].items()))
+        print(f"category:  {r['category']}  (margin {r['confidence']:.2f} over the next category)")
+        print("           best similarity per category: " + ", ".join(f"{c} {w:.2f}" for c, w in r["distribution"].items()))
         for w in r["warnings"]:
             print(f"WARNING:   {w}")
         print("best solution paths:")
