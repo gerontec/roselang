@@ -67,7 +67,8 @@ def is_solver(name, obj):
         return False
     if inspect.isclass(obj) and issubclass(obj, (BaseException, Warning)):
         return False
-    return inspect.isfunction(obj) or inspect.isclass(obj) or type(obj).__name__ in ("ufunc", "builtin_function_or_method")
+    return inspect.isfunction(obj) or inspect.isclass(obj) or type(obj).__name__ in ("ufunc", "builtin_function_or_method",
+                                                                         "cython_function_or_method", "fused_cython_function")
 
 
 def networkx_units():
