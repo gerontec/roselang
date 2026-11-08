@@ -32,6 +32,11 @@ SPARQL = "https://query.wikidata.org/sparql"
 API = "https://www.wikidata.org/w/api.php"
 
 NUMBER_CLASSES = "wd:Q49008 wd:Q1989350 wd:Q9300316 wd:Q186875 wd:Q10338607 wd:Q16317911 wd:Q21199 wd:Q77358734"
+BIO_FIELDS = ["Q128570", "Q7094", "Q7150", "Q7162", "Q7202", "Q128406", "Q133805", "Q171184", "Q177005",
+              "Q214746", "Q222046", "Q323936", "Q471857", "Q815297", "Q840400", "Q908902", "Q31151",
+              "Q883112", "Q904564"]
+# Smith-Waterman, Needleman-Wunsch, sequence alignment, Michaelis-Menten, Hardy-Weinberg, Mendelian inheritance
+BIO_CORE = ["Q1683352", "Q583546", "Q827246", "Q613955", "Q49974", "Q185055"]
 SELECTIONS = {
     "formula": f"?i wdt:P2534 ?f . FILTER NOT EXISTS {{ ?i wdt:P31 ?x . VALUES ?x {{ {NUMBER_CLASSES} }} }}",
     "theorem": "?i wdt:P31/wdt:P279* wd:Q65943 .",
@@ -41,6 +46,11 @@ SELECTIONS = {
     "mathematical_problem": "?i wdt:P31 wd:Q1166625 .",
     "proved_by": "?i wdt:P1318 ?b .",
     "problem_list_member": "?i wdt:P361 ?l . VALUES ?l { wd:Q727000 } .",
+    # biology: items linked to a biology field (ids verified by label on 2026-11-08) ...
+    "bio_field": "?i wdt:P101|wdt:P361|wdt:P921|wdt:P2578|wdt:P1269 ?fld . VALUES ?fld { " + " ".join(
+        "wd:" + q for q in BIO_FIELDS) + " } .",
+    # ... plus core methods that Wikidata does not link to a field
+    "bio_core": "VALUES ?i { " + " ".join("wd:" + q for q in BIO_CORE) + " } .",
 }
 
 Q_THEOREM, Q_CONJECTURE, Q_UNSOLVED = "Q65943", "Q319141", "Q1321906"  # theorem, conjecture, open problem
@@ -200,7 +210,7 @@ def main():
     cur = con.cursor()
     sid = R.ensure_source(cur, "wikidata", "https://www.wikidata.org", "CC0-1.0", False,
                           "defining formulas, theorems, conjectures, physical laws, unsolved problems")
-    stats = {"law": 0, "math": 0, "const": 0, "open": 0, "proved": 0, "open_status": 0, "defined": 0, "skipped": 0}
+    stats = {"law": 0, "math": 0, "const": 0, "open": 0, "bio": 0, "proved": 0, "open_status": 0, "defined": 0, "skipped": 0}
     for n, q in enumerate(qids, 1):
         e = ents.get(q)
         if not e or "missing" in e:
@@ -234,6 +244,10 @@ def main():
         else:
             kind = "math"
         domain = "physics" if (dim or types & Q_PHYS or any(s["dim"] for s in symbols)) else "math"
+        if selected[q] & {"bio_field", "bio_core"}:
+            domain = "biology"
+            if kind == "math" and not tex:
+                kind = "bio"  # a method or concept without equation: reference card
         provers = [{"id": p, "label": label(allents.get(p, {}))} for p in item_ids(c, "P1318")]
         proved_when = None
         for v, qual, _ in values(c, "P1318"):
