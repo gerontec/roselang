@@ -8,15 +8,70 @@ physical laws, controllers and state machines – and writes only the glue. The 
 the result (types, physical units, contracts, exhaustive tables and state machines) and
 compiles it to Python (C, IEC 61131-3 ST and ESPHome C++ planned).
 
-> Status: **compiler v1 (experimental)**. Built-in knowledge: 1 252 units with Rose source
-> (laws, formulas, CODATA constants, open problems) and 47 967 searchable cards (Wikidata,
-> CODATA, Gene Ontology, Rosalind). Compiler handles `fn`, `const`, `use`, `law` + `solve`,
-> `table`, `test` and emits Python. `rosec plan` acceptance: 7/12.
-> Not yet: Rosetta Code import, `machine`/`ctrl`, C/ST/ESPHome targets.
+> Status: **knowledge module usable, compiler v1 experimental.** `rose.exists()` points to known
+> solutions in **268 747 searchable cards** – mathematics, physics, algorithms, control engineering,
+> biology, plants and drugs, radio technology, social psychology, Python packages – and says when a
+> problem is open, a concept disputed, or a plant has poison records. It never solves the task
+> itself. Counts per topic: [`docs/STATISTICS.md`](https://github.com/gerontec/roselang/blob/main/docs/STATISTICS.md).
 > Want to help? See [`TODO.md`](https://github.com/gerontec/roselang/blob/main/TODO.md).
+
+## How to use
 
 ```sh
 pip install git+https://github.com/gerontec/roselang     # distribution "roselang", import name "rose"
+```
+
+No server, no network, no API key: the knowledge ships with the package. Size: 75 MB download,
+118 MB installed, plus a 333 MB index unpacked on the first query into `~/.cache/roselang`
+(`$ROSE_CACHE`). First query after installing ~0.6 s, then **~7 ms per query** (median, measured).
+
+**1. Does a known solution exist?** – one verdict, the pointers, their sources:
+
+```sh
+$ rosec exists "plan a tour for a delivery van that visits 30 customers and returns to the depot" -k 1
+SOLVED: A known solution exists: travelling salesperson problem (TSP) (NP-hard); ready-made solver: networkx.algorithms.approximation.traveling_salesman.traveling_salesman_problem.
+  - travelling salesperson problem (TSP)  [problem:travelling_salesperson]  https://www.wikidata.org/wiki/Q322212
+$ rosec exists "ESP32 RS485 Modbus RTU master" -k 1
+SOLVED: A known solution exists: ESPHome modbus_controller (Modbus RTU master on ESP32/ESP8266); ready-made solver: pip install esphome; YAML: uart + modbus (flow_control_pin) + one modbus_controller per address; esphome run <config>.yaml.
+$ rosec exists "is P equal to NP" -k 1
+OPEN: No known solution: P versus NP problem is an open problem.
+$ rosec exists "is elderberry edible" -k 1
+CAUTION: Sources record uses of Sambucus canadensis (American elderberry), see the card; whether anything is safe to eat or to take depends on the part, preparation, amount and correct identification - Rose does not confirm it.
+$ rosec exists "mass formation psychosis" -k 1
+DISPUTED: Not established knowledge: mass formation psychosis is a proposed, disputed concept without established empirical support - see the source.
+```
+
+| Verdict | Means |
+|---|---|
+| `solved` | a known solution, definition, theorem or maintained package exists – with source, licence and, where there is one, the exact library call |
+| `open` | the best match is an unsolved problem (negative knowledge) – do not claim a general solution |
+| `caution` | the best match is a plant with food or poison records – shown with source, never a confirmation of safety |
+| `disputed` | the best match is a proposed concept without established empirical support |
+| `unknown` | nothing in the knowledge matches |
+
+**2. The same from Python** (for an LLM tool call or a script):
+
+```python
+import rose
+v = rose.exists("estimate the state of a system from noisy measurements")
+v["verdict"], v["answer"]          # 'solved', 'A known solution exists: ...'
+for s in v["solutions"]:           # ref, name, url, licence, level, call (ready-made solver), status
+    print(s["ref"], s["url"], s.get("call"))
+rose.get("bio:drug.ephedrine")     # the full card: intent, source, licence, ATC codes ...
+rose.search("free space path loss", k=5)   # ranked cards without a verdict
+```
+
+**3. More detail** – `rosec plan "<task>"` shows the recognised category, structure and quantities
+with units; `rosec search "<words>" [--kind law|math|algo|bio|lib|...]` lists ranked cards;
+`rosec get <ref>` prints one card; every command takes `--json`.
+
+**Rules for using the answers:** Rose only *points*. Check the source behind a card before relying
+on it; a `solved` card is a pointer, not a verified result for your input. Drug and plant cards
+carry no dose, preparation or safety information.
+
+### The language (experimental)
+
+```sh
 rosec plan "speed of light in vacuum"
 python3 -c 'import rose; print(rose.use("law:kinetic_energy"))'
 ```
@@ -45,13 +100,15 @@ test speed_for(200 kJ, 1000 kg) == 20 m/s within 1 %
 
 | Path | What |
 |---|---|
+| [`docs/STATISTICS.md`](https://github.com/gerontec/roselang/blob/main/docs/STATISTICS.md) | what can be found: cards per topic, verdicts, distinct facts (`tools/stats.py`) |
+| [`docs/pharma/`](https://github.com/gerontec/roselang/tree/main/docs/pharma), [`docs/pypi/`](https://github.com/gerontec/roselang/tree/main/docs/pypi) | browsable overviews: drugs by ATC group, top PyPI packages by topic |
 | [`docs/CONCEPT.md`](https://github.com/gerontec/roselang/blob/main/docs/CONCEPT.md) | full concept: principles, language, corpus sources and licences, verification levels, where the knowledge lives, benchmark and go/no-go rule, roadmap |
 | [`spec/grammar.ebnf`](https://github.com/gerontec/roselang/blob/main/spec/grammar.ebnf) | grammar draft v0 |
 | [`spec/mcp-tools.md`](https://github.com/gerontec/roselang/blob/main/spec/mcp-tools.md) | tool interface (CLI `--json`; optional MCP adapter) and diagnostic codes |
 | [`rose/std/`](https://github.com/gerontec/roselang/tree/main/rose/std) | generated standard library and knowledge catalog (do not edit; `tools/export_std.py`) |
 | [`schema/rose_schema.sql`](https://github.com/gerontec/roselang/blob/main/schema/rose_schema.sql) | MariaDB 11.8 corpus schema (`rose_*`, `VECTOR(1024)` + HNSW) |
 | [`rose/`](https://github.com/gerontec/roselang/tree/main/rose) | compiler v1 (`rosec`): parser, unit checker, solve, tables, Python codegen, corpus access |
-| [`tools/`](https://github.com/gerontec/roselang/tree/main/tools) | corpus importers (Wikidata, CODATA, OEIS) and embedding |
+| [`tools/`](https://github.com/gerontec/roselang/tree/main/tools) | corpus importers (Wikidata, CODATA, GO, mathlib, Rosetta Code, Modelica, PyPI, GRIN/WCVP, Orange Book, ...), export and release build |
 | [`tests/`](https://github.com/gerontec/roselang/tree/main/tests) | self-test: positive programs and negative programs per diagnostic code |
 | [`TODO.md`](https://github.com/gerontec/roselang/blob/main/TODO.md) | open tasks and rules for contributors (humans and LLMs) |
 | [`examples/`](https://github.com/gerontec/roselang/tree/main/examples) | `fn`, `law`, `ctrl`, `machine`, `table`, `bio` examples |
