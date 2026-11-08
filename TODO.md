@@ -50,9 +50,12 @@ list below.
 | Corpus: Wikidata (formulas, theorems, laws, conjectures, open problems) | importer done (`tools/import_wikidata.py`) |
 | Corpus: CODATA 2022 constants | imported, 355 constants |
 | Corpus: OEIS | imported, 401 561 sequences (CC BY-SA 4.0) |
+| Corpus: Rosalind (bio, titles + links) and Wikidata biology methods | imported |
 | Embeddings (bge-m3) | `tools/embed.py`; Wikidata + CODATA first, OEIS in background |
+| Knowledge → language | `rose/tex.py` converts imported TeX formulas to Rose `law`s, `tools/verify_laws.py` checks them with the compiler, `tools/export_std.py` generates `std/` (CC0/PD only) |
+| Negative knowledge | `open name intent "..." end` in the language, `use` of an open problem → `E305` |
 | Compiler v1 | `fn`, `const`, `use`, `law` + `solve` (sympy), `table` with exhaustive check, `test`; target Python |
-| Diagnostics | E101 E201 E202 E203 E204 E205 E206 E207 E208 E301 E305 E306 E511 E512 R199 R205 |
+| Diagnostics | E101 E201 E202 E203 E204 E205 E206 E207 E208 E301 E305 E306 E511 E512 R199 R205 (each with a test in `tests/neg/` where listed there) |
 | `rosec plan` | hybrid search (HNSW vector + FULLTEXT, RRF), category vote, negative-knowledge warnings |
 
 ## Open tasks
@@ -63,9 +66,10 @@ Pick one, open an issue saying you work on it, keep the PR small.
 - [ ] **Rosetta Code importer** (MediaWiki API): task text → `intent`, solutions per language
       → `rose_impl`, outputs of several languages as test oracle. *Biggest missing piece* –
       the A/B/B2/C benchmark depends on it.
-- [ ] **TeX → Rose `eq` converter** for Wikidata formulas using the symbol table (`rose_law_var`),
-      then a verify pass: dimensionally consistent → level `tested`. Today Wikidata laws are
-      level `imported` and `use law:...` reports `E306 no machine-readable equation`.
+- [x] TeX → Rose `law` converter driven by the symbol table, verify pass with the compiler.
+- [ ] Extend the converter: derivatives (`\mathrm{d}`, `\partial`) as `der()`, sums, vectors, systems of equations.
+- [ ] **EDAM ontology** (bioinformatics operations, CC BY-SA 4.0 – corpus only, not `std/`).
+- [ ] Rosalind: the full problem list (only the first public page is reachable without `?page=`, which robots.txt forbids).
 - [ ] QUDT import (units, quantity kinds) to replace the built-in unit table in `rose/units.py`.
 - [ ] Modelica Standard Library: extract equations of Thermal/Electrical/Fluid models as `law`/`model`.
 - [ ] Lean mathlib: index theorem statements as `math` units with level `proven`.

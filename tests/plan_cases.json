@@ -1,0 +1,23 @@
+[
+ {"task": "mass flow of water needed to carry 9 kW of heat at a temperature spread of 5 K",
+  "category": "physics", "ref_any": ["heat", "specific_heat", "thermal"]},
+ {"task": "prove that every even integer greater than 2 is the sum of two primes",
+  "warning": "goldbach"},
+ {"task": "is P equal to NP? write an algorithm that solves SAT in polynomial time",
+  "warning": "p versus np"},
+ {"task": "give me a proof of the Poincare conjecture", "category": "math", "ref_any": ["poincare"],
+  "no_warning": true},
+ {"task": "count the prime numbers below n", "category": "math", "ref_any": ["prime"]},
+ {"task": "speed of light in vacuum in metres per second", "category": "physics/constant",
+  "ref_any": ["speed_of_light"]},
+ {"task": "period of a simple pendulum of length 1 m", "category": "physics", "ref_any": ["pendulum"]},
+ {"task": "keep the water tank at 45 degrees Celsius with an electric heater", "category": "ctrl",
+  "ref_any": ["ctrl:"]},
+ {"task": "switch a circulation pump on below 45 degC and off above 50 degC, at least 5 minutes on",
+  "category": "machine", "ref_any": ["machine:hysteresis"]},
+ {"task": "find homologous proteins of a SARS-CoV-2 spike sequence in NCBI nr", "category": "bio",
+  "ref_any": ["bio:search.blastp"]},
+ {"task": "local alignment of two DNA sequences", "category": "bio", "ref_any": ["smith", "alignment"]},
+ {"task": "Wie groß ist die kinetische Energie eines Autos mit 1000 kg bei 20 m/s?",
+  "category": "physics", "ref_any": ["kinetic_energy"]}
+]
