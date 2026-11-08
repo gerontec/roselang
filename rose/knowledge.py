@@ -107,6 +107,8 @@ def prior(c):
     lemma names (CoxeterSystem.length_simple) are word soup unless the docstring names the result."""
     if c.get("source") == "mathlib" and not c.get("named"):
         return 0.6
+    if c.get("kind") == "lib":      # a whole package is a broad pointer: below specific cards, popular first
+        return 0.7 + 0.15 * max(0.0, 1.0 - (c.get("rank") or 15000) / 15000)
     return 1.0
 
 
@@ -401,7 +403,7 @@ class Knowledge:
 
     @staticmethod
     def _hit(c, sim, score, measure):
-        extra = {k: c[k] for k in ("complexity", "solvers") if c.get(k)}
+        extra = {k: c[k] for k in ("complexity", "solvers", "package_license", "docs") if c.get(k)}
         return {**extra, "ref": c["ref"], "kind": c["kind"], "name": c["name"], "level": c["level"],
                 "signature": c.get("signature"), "status": c.get("status"), "domain": c.get("domain"),
                 "usable": bool(c.get("std")) and c["kind"] != "open", "license": c["license"],

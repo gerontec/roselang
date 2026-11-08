@@ -115,6 +115,12 @@ def export_catalog(cur, out, index, vectors):
             for k in ("domain", "status", "proved_year", "complexity"):
                 if p.get(k):
                     card[k] = p[k]
+            if kind == "lib":                       # PyPI package: how to get it, not how to use it
+                for k in ("install", "rank", "version", "docs", "requires_python"):
+                    if p.get(k):
+                        card[k] = p[k]
+                if p.get("license"):
+                    card["package_license"] = p["license"]
             if p.get("proved_by"):
                 card["proved_by"] = [x.get("label") for x in p["proved_by"]]
             if sig:

@@ -11,6 +11,7 @@ of Rose is MIT; every card in `catalog.jsonl` carries the SPDX id of its source 
 | Rosalind | cards `source: rosalind` | titles and links only (reference) | https://rosalind.info |
 | Rose core | cards `source: rose-core` | MIT | this project |
 | Lean mathlib4 | `sets/mathlib.jsonl.gz` | Apache-2.0 | Copyright the mathlib contributors, https://github.com/leanprover-community/mathlib4 (commit in each card's `url`); statements only, cut at `:=`, whitespace normalised, search text added |
+| PyPI | cards `source: pypi` (kind `lib`) | `LicenseRef-PyPI-metadata`: no licence of its own – name, one-line summary, keywords, classifiers and links as each project published them on PyPI; the package's own licence is in `package_license` | https://pypi.org; selection by downloads from https://github.com/hugovk/top-pypi-packages (names and counts) |
 | Rosetta Code | `sets/rosetta.jsonl.gz`, `sets/rosetta.impl.jsonl.gz` | GFDL-1.3 | https://rosettacode.org; authors in the history of each task page (`url`) |
 
 The files are an **aggregation** of independent works: each keeps its own licence, and the Rose

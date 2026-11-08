@@ -437,8 +437,12 @@ def verdict(r, kb, k=3):
         call = next((x["name"] for x in card.get("solvers", []) if x.get("library")), None)
         if p["ref"].startswith("py:"):
             call = p["name"]
+        if p["ref"].startswith("pypi:"):
+            call = f"pip install {p['name']}"
         sols.append({"ref": p["ref"], "name": p["name"], "url": url, "level": p["level"], "call": call,
                      "complexity": p.get("complexity") or card.get("complexity"), "license": p["license"]})
+        if card.get("kind") == "lib":
+            sols[-1].update({k: card[k] for k in ("package_license", "docs", "install") if card.get(k)})
     best = sols[0]
     extra = f" ({best['complexity']})" if best.get("complexity") else ""
     call = next((x["call"] for x in sols if x.get("call")), None)
