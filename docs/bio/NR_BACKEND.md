@@ -36,6 +36,23 @@ metadata (`bio:meta.count`), not a search.
 5. **Daily delta** instead of rebuilding: GenBank and RefSeq daily updates, `pdb_seqres`,
    UniProt/Swiss-Prot, appended with `diamond makedb --append`. RefSeq daily files reach back only
    about 21 days – a pipeline that stops for longer leaves a gap that must be filled from a full release.
+
+   Measured duration (33 daily runs, 2026-10-03 to 2026-11-08, 15.0 million new sequences in total;
+   median 153 846 new per run, from 269 to 3.85 million on a catch-up day):
+
+   | Step | Median | Range | Scales with new sequences? |
+   |---|---|---|---|
+   | whole run | **12.7 min** | 6.4–21.6 min | barely: about 12 min fixed + 2 min per million new |
+   | duplicate check against a hash cache of all sequences (merge) | 8.2 min | 4.5–15.9 min | no – it works on the cache of all ~1.17 billion sequences |
+   | download + parse of the daily files | 2.6 min | 0.1–7.2 min | a little |
+   | `diamond makedb --append` | 1.6 min | 1.1–2.3 min | barely (84 s for 3.85 million new) |
+   | metadata into SQL (one transaction) | 0.3 min | 0–1.9 min | yes, about 29 µs per new sequence |
+
+   The fixed part dominates, so a daily run costs about the same whether 300 or 3 million
+   sequences arrive; the duplicate check over the whole cache is the step to optimise first (for
+   example: keep a daily hash delta and merge it weekly). 10 of 43 scheduled starts failed, almost all
+   on TLS handshake timeouts at NCBI; nothing is lost – the open daily files are caught up by the next
+   run – but plan for delays of up to two days and retry the same day.
 6. **Search in two stages** (what makes it usable):
    - pre-select in SQL by taxon (with sub-taxa), length range and creation date → a small partial
      `.dmnd` (cached);
