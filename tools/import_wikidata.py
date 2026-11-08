@@ -35,6 +35,10 @@ NUMBER_CLASSES = "wd:Q49008 wd:Q1989350 wd:Q9300316 wd:Q186875 wd:Q10338607 wd:Q
 BIO_FIELDS = ["Q128570", "Q7094", "Q7150", "Q7162", "Q7202", "Q128406", "Q133805", "Q171184", "Q177005",
               "Q214746", "Q222046", "Q323936", "Q471857", "Q815297", "Q840400", "Q908902", "Q31151",
               "Q883112", "Q904564"]
+# algorithm, method, theory, concept, phenomenon, mode of inheritance, ecological concept, equation,
+# formula, physical law, theorem, scientific law, mathematical model (all verified by label 2026-11-08)
+BIO_KNOWLEDGE_CLASSES = ["Q8366", "Q1799072", "Q17737", "Q151885", "Q483247", "Q1348351", "Q56575300",
+                         "Q11345", "Q976981", "Q214070", "Q65943", "Q408891", "Q486902"]
 # Smith-Waterman, Needleman-Wunsch, sequence alignment, Michaelis-Menten, Hardy-Weinberg, Mendelian inheritance
 BIO_CORE = ["Q1683352", "Q583546", "Q827246", "Q613955", "Q49974", "Q185055"]
 SELECTIONS = {
@@ -47,8 +51,10 @@ SELECTIONS = {
     "proved_by": "?i wdt:P1318 ?b .",
     "problem_list_member": "?i wdt:P361 ?l . VALUES ?l { wd:Q727000 } .",
     # biology: items linked to a biology field (ids verified by label on 2026-11-08) ...
+    # only knowledge classes (whitelist): projects, trials, journals, people, genes etc. stay out
     "bio_field": "?i wdt:P101|wdt:P361|wdt:P921|wdt:P2578|wdt:P1269 ?fld . VALUES ?fld { " + " ".join(
-        "wd:" + q for q in BIO_FIELDS) + " } .",
+        "wd:" + q for q in BIO_FIELDS) + " } . ?i wdt:P31 ?k . VALUES ?k { " + " ".join(
+        "wd:" + q for q in BIO_KNOWLEDGE_CLASSES) + " } .",
     # ... plus core methods that Wikidata does not link to a field
     "bio_core": "VALUES ?i { " + " ".join("wd:" + q for q in BIO_CORE) + " } .",
 }
