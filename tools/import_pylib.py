@@ -24,6 +24,9 @@ import rose_db as R
 SCIPY = ["scipy.optimize", "scipy.sparse.csgraph", "scipy.integrate", "scipy.interpolate", "scipy.linalg",
          "scipy.signal", "scipy.spatial", "scipy.cluster.vq", "scipy.cluster.hierarchy", "scipy.fft",
          "scipy.ndimage", "scipy.stats"]
+SYMPY = {"sympy.logic.boolalg": ["SOPform", "POSform", "simplify_logic", "to_cnf", "to_dnf", "truth_table"],
+         "sympy.logic.inference": ["satisfiable"], "sympy.solvers": ["solve", "nsolve", "dsolve", "linsolve", "nonlinsolve"],
+         "sympy.integrals": ["integrate"], "sympy.series": ["series", "limit"]}
 STDLIB = {"bisect": ["bisect_left", "bisect_right", "insort"], "heapq": ["heappush", "heappop", "nsmallest", "nlargest", "merge"],
           "graphlib": ["TopologicalSorter"], "difflib": ["SequenceMatcher", "get_close_matches", "unified_diff"],
           "itertools": ["permutations", "combinations", "product"], "statistics": ["median", "linear_regression", "correlation"],
@@ -46,7 +49,7 @@ ORTOOLS = [  # (public path, kind of problem, docs url)
 ]
 LIBS = {"networkx": ("https://networkx.org", "BSD-3-Clause"), "scipy": ("https://scipy.org", "BSD-3-Clause"),
         "ortools": ("https://developers.google.com/optimization", "Apache-2.0"),
-        "python": ("https://docs.python.org/3/library/", "PSF-2.0")}
+        "python": ("https://docs.python.org/3/library/", "PSF-2.0"), "sympy": ("https://www.sympy.org", "BSD-3-Clause")}
 
 
 def summary(obj):
@@ -127,6 +130,22 @@ def ortools_units():
     return out
 
 
+def sympy_units():
+    import sympy
+    out = []
+    for mod, names in SYMPY.items():
+        m = importlib.import_module(mod)
+        for name in names:
+            obj = getattr(m, name, None)
+            if obj is None:
+                continue
+            path = f"{mod}.{name}"
+            out.append({"path": path, "public": f"sympy.{name}" if getattr(sympy, name, None) is obj else path,
+                        "obj": obj, "lib": "sympy", "version": sympy.__version__,
+                        "url": f"https://docs.sympy.org/latest/search.html?q={name}"})
+    return out
+
+
 def stdlib_units():
     out = []
     v = ".".join(map(str, sys.version_info[:3]))
@@ -151,7 +170,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--dry-run", action="store_true")
     a = ap.parse_args()
-    units = networkx_units() + scipy_units() + ortools_units() + stdlib_units()
+    units = networkx_units() + scipy_units() + ortools_units() + sympy_units() + stdlib_units()
     by_lib = {}
     for u in units:
         by_lib[u["lib"]] = by_lib.get(u["lib"], 0) + 1

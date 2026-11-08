@@ -41,6 +41,12 @@ BIO_KNOWLEDGE_CLASSES = ["Q8366", "Q1799072", "Q17737", "Q151885", "Q483247", "Q
                          "Q11345", "Q976981", "Q214070", "Q65943", "Q408891", "Q486902"]
 # Smith-Waterman, Needleman-Wunsch, sequence alignment, Michaelis-Menten, Hardy-Weinberg, Mendelian inheritance
 BIO_CORE = ["Q1683352", "Q583546", "Q827246", "Q613955", "Q49974", "Q185055"]
+# core concepts of control, state machines and decision logic -> Rose kind (ids verified by label)
+CORE_KIND = {
+    "ctrl": {"Q716829", "Q818544", "Q230945", "Q334269", "Q48995591"},   # PID, observer, state space, transfer fn, loop
+    "machine": {"Q176452", "Q1126309", "Q640119", "Q230885", "Q724168"},  # FSM, Mealy, Moore, state diagram, Petri net
+    "table": {"Q747762", "Q24962978", "Q461528", "Q864155", "Q6667469"},  # decision table, DMN, Karnaugh, BDD, logic opt.
+}
 SELECTIONS = {
     "formula": f"?i wdt:P2534 ?f . FILTER NOT EXISTS {{ ?i wdt:P31 ?x . VALUES ?x {{ {NUMBER_CLASSES} }} }}",
     "theorem": "?i wdt:P31/wdt:P279* wd:Q65943 .",
@@ -62,6 +68,15 @@ SELECTIONS = {
     "algorithm": "?i wdt:P31/wdt:P279* wd:Q8366 .",
     "computational_problem": "?i wdt:P31/wdt:P279* wd:Q3435924 .",
     "optimization_problem": "?i wdt:P31/wdt:P279* wd:Q984063 .",
+    # control engineering, automata, decision logic (ids verified by label 2026-11-08): fields control
+    # theory Q6501221 and automata theory Q214526 (knowledge classes only), models of computation
+    # Q2651576, finite-state machine family Q176452, plus core concepts by id
+    "ctrl_field": "?i wdt:P101|wdt:P361|wdt:P921|wdt:P2578|wdt:P2579 wd:Q6501221 . ?i wdt:P31 ?k . VALUES ?k { "
+                  + " ".join("wd:" + q for q in BIO_KNOWLEDGE_CLASSES) + " } .",
+    "machine_field": "?i wdt:P101|wdt:P361|wdt:P921|wdt:P2578|wdt:P2579 wd:Q214526 . ?i wdt:P31 ?k . VALUES ?k { "
+                     + " ".join("wd:" + q for q in BIO_KNOWLEDGE_CLASSES) + " } .",
+    "machine_model": "{ ?i wdt:P31/wdt:P279* wd:Q2651576 . } UNION { ?i wdt:P279* wd:Q176452 . }",
+    "core_concepts": "VALUES ?i { " + " ".join("wd:" + q for q in sorted(set().union(*CORE_KIND.values()))) + " } .",
 }
 ALGO_SELECTIONS = {"algorithm", "computational_problem", "optimization_problem"}
 Q_HARD = {"Q1137554": "NP-hard", "Q215206": "NP-complete"}   # complexity classes (verified by label)
@@ -223,7 +238,7 @@ def main():
     cur = con.cursor()
     sid = R.ensure_source(cur, "wikidata", "https://www.wikidata.org", "CC0-1.0", False,
                           "defining formulas, theorems, conjectures, physical laws, unsolved problems")
-    stats = {"law": 0, "math": 0, "const": 0, "open": 0, "bio": 0, "algo": 0, "proved": 0, "open_status": 0, "defined": 0, "skipped": 0}
+    stats = {"law": 0, "math": 0, "const": 0, "open": 0, "bio": 0, "algo": 0, "ctrl": 0, "machine": 0, "table": 0, "proved": 0, "open_status": 0, "defined": 0, "skipped": 0}
     for n, q in enumerate(qids, 1):
         e = ents.get(q)
         if not e or "missing" in e:
@@ -263,6 +278,10 @@ def main():
             domain = "computer science"
             complexity = next((Q_HARD[t] for t in types if t in Q_HARD), None) or next(
                 (h for h in ("NP-hard", "NP-complete") if h.lower() in (descr(e, "en") or "").lower()), None)
+        core_kind = next((kd for kd, ids in CORE_KIND.items() if q in ids), None)
+        if not tex and kind in ("math", "algo") and (core_kind or selected[q] & {"ctrl_field", "machine_field", "machine_model"}):
+            kind = core_kind or ("ctrl" if "ctrl_field" in selected[q] else "machine")
+            domain = "engineering" if kind == "ctrl" else "computer science"
         if selected[q] & {"bio_field", "bio_core"}:
             domain = "biology"
             if kind == "math" and not tex:
