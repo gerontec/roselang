@@ -54,8 +54,11 @@ def stem(w):
 
 
 def tokens(text):
+    import unicodedata
     out = []
-    t = re.sub(r"\bnon[- ]", "non", (text or "").lower().replace("'s", ""))  # non-homologous != homologous
+    t = unicodedata.normalize("NFKD", (text or "").lower().replace("'s", ""))
+    t = "".join(ch for ch in t if not unicodedata.combining(ch))       # Poincaré -> poincare
+    t = re.sub(r"\bnon[- ]", "non", t)                                 # non-homologous != homologous
     for w in re.findall(r"[a-z][a-z0-9]*", t):
         if w in STOP or len(w) < 2:
             continue
@@ -63,7 +66,7 @@ def tokens(text):
     return out
 
 
-INDEX_VERSION = 1
+INDEX_VERSION = 2
 
 
 def cache_dir():
@@ -99,6 +102,7 @@ class Knowledge:
         self.n_core, self.n = int(meta["n_core"]), int(meta["n"])
         self._impl = {}
         self._vec = None
+        self._law_dims = None
         self._idf_max = math.log(1 + (self.n + 0.5) / 0.5)
 
     def _build(self, sources):
@@ -229,7 +233,8 @@ class Knowledge:
             nt = set(ntok.split())
             have = nt | set(btok.split())
             cover[i] = sum(w[t] for t in q if t in have) / total
-            scores[i] = sc * (1.5 if nt == qs else 1.0)   # the task names exactly this unit
+            # the task names exactly this unit (x1.5), or contains its whole name (x1.25)
+            scores[i] = sc * (1.5 if nt == qs else 1.25 if len(nt) >= 2 and nt <= qs else 1.0)
         top = sorted(scores, key=lambda i: -scores[i])[:pool]
         return {i: scores[i] for i in top}, {i: cover[i] for i in top}
 
@@ -277,8 +282,10 @@ class Knowledge:
             sim = {i: (float(sims[i - 1]) if i <= self.n_core else cover.get(i, 0.0)) for i in cand}
             measure = "cosine"
         else:
+            # rank by BM25, scaled by how much of the task the unit covers: one shared word
+            # ("mit" in a German task, "MIT domain") must not make a unit the best evidence
             top = max(bm.values(), default=1.0)
-            score = {i: s / top for i, s in bm.items()}
+            score = {i: (s / top) * (0.5 + 0.5 * cover.get(i, 0.0)) for i, s in bm.items()}
             sim = cover
             measure = "coverage"
         out = []
@@ -286,17 +293,111 @@ class Knowledge:
             c = self._card(i)
             if kind and c["kind"] != kind:
                 continue
-            out.append({"ref": c["ref"], "kind": c["kind"], "name": c["name"], "level": c["level"],
-                        "signature": c.get("signature"), "status": c.get("status"), "domain": c.get("domain"),
-                        "usable": bool(c.get("std")) and c["kind"] != "open", "license": c["license"],
-                        "share_alike": bool(c.get("share_alike")), "similarity": round(sim.get(i, 0.0), 3),
-                        "score": round(score[i], 4), "measure": measure, "proved_by": c.get("proved_by")})
+            out.append(self._hit(c, sim.get(i, 0.0), score[i], measure))
             if len(out) >= k:
                 break
         return out, notes
 
+    @staticmethod
+    def _hit(c, sim, score, measure):
+        return {"ref": c["ref"], "kind": c["kind"], "name": c["name"], "level": c["level"],
+                "signature": c.get("signature"), "status": c.get("status"), "domain": c.get("domain"),
+                "usable": bool(c.get("std")) and c["kind"] != "open", "license": c["license"],
+                "share_alike": bool(c.get("share_alike")), "similarity": round(sim, 3),
+                "score": round(score, 4), "measure": measure, "proved_by": c.get("proved_by")}
+
+    # ---- dimension search ----
+    def _laws(self):
+        """[(ref, law name, [(var, dim, has_default)])] of every std law with dimensioned variables."""
+        if self._law_dims is None:
+            from . import units as U
+            from .nodes import Law
+            out = []
+            for ref, meta in std.index().items():
+                if meta.get("kind") not in ("law", "math"):
+                    continue
+                hit = std.lookup(ref)
+                if not hit or not isinstance(hit[0], Law):
+                    continue
+                vs = []
+                for v in hit[0].vars:
+                    try:
+                        d = U.parse_unit(v.type.unit).dim if v.type.unit else None
+                    except ValueError:
+                        d = None
+                    if d is not None and d != U.NONE:
+                        vs.append((v.name, d, v.default is not None))
+                if vs:
+                    out.append((ref, hit[0].name, vs))
+            self._law_dims = out
+        return self._law_dims
+
+    def by_dimensions(self, q, k=10):
+        """Laws whose variables take the given quantities and yield the wanted one, by dimension only.
+        score 1.0 = every given maps to a free variable, exactly one unknown is left and it is the
+        wanted quantity; partial matches score less, every further unknown costs 0.25."""
+        given, want = q["given"], q["wanted"]
+        if not given:
+            return []
+        need = len(given) + 1
+        res = []
+        for ref, name, vs in self._laws():
+            free = [(n, d) for n, d, df in vs if not df]
+            opt = [(n, d) for n, d, df in vs if df]
+            used, mapping, pts = set(), {}, 0.0
+            for g in given:
+                m = next((n for n, d in free if d == g["dim"] and n not in used), None)
+                w = 1.0
+                if m is None:
+                    m, w = next((n for n, d in opt if d == g["dim"] and n not in used), None), 0.5
+                if m is not None:
+                    used.add(m)
+                    mapping[m] = g["text"]
+                    pts += w
+            target = None
+            for wq in want:
+                target = next((n for n, d in free if d == wq["dim"] and n not in used), None)
+                if target:
+                    break
+            rest = [n for n, _ in free if n not in used and n != target]
+            if target is None and not want and len(rest) == 1:
+                target, rest = rest[0], []
+            if target is not None:
+                pts += 1
+            score = pts / need - 0.25 * len(rest)
+            if score > 0 and mapping:
+                res.append({"ref": ref, "law": name, "score": round(score, 3), "solve_for": target,
+                            "given": mapping, "unknowns": rest})
+        res.sort(key=lambda r: (-r["score"], len(r["given"]) + len(r["unknowns"])))
+        return res[:k]
+
     def plan(self, task, k=8):
         from .corpus import make_plan
+        from .quantities import extract
         hits, notes = self.search(task, k=30)
         semantic = bool(hits) and hits[0]["measure"] == "cosine"
-        return make_plan(task, hits, notes, k, semantic)
+        q = extract(task)
+        by_ref = {h["ref"]: h for h in hits}
+        dims = self.by_dimensions(q, k=200)
+        # specificity: when many laws fit the dimensions equally well, the dimensions say little
+        best_level = sum(d["score"] >= dims[0]["score"] for d in dims) if dims else 0
+        weight = min(1.0, 3.0 / best_level) if best_level else 1.0
+        if not q["wanted"]:
+            weight *= 0.5        # nothing asked for: which law to solve is a guess
+        for d in dims[:10]:
+            if d["score"] < 0.75:
+                continue
+            d = dict(d, weight=round(weight, 3))
+            h = by_ref.get(d["ref"])
+            if h is None:
+                h = self._hit(self._card(self._id(d["ref"])), 0.0, 0.0, "dimensions")
+                hits.append(h)
+                by_ref[d["ref"]] = h
+            h["score"] = round(h["score"] + d["score"] * weight, 4)   # words and dimensions agree: strongest
+            h["similarity"] = max(h["similarity"], d["score"] * weight)
+            h["dimensions"] = d
+        hits.sort(key=lambda h: -h["score"])
+        r = make_plan(task, hits, notes, k, semantic)
+        r["quantities"] = {"given": [g["text"] for g in q["given"]],
+                           "wanted": [f"{w['word']} [{w['unit']}]" for w in q["wanted"]]}
+        return r

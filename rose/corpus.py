@@ -144,8 +144,12 @@ def make_plan(task, hits, notes, k=8, semantic=True):
     lo, low = (MIN_SIMILARITY, LOW_CONFIDENCE) if semantic else (LEX_MIN, LEX_LOW)
     warnings = []
     # negative knowledge is checked first and always
+    best_known = max((h["score"] for h in hits[:10] if h["kind"] != "open"), default=0.0)
     for h in hits[:10]:
-        if h["kind"] == "open" and h["similarity"] >= max(lo, OPEN_MIN if not semantic else 0):
+        # an open problem warns when it resembles the task and is not outranked by a solved unit
+        # (a proof of the Poincare conjecture must not warn because its generalisation is open)
+        if h["kind"] == "open" and h["similarity"] >= max(lo, OPEN_MIN if not semantic else 0) \
+                and h["score"] >= 0.8 * best_known:
             warnings.append(f"NEGATIVE KNOWLEDGE: '{h['name']}' is an open problem - no known solution. "
                             "Do not claim or search for a general solution; solve a bounded or numerical "
                             "sub-question instead.")
@@ -191,6 +195,11 @@ def category(h):
 
 
 def how_to_use(h):
+    d = h.get("dimensions")
+    if d and d.get("solve_for"):
+        givens = ", ".join(f"{v} = {t}" for v, t in d["given"].items())
+        more = f"  (also needs {', '.join(d['unknowns'])})" if d["unknowns"] else ""
+        return f"use {h['ref']}  then  solve {d['law']} for {d['solve_for']} given {givens}{more}"
     if h["kind"] in ("law", "math") and h["usable"]:
         return f"use {h['ref']}  then  solve <name> for <unknown> given ..."
     if h["kind"] == "const" and h["usable"]:
