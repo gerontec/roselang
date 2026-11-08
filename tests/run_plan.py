@@ -15,7 +15,8 @@ c = Corpus() if "--db" in sys.argv else Knowledge()
 if not c.online:
     sys.exit(f"knowledge unavailable: {c.error}")
 print("mode:", "database" if "--db" in sys.argv else c.mode)
-cases = json.load(open(os.path.join(HERE, "plan_cases.json")))
+# tests/run_plan.py [--db] [--spec]: --spec runs the problem-class cases (plan_cases_spec.json)
+cases = json.load(open(os.path.join(HERE, "plan_cases_spec.json" if "--spec" in sys.argv else "plan_cases.json")))
 passed = 0
 for case in cases:
     r = c.plan(case["task"], k=5)

@@ -1,0 +1,22 @@
+[
+ {"task": "plan a tour for a delivery van that visits 30 customers and returns to the depot with the shortest total distance",
+  "category": "algo", "ref_any": ["travelling_salesperson"]},
+ {"task": "Tourplanung: ein Lieferwagen besucht 30 Kunden und kehrt zum Depot zurück, die Gesamtstrecke soll minimal sein",
+  "category": "algo", "ref_any": ["travelling_salesperson"]},
+ {"task": "three trucks with a capacity of 2 tonnes each deliver to 50 customers from one depot, minimise the total distance",
+  "category": "algo", "ref_any": ["vehicle_routing"]},
+ {"task": "fastest route from Munich to Hamburg in a road network with travel times on every road",
+  "category": "algo", "ref_any": ["shortest_path"]},
+ {"task": "connect 12 buildings with cable so that every building is connected and the total cable length is minimal",
+  "category": "algo", "ref_any": ["minimum_spanning_tree"]},
+ {"task": "choose which items to pack into a rucksack with a weight limit of 20 kg to maximise the total value",
+  "category": "algo", "ref_any": ["knapsack"]},
+ {"task": "schedule exams into as few time slots as possible so that no student has two exams at the same time",
+  "category": "algo", "ref_any": ["graph_coloring", "graph_colouring"]},
+ {"task": "drive along every street of the district at least once and return to the garage, as short as possible",
+  "category": "algo", "ref_any": ["route_inspection", "chinese_postman"]},
+ {"task": "sort a list of 1 million numbers",
+  "category": "algo", "ref_any": ["sort"]},
+ {"task": "minimum number of single-character edits to turn one word into another",
+  "category": "algo", "ref_any": ["levenshtein", "edit_distance"]}
+]
