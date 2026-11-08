@@ -88,7 +88,15 @@ def tokens(text):
     return out
 
 
-INDEX_VERSION = 2
+INDEX_VERSION = 3
+
+
+def prior(c):
+    """Ranking prior of a card: a name written for humans beats a generated identifier. Lean
+    lemma names (CoxeterSystem.length_simple) are word soup unless the docstring names the result."""
+    if c.get("source") == "mathlib" and not c.get("named"):
+        return 0.6
+    return 1.0
 
 
 def cache_dir():
@@ -135,7 +143,8 @@ class Knowledge:
         tmp = self.db_path + f".tmp{os.getpid()}"
         db = sqlite3.connect(tmp)
         db.executescript("""
-            CREATE TABLE cards (id INTEGER PRIMARY KEY, ref TEXT UNIQUE, kind TEXT, pack TEXT, json TEXT);
+            CREATE TABLE cards (id INTEGER PRIMARY KEY, ref TEXT UNIQUE, kind TEXT, pack TEXT, json TEXT,
+                                prior REAL);
             CREATE TABLE alias (alias TEXT PRIMARY KEY, id INTEGER);
             CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT);
             CREATE VIRTUAL TABLE fts USING fts5(ntok, btok, tokenize = 'unicode61');
@@ -151,11 +160,11 @@ class Knowledge:
                         continue
                     seen.add(c["ref"])
                     n += 1
-                    rows.append((n, c["ref"], c["kind"], pack, line))
+                    rows.append((n, c["ref"], c["kind"], pack, line, prior(c)))
                     name = tokens(c["name"] + " " + c["ref"].split(":", 1)[1].replace("_", " ").replace(".", " "))
                     frows.append((n, " ".join(name), " ".join(tokens(c.get("intent", "")))))
                     arows += [(a, n) for a in c.get("aliases", [])]
-            db.executemany("INSERT INTO cards VALUES (?,?,?,?,?)", rows)
+            db.executemany("INSERT INTO cards VALUES (?,?,?,?,?,?)", rows)
             db.executemany("INSERT INTO fts (rowid, ntok, btok) VALUES (?,?,?)", frows)
             db.executemany("INSERT OR IGNORE INTO alias VALUES (?,?)", arows)
             if pack is None:
@@ -247,8 +256,9 @@ class Knowledge:
         if not known:
             return {}, {}
         match = " OR ".join(f'"{t}"' for t in known)
-        rows = self.db.execute("SELECT rowid, -bm25(fts, 3.0, 1.0), ntok, btok FROM fts WHERE fts MATCH ? "
-                               "ORDER BY bm25(fts, 3.0, 1.0) LIMIT ?", (match, pool * 4)).fetchall()
+        rows = self.db.execute("SELECT f.rowid, -bm25(fts, 3.0, 1.0) * c.prior, f.ntok, f.btok FROM fts f "
+                               "JOIN cards c ON c.id = f.rowid WHERE fts MATCH ? "
+                               "ORDER BY bm25(fts, 3.0, 1.0) * c.prior LIMIT ?", (match, pool * 4)).fetchall()
         total = sum(w.values())
         qs = set(q)
         scores, cover = {}, {}

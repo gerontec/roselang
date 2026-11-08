@@ -149,7 +149,7 @@ def make_plan(task, hits, notes, k=8, semantic=True):
         # an open problem warns when it resembles the task and is not outranked by a solved unit
         # (a proof of the Poincare conjecture must not warn because its generalisation is open)
         if h["kind"] == "open" and h["similarity"] >= max(lo, OPEN_MIN if not semantic else 0) \
-                and h["score"] >= 0.8 * best_known:
+                and h["score"] >= 0.95 * best_known:
             warnings.append(f"NEGATIVE KNOWLEDGE: '{h['name']}' is an open problem - no known solution. "
                             "Do not claim or search for a general solution; solve a bounded or numerical "
                             "sub-question instead.")
