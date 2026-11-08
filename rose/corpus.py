@@ -199,4 +199,7 @@ def how_to_use(h):
         return f"use {h['ref']} as <alias>   (terms as test oracle, alias.contains(x))"
     if h["kind"] == "bio":
         return f"use {h['ref']}   (local DIAMOND nr, two-stage, never online BLAST)"
+    if h["ref"].startswith("rc:"):
+        return (f"python: rose.use({h['ref']!r}).code  (Rosetta Code solution, GFDL share-alike); "
+                "Rose: reference only, no signature yet")
     return f"reference only ({h['level']}): no machine-readable Rose source yet"

@@ -13,12 +13,14 @@ Same building blocks as rosec: rose/units.py (dimensions), std/ + std/catalog.js
 sympy (solve), the exhaustive table check. Error classes carry the Rose diagnostic code.
 """
 import itertools
+import os
 import re
+import warnings
 
 from . import std
 from . import units as U
 
-__all__ = ["Q", "law", "use", "table", "plan", "search", "get", "lock", "approx",
+__all__ = ["Q", "Task", "law", "use", "table", "plan", "search", "get", "lock", "approx",
            "RoseError", "UnitError", "LawError", "OpenProblem", "UnknownRef", "TableError", "ContractError"]
 
 
@@ -335,8 +337,35 @@ def _q_from_rose(e):
     raise RoseError("E306", f"cannot evaluate constant expression {type(e).__name__}")
 
 
+class Task:
+    """A solved programming task from a pack (Rosetta Code): description and solutions as source text.
+    .code is the first solution that compiles as Python 3; nothing is executed."""
+
+    def __init__(self, card, impls):
+        self.ref, self.name, self.url = card["ref"], card["name"], card.get("url")
+        self.license, self.description = card["license"], card.get("description") or card.get("intent", "")
+        self.solutions = [i for i in impls if i.get("lang") == "python"]
+        self.outputs = card.get("outputs", [])
+
+    @property
+    def python3(self):
+        return [s["code"] for s in self.solutions if s.get("level") in ("parsed", "tested", "cross_checked", "proven")]
+
+    @property
+    def code(self):
+        p3 = self.python3
+        if not p3:
+            raise UnknownRef("E302", f"'{self.ref}' has no Python 3 solution ({len(self.solutions)} Python solutions "
+                                     "in total, none compiles as Python 3)")
+        return p3[0]
+
+    def __repr__(self):
+        return f"<task {self.ref}: {len(self.solutions)} python solutions ({len(self.python3)} py3), {self.license}>"
+
+
 def use(ref):
-    """Bind a unit of the built-in knowledge: law -> Law, const -> Q; open problem -> OpenProblem."""
+    """Bind a unit of the built-in knowledge: law -> Law, const -> Q, Rosetta task -> Task;
+    open problem -> OpenProblem."""
     from .compiler import to_sympy
     from .nodes import Const, Law as LawNode, Open
     hit = std.lookup(ref)
@@ -347,6 +376,15 @@ def use(ref):
             raise UnknownRef("E301", f"unknown ref '{ref}'" + (f"; did you mean {', '.join(sim[:3])}?" if sim else ""))
         if card["kind"] == "open":
             raise OpenProblem("E305", f"'{card['name']}' is an open problem - no known solution (negative knowledge)")
+        if card.get("_pack"):
+            impls = _knowledge().implementations(card["ref"])
+            _LOCK.append({"ref": card["ref"], "level": card["level"], "license": card["license"],
+                          "source": "pack " + os.path.basename(card["_pack"]), "url": card.get("url"),
+                          "share_alike": bool(card.get("share_alike"))})
+            if card.get("share_alike"):
+                warnings.warn(f"R205: '{card['ref']}' is {card['license']} (share-alike); code that embeds it "
+                              "inherits that licence", stacklevel=2)
+            return Task(card, impls)
         raise UnknownRef("E306", f"'{ref}' ({card['kind']}, {card['level']}) has no machine-readable source yet"
                          + (f"; TeX: {card['tex'][:80]}" if card.get("tex") else ""))
     item, meta = hit

@@ -7,6 +7,10 @@ No database, no server: `rosec plan/search/get` and `use` resolution work offlin
   get:    card by ref, alias (wikidata:Q..., codata:...) or slug across kinds; Rose source from std/
 The full corpus (OEIS, share-alike) stays in the database; Knowledge(fallback=Corpus()) asks it for
 refs the catalog does not contain.
+
+Packs: optional knowledge under another licence, installed separately (share-alike sources such as
+Rosetta Code, GFDL). A pack is a directory with catalog.jsonl and optionally impl.jsonl
+(ref -> implementations); found as an installed module (PACK_MODULES) or listed in $ROSE_PACKS.
 """
 import json
 import math
@@ -20,6 +24,21 @@ CATALOG = os.path.join(std.STD, "catalog.jsonl")
 VECTORS = os.path.join(std.STD, "catalog.vec")
 EMBED_URL = os.environ.get("ROSE_EMBED_URL", "http://127.0.0.1:8084/v1/embeddings")
 DIM = 1024
+PACK_MODULES = ("rose_rosetta",)
+
+
+def pack_dirs():
+    import importlib.util
+    dirs = []
+    for m in PACK_MODULES:
+        try:
+            spec = importlib.util.find_spec(m)
+        except (ImportError, ValueError):
+            spec = None
+        if spec and spec.submodule_search_locations:
+            dirs.append(list(spec.submodule_search_locations)[0])
+    dirs += [d for d in os.environ.get("ROSE_PACKS", "").split(os.pathsep) if d]
+    return [d for d in dict.fromkeys(dirs) if os.path.exists(os.path.join(d, "catalog.jsonl"))]
 
 STOP = set("""a an the of in on at to for from by with without and or not no is are be been was were it its this
 that these those as into than then there here what which who whom how why when where do does did can could should
@@ -51,17 +70,46 @@ class Knowledge:
         self.error = None
         self.cards, self.by_ref, self.by_alias = [], {}, {}
         try:
-            with open(CATALOG, encoding="utf-8") as f:
-                for line in f:
-                    c = json.loads(line)
-                    self.by_ref[c["ref"]] = len(self.cards)
-                    for a in c.get("aliases", []):
-                        self.by_alias.setdefault(a, len(self.cards))
-                    self.cards.append(c)
+            self._load(CATALOG, None)
         except FileNotFoundError:
             self.error = f"{CATALOG} missing - run tools/export_std.py"
+        self.n_core = len(self.cards)           # catalog.vec covers the core catalog only
+        self.packs = []
+        for d in pack_dirs():
+            self._load(os.path.join(d, "catalog.jsonl"), d)
+            self.packs.append(d)
+        self._impl = {}
         self._index = None
         self._vec = None
+
+    def _load(self, path, pack):
+        with open(path, encoding="utf-8") as f:
+            for line in f:
+                c = json.loads(line)
+                if pack:
+                    c["_pack"] = pack
+                if c["ref"] in self.by_ref:
+                    continue
+                self.by_ref[c["ref"]] = len(self.cards)
+                for a in c.get("aliases", []):
+                    self.by_alias.setdefault(a, len(self.cards))
+                self.cards.append(c)
+
+    def implementations(self, ref):
+        """Implementations of a pack unit: [{"lang", "code", "level", "works_with"}]."""
+        i = self.by_ref.get(ref)
+        pack = self.cards[i].get("_pack") if i is not None else None
+        if not pack:
+            return []
+        if pack not in self._impl:
+            self._impl[pack] = {}
+            f = os.path.join(pack, "impl.jsonl")
+            if os.path.exists(f):
+                with open(f, encoding="utf-8") as fh:
+                    for line in fh:
+                        r = json.loads(line)
+                        self._impl[pack][r["ref"]] = r["impl"]
+        return self._impl[pack].get(ref, [])
 
     @property
     def online(self):
@@ -87,7 +135,7 @@ class Knowledge:
         c = dict(self.cards[i])
         c["rose_src"] = None   # Rose source of std units is bound from std/ by the compiler (bind_std)
         c["source_url"] = c.get("url")
-        c["share_alike"] = False
+        c["share_alike"] = bool(c.get("share_alike"))
         c["payload"] = {"tex": [c["tex"]]} if c.get("tex") else {}
         return c
 
@@ -142,8 +190,8 @@ class Knowledge:
             try:
                 import numpy as np
                 m = np.fromfile(VECTORS, dtype=np.int8)
-                if m.size == len(self.cards) * DIM:
-                    self._vec = m.reshape(len(self.cards), DIM).astype(np.float32) / 127.0
+                if m.size == self.n_core * DIM:
+                    self._vec = m.reshape(self.n_core, DIM).astype(np.float32) / 127.0
             except Exception:
                 pass
         return self._vec if self._vec is not False else None
@@ -190,7 +238,7 @@ class Knowledge:
             out.append({"ref": c["ref"], "kind": c["kind"], "name": c["name"], "level": c["level"],
                         "signature": c.get("signature"), "status": c.get("status"), "domain": c.get("domain"),
                         "usable": bool(c.get("std")) and c["kind"] != "open", "license": c["license"],
-                        "share_alike": False, "similarity": round(sim.get(i, 0.0), 3),
+                        "share_alike": bool(c.get("share_alike")), "similarity": round(sim.get(i, 0.0), 3),
                         "score": round(score[i], 4), "measure": measure, "proved_by": c.get("proved_by")})
             if len(out) >= k:
                 break

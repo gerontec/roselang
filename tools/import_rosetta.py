@@ -121,8 +121,11 @@ def parse_task(page):
 
 
 def py3_ok(code):
+    import warnings
     try:
-        compile(code, "<rosetta>", "exec")
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            compile(code, "<rosetta>", "exec")
         return True
     except (SyntaxError, ValueError):
         return False
