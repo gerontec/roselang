@@ -14,6 +14,7 @@ Level:      a solution that compiles as Python 3 (compile(), nothing is executed
 Usage: import_rosetta.py [--limit N] [--delay 2] [--dry-run] [--task "100 doors"]
 """
 import argparse
+import gzip
 import hashlib
 import html
 import os
@@ -35,9 +36,12 @@ _last = [0.0]
 
 def fetch(path, delay):
     os.makedirs(CACHE, exist_ok=True)
-    f = os.path.join(CACHE, hashlib.sha1(path.encode()).hexdigest() + ".html")
+    f = os.path.join(CACHE, hashlib.sha1(path.encode()).hexdigest() + ".html.gz")
     if os.path.exists(f):
-        return open(f, encoding="utf-8").read()
+        with gzip.open(f, "rt", encoding="utf-8") as fh:
+            return fh.read()
+    if os.path.exists(f[:-3]):                      # uncompressed cache of an earlier run
+        return open(f[:-3], encoding="utf-8").read()
     wait = delay - (time.time() - _last[0])
     if wait > 0:
         time.sleep(wait)
@@ -51,7 +55,7 @@ def fetch(path, delay):
             continue
         r.raise_for_status()
     r.raise_for_status()
-    with open(f, "w", encoding="utf-8") as fh:
+    with gzip.open(f, "wt", encoding="utf-8") as fh:
         fh.write(r.text)
     return r.text
 
