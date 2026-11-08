@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS rose_unit (
   dims_in      VARCHAR(255) NULL,                 -- dimension vectors (QUDT), normalised, for SQL matching
   dims_out     VARCHAR(255) NULL,
   rose_src     MEDIUMTEXT   NULL,                 -- canonical Rose source (rose fmt)
+  payload      JSON         NULL,                 -- kind-specific raw data: TeX formula, constant value, sequence terms
   ast_hash     BINARY(32)   NULL,                 -- sha256 of canonical AST, content address
   level        ENUM('imported','parsed','tested','cross_checked','proven') NOT NULL DEFAULT 'imported',
   source_id    SMALLINT UNSIGNED NOT NULL,
