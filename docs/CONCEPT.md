@@ -1,12 +1,15 @@
 # Rose – concept of an LLM-optimised programming language
 
-> **In short:** an LLM given a new task should not re-invent what is already solved. Rose is a
-> small composition language in which the LLM **references solved building blocks** –
-> algorithms, mathematical results, physical laws, constants, controllers, state machines,
-> decision tables, bioinformatics methods – and writes only the **glue**. The compiler `rosec`
-> **carries this knowledge itself** (`std/`): it finds the blocks, checks the result and compiles
-> it to the target language (Python first; C, IEC 61131-3 ST and ESPHome C++ planned). No server
-> is needed at run time; the corpus database is only the factory that builds `std/`.
+> **In short:** an LLM given a new task should not re-invent what is already solved – and should
+> not "solve" what is still open. Rose **carries the knowledge of solved and open problems itself**
+> (Python package `roselang`, about 247 000 cards: proved theorems, physical laws, constants,
+> algorithms, Rosetta Code tasks, plant models, controllers, state machines, library solvers,
+> bioinformatics terms) and answers one question first: **is there a known solution, and where is
+> it?** It **points** to the solution – source, licence, ready-made library call – and **solves
+> nothing itself**. On top of that sits a small composition language in which the LLM references
+> such building blocks and writes only the glue; the compiler `rosec` checks units, tables and
+> machines and compiles to Python (C, IEC 61131-3 ST and ESPHome C++ planned). No server is needed
+> at run time; the corpus database is only the factory that builds the knowledge.
 
 Status and open work: [`TODO.md`](../TODO.md).
 
@@ -24,16 +27,38 @@ $ rosec exists "is P equal to NP?"
 OPEN: No known solution: P versus NP problem is an open problem.
 ```
 
+The same from Python, after `pip install roselang`:
+
+```python
+import rose
+rose.exists("estimate the state of a system from noisy measurements")
+# {'verdict': 'solved', 'answer': 'A known solution exists: state estimation from noisy
+#   measurements (...); ready-made solver: python-control lqe.', 'solutions': [...]}
+```
+
 Three answers: **solved** (with pointers to the known solution and its source), **open** (negative
-knowledge) or **unknown** (nothing in the knowledge matches). Recognising the problem is done by
-Rose itself – words, quantities with dimensions, and the structure of the task (problem classes,
-§8.3) – not delegated to an LLM. The language and compiler (sections 5, 11) stay, but are no longer
-the first goal: composing and checking solutions comes after finding them.
+knowledge) or **unknown** (nothing in the knowledge matches). The language and compiler (sections
+5, 11) stay, but are no longer the first goal: composing and checking solutions comes after finding
+them.
+
+Two rules follow from this scope (decisions 2026-11-08):
+
+| Rule | Means | Does not mean |
+|---|---|---|
+| **Point, don't solve** | a card holds name, description, source link, licence, complexity, the call of an existing solver (`networkx…traveling_salesman_problem`, `control.lqe`) | no own solver code, no execution of solutions, no generated signatures for every Rosetta task |
+| **Recognition inside Rose** | words (BM25), quantities with dimensions, structure of the task (problem classes, §8.3) | no LLM pre-step that rewrites or classifies the task – that would make the answer depend on the model it is meant to support |
+
+**What the module adds over what a large LLM already knows.** Most pointers (TSP → OR-Tools,
+PID → Ziegler-Nichols) are known to a large model. The module adds: a verdict that is looked up in
+a fixed, versioned source instead of remembered (in particular *open* – the model may not know that
+a problem is still unsolved), provenance and licence of every pointer, the exact call of a
+maintained library instead of a hand-written re-implementation, and the same knowledge for small
+local models that do not have it. Whether this is measurable is the M7 benchmark (§11).
 
 ## 1. Problem
 
 An LLM that receives a coding task writes almost everything from memory: a prime sieve, a PID
-controller, the thermal power of a water flow, a hysteresis with minimum run time. Four
+controller, the thermal power of a water flow, a hysteresis with minimum run time. Five
 weaknesses follow:
 
 | Weakness | Consequence |
@@ -265,19 +290,25 @@ GO term nor a Wikidata item; Wikidata has homologous (Q22280388) and illegitimat
 
 ## 6. The corpus – sources
 
-| Source | Content | Licence | Use |
-|---|---|---|---|
-| **Wikidata** | defining formulas (P2534) with symbols (P7235) and ISQ dimensions (P4020), theorems, conjectures, physical laws, open problems, "proved by" (P1318), biology methods | CC0 | `law`, `math`, `const`, `open`, `bio` units |
-| **CODATA** | fundamental physical constants with uncertainty | public domain (NIST) | `const` units |
-| **OEIS** | > 400 000 integer sequences with leading terms | CC BY-SA 4.0 | `math` units, terms as test oracle |
-| **Rosalind** | classic bioinformatics problems | reference only | `bio` reference cards |
-| **Gene Ontology** | biological processes, molecular functions, cellular components, synonyms | CC BY 4.0 | `bio` cards |
-| **Rosetta Code** (planned) | ~1 300 tasks, solutions in > 900 languages | GFDL 1.3 (share-alike) | `algo` units, outputs of several languages as test oracle |
-| TheAlgorithms (planned) | algorithms in Python, C, Go, … | MIT | permissive alternative |
-| Lean mathlib (planned) | > 200 000 proven theorems | Apache-2.0 | `math` facts, level `proven` |
-| QUDT (planned) | quantity kinds, units, dimension vectors | CC BY 4.0 | unit system of the checker |
-| Modelica Standard Library (planned) | thermal, electrical, fluid, mechanical models | BSD-3 | `law` and `model` units |
-| Rose core | controllers, machines, plant models, bio mapping | MIT | reference cards until M5/M6 |
+Cards shipped in release 0.1.0 (counted in the installed package, 2026-11-08):
+
+| Source | Content | Licence | Cards | Shipped as |
+|---|---|---|---|---|
+| **Lean mathlib4** | statements of proved theorems and definitions (cut at `:=`) | Apache-2.0 | 189 932 | `sets/mathlib.jsonl.gz` |
+| **Gene Ontology** | all non-obsolete terms: processes, functions, components, synonyms | CC BY 4.0 | 38 092 | catalog |
+| **Wikidata** | defining formulas (P2534) with symbols and ISQ dimensions, theorems, conjectures, physical laws, open problems, "proved by" (P1318), algorithms and computational problems, control and automata concepts, biology methods | CC0 | 12 144 | `std/*.rose` + catalog |
+| **Modelica Standard Library** 4.x | class index: path, description, source line – models, blocks, functions, state graphs (no equations) | BSD-3 | 3 484 | catalog |
+| **Python libraries** | public solver functions: SciPy 723, networkx 587, python-control 154, transitions 37, Python stdlib 26, dd 17, sympy 15, automata-lib 12, OR-Tools 7 (path, signature, first docstring paragraph) | BSD-3 / MIT / Apache-2.0 / PSF | 1 578 | catalog |
+| **Rosetta Code** | all 1 363 tasks with 2 606 Python 3 solutions (compile-checked) | GFDL 1.3 | 1 363 | `sets/rosetta*.jsonl.gz` |
+| **CODATA 2022** | fundamental physical constants with uncertainty | public domain (NIST) | 355 | `std/const/codata.rose` |
+| **Rosalind** | classic bioinformatics problems | titles and links only | 104 | catalog |
+| **Rose core** | 30 problem classes (§8.3), reference controllers, machines, plant models, bio mapping | MIT | 45 | `std/problems.json` + catalog |
+| OEIS | > 400 000 integer sequences | CC BY-SA 4.0 | – | **not shipped**, database only |
+| QUDT, TheAlgorithms | units and dimensions; permissive algorithms | CC BY 4.0 / MIT | – | planned |
+
+Library solvers are pointers only: nothing is executed except importing the library on the build
+host. Libraries are installed there as user packages (`pip install --user`), never over a
+distribution package.
 
 Not used: Project Euler solutions (publication not allowed), Stack Overflow (unclear code
 provenance).
@@ -298,7 +329,9 @@ provenance).
 
 Theorems from Wikidata carry `payload.status = proved` (with the prover, e.g. the Poincaré
 conjecture, proved by Grigori Perelman, 2002) but stay level `imported` until a machine-checked
-proof is linked. Foreign code runs **only in a sandbox** (no network, memory limit, ≤ 20 s).
+proof is linked. Solver functions of maintained libraries (SciPy, networkx, …) are filed as
+`tested` because they are covered by their project's own test suite; Rose itself has not run them.
+Rosetta solutions are `parsed` (they compile under Python 3, nothing more). Foreign code runs **only in a sandbox** (no network, memory limit, ≤ 20 s).
 
 ## 8. Where the knowledge lives
 
@@ -319,24 +352,31 @@ compiler and the LLM query at run time. Building and testing it showed:
 ### 8.2 Architecture
 
 ```
-build time (maintainers)                     ship time (git)                run time (anyone)
-importers ─► corpus DB (rose_*) ─► verify ─► export_std.py ─► std/*.rose  ─► rosec check/compile/test
- Wikidata, CODATA, OEIS, GO, ...   TeX→law     (CC0/PD/MIT/        std/catalog.jsonl ─► rosec plan/search/get
-                                   tests        CC BY only)        (std/catalog.vec, optional)
+build time (maintainers, build host)          release (wheel)                       run time (anyone)
+importers ─► corpus DB (rose_*) ─► verify ─► std/*.rose, std/catalog.jsonl     pip install roselang
+ Wikidata, CODATA, GO, mathlib,     TeX→law   std/problems.json                 first start: unpack index
+ Rosetta, Modelica, Python libs     tests     std/sets/*.jsonl.gz (mathlib,       to ~/.cache/roselang
+                                              Rosetta)                          rose.exists / rosec exists,
+                          tools/build_release.sh ─► std/knowledge.sqlite.gz     plan, search, get, use,
+                                              (prebuilt SQLite FTS5 index)      check, compile, test
 ```
 
-- **Knowledge is a release artefact.** `std/` (Rose source of laws, formulas, constants, open
-  problems) and `std/catalog.jsonl` (one card per unit: ref, kind, intent, level, licence, source,
-  aliases) are generated, committed and versioned with the compiler: the same compiler version
-  always has the same knowledge. Current size: 1 252 units with Rose source, 47 967 cards.
-- **The compiler needs nothing else.** `rosec plan/search/get` work from the catalog (BM25 over
-  name, intent, aliases); `use` binds Rose source from `std/`. Optional: `std/catalog.vec` (int8
-  vectors, not in git) plus an embedding endpoint for semantic search.
+- **Everything in one core package** (like torch): no separate data packs to install, no
+  importers at run time. The wheel is 62.5 MB; installed 85 MB plus a 297 MB index in
+  `~/.cache/roselang` (or `$ROSE_CACHE`), unpacked on the first start (0.5–0.6 s), later starts
+  under 0.1 s. The index key is a hash over the source files, so a new release rebuilds it.
+- **Knowledge is a release artefact.** `std/` and the sets are generated by the factory and
+  versioned with the compiler: the same version always has the same knowledge.
+- **The compiler needs nothing else.** `exists/plan/search/get` run on the SQLite index (FTS5,
+  BM25); `use` binds Rose source from `std/` or a set card. Optional: `std/catalog.vec` (int8
+  vectors, not shipped) plus an embedding endpoint for semantic search – prepared, not measured.
 - **The database is the factory**, not a dependency: importers, TeX→law conversion, verification
-  levels, embeddings, export. `--db` (or `ROSE_DB_NAME`) still lets maintainers query it.
-- **Share-alike sources are not shipped in `std/`** (OEIS CC BY-SA, Rosetta Code GFDL): they would
-  change the licence of the core. They become separate optional packs; until then `oeis:` refs
-  resolve only with the database.
+  levels, export, release build. `--db` (or `ROSE_DB_NAME`) still lets maintainers query it. All
+  builds and tests run on the build host, not on a developer notebook.
+- **Licences:** the package is an **aggregation** of independent works (GFDL §7): each set keeps its
+  licence ([`rose/std/LICENSES.md`](../rose/std/LICENSES.md)), the Rose code stays MIT. Code that
+  embeds a Rosetta solution inherits GFDL; Rose warns with `R205` and records it in the lock file.
+  OEIS (CC BY-SA) is not shipped; `oeis:` refs resolve only with the database.
 - **The LLM interface is the CLI** with `--json`. An MCP adapter, if ever wanted, is a thin wrapper
   around the same commands without logic of its own ([`spec/mcp-tools.md`](../spec/mcp-tools.md) is
   kept as the description of that interface). Schema of the factory:
@@ -346,36 +386,65 @@ importers ─► corpus DB (rose_*) ─► verify ─► export_std.py ─► st
 
 ### 8.3 Recognising the problem
 
-Known techniques, combined: lexical retrieval (BM25 over name, description, aliases), **quantities
-and dimensions** taken from the task text (9 kW, 5 K → laws whose variables carry exactly these
-dimensions), and **specification matching** (Zaremski & Wing): curated problem classes
-(`rose/std/problems.json`) described by facets of their input, output, objective and constraints –
-"locations + round trip + visit all + minimise, one vehicle" is the travelling salesperson problem,
-"+ several vehicles or capacity" is vehicle routing. Dense retrieval (embeddings) is prepared but not
-yet measured.
+The mapping "new task → known problem" is not trivial: a tour-planning request never says
+"travelling salesperson". Rose combines three known techniques, all inside the package:
+
+| Stage | Technique | Example |
+|---|---|---|
+| 1. words | lexical retrieval: BM25 over name (weight 3), description, aliases; accents and German/English variants normalised; score scaled by how much of the query a card covers | "Goldbach" → `open:goldbachs_conjecture` |
+| 2. quantities | quantities and units taken from the text (`9 kW`, `5 K`, "how fast"); laws whose variables carry exactly these dimensions, the more specific the better | power + temperature difference → heat-flow law |
+| 3. structure | **specification matching** (Zaremski & Wing): 30 curated problem classes in `rose/std/problems.json`, each with required facet groups of input, output, objective and constraints, forbidden facets and tie-breakers; facets are regular expressions (English and German) | "locations + round trip + visit all + minimise, one vehicle" → TSP; "+ fleet or capacity" → vehicle routing; "+ minimum run time" → state machine, not on/off control |
+
+A problem class points to its known solvers (`networkx…traveling_salesman_problem`,
+`ortools…RoutingModel`, `control.lqe`, `transitions.Machine`) and to related cards (Wikidata,
+Modelica). An open problem is reported only if it scores at least 95 % of the best solved match, so
+that "prime" alone does not raise the Goldbach warning. Below a threshold the verdict is
+**unknown** – a corpus gap, reported as such. Dense retrieval (embeddings) is prepared but not yet
+measured.
+
+The 30 classes cover routing and graphs (TSP, vehicle routing, shortest paths, spanning tree,
+maximum flow, assignment, topological sort, colouring, route inspection), optimisation (knapsack,
+bin packing, set cover, subset sum, job shop, linear programming), sequences and geometry (sorting,
+edit distance, LCS, convex hull, binary search) and logic and control (Boolean minimisation, SAT,
+decision table check, state machine, PID tuning, state estimation, system response, on/off control,
+physical system model). New classes are data, not code.
 
 ## 9. Example: `rosec plan`
 
-`rosec plan "<task>"` is the first test of the toolchain: a new task comes in and Rose recognises,
+`rosec plan "<task>"` is the detailed form of `exists`: a new task comes in and Rose recognises,
 from the solved problems it resembles, the **category** and the **best solution paths** – and warns
-when the task touches an open problem. Real output (built-in knowledge, lexical mode, no server):
+when the task touches an open problem. Real output of release 0.1.0 (installed wheel, lexical
+mode, no server):
 
 ```text
+$ rosec exists "plan a tour for a delivery van that visits 30 customers and returns to the depot, as short as possible"
+SOLVED: A known solution exists: travelling salesperson problem (TSP) (NP-hard); ready-made solver:
+        networkx.algorithms.approximation.traveling_salesman.traveling_salesman_problem.
+  - travelling salesperson problem (TSP)  [problem:travelling_salesperson]  https://www.wikidata.org/wiki/Q322212
+  - Knight's tour  [rc:Knight's_tour]  https://rosettacode.org/wiki/Knight%27s_tour
+
 $ rosec plan "prove that every even integer greater than 2 is the sum of two primes" -k 3
-category:  open  (margin 0.34 over the next category)
-           best similarity per category: open 1.00, math/proved 0.66, math/defined 0.64, math/constant 0.37
+category:  open  (margin 0.32 over the next category)
+           best similarity per category: open 1.00, algo 0.69, math/defined 0.56, math/proved 0.50
 WARNING:   NEGATIVE KNOWLEDGE: 'Goldbach's conjecture' is an open problem - no known solution. Do not
            claim or search for a general solution; solve a bounded or numerical sub-question instead.
 best solution paths:
- 1. math:divergence_of_the_sum_of_the_reciprocals_of_the_primes  [math, imported, CC0-1.0]  sim 0.40
+ 1. rc:Primality_by_trial_division  [algo, parsed, GFDL-1.3]  sim 0.86
+    -> python: rose.use('rc:Primality_by_trial_division').code  (Rosetta Code solution, GFDL share-alike)
  ...
 ```
 
-Acceptance test `tests/run_plan.py` (12 tasks, expectations written before the first run):
-**7/12** with the built-in knowledge, 4/12 with the database route. Open failures: three tasks
-whose words do not occur in any card (water mass flow, tank heater; the knowledge is there as a
-law but named differently), a German task (intents are English), a missing warning for P vs NP and
-a false warning for the Poincaré conjecture (matched to the *generalized* conjecture, which is open).
+The second hit list also shows the weakness of pure word matching: "Knight's tour" is a tour, but
+not this one. The verdict comes from the problem class, the list below it is context.
+
+Measurements on the build host (2026-11-08):
+
+| Test | Result | Note |
+|---|---|---|
+| `tests/run_plan.py`, 12 tasks, expectations written before the first run | **9/12** | was 7/12 (built-in) and 4/12 (database route); failing: P vs NP (the SAT class wins over the open problem), tank heater (right class, test expects a `ctrl:` card), local alignment (a Rosetta global-alignment task wins) |
+| `tests/plan_cases_spec.json`, 17 tasks for the problem classes | 17/17 | optimistic: classes and cases were written in the same step |
+| Karp's 21 NP-complete problems by name (`tests/karp21.py`) | top-1 19/21, top-3 20/21 | – |
+| "how big must the heater be to warm 0.2 kg/s of water by 5 K" | **wrong**: *global warming potential* | "warm" outweighs the quantities; the heat-flow law is in the knowledge but not found |
 
 ## 10. Prior art
 
@@ -423,10 +492,10 @@ at run time.
 | Milestone | Content | Acceptance |
 |---|---|---|
 | M0 | concept | review ✔ |
-| M1 | corpus import (Wikidata, CODATA, OEIS, Rosalind ✔; **Rosetta Code open**), embeddings | paraphrased task → right unit in top 3 for ≥ 80 % |
-| M2 | built-in knowledge: `std/` + `std/catalog.jsonl`, `rosec plan/search/get` offline ✔; bio units on the DIAMOND backend; (MCP adapter only if the benchmark asks for it) | `run_plan.py` ≥ 10/12 (now 7/12) |
-| M3 | compiler v1: parser, unit checker, Python target; `fn`, `use`, `law`/`solve`, `table`, `test` ✔ | self-test green ✔ |
-| M4 | TeX → `eq` converter for imported laws, QUDT, Modelica | 50 imported laws solvable for every variable |
+| M1 | corpus import: Wikidata, CODATA, OEIS, Rosalind, GO, Rosetta Code, Lean mathlib, Modelica class index, Python library solvers ✔; embeddings open | paraphrased task → right unit in top 3 for ≥ 80 % (not yet measured) |
+| M2 | built-in knowledge in one package: prebuilt index, `exists/plan/search/get` offline ✔, problem classes ✔, `pip install roselang` ✔ (PyPI upload pending); bio units on the DIAMOND backend; MCP adapter only if the benchmark asks for it | `run_plan.py` ≥ 10/12 (now 9/12) |
+| M3 | compiler v1: parser, unit checker, Python target; `fn`, `use`, `law`/`solve`, `table`, `test` ✔; Python module `rose` (B2) ✔ | self-test green ✔ |
+| M4 | TeX → `eq` converter for imported laws ✔ (first version), QUDT | 50 imported laws solvable for every variable |
 | M5 | `machine` with exhaustive checks; targets ST and C | reference tables re-built in Rose, differential test green |
 | M6 | `ctrl` library (PID with anti-windup, two-point, ramp, PT1, SIMC) + ESPHome target | simulation against `model:fopdt` within tolerance |
 | M7 | benchmark A/B/B2/C, decision language vs. module | report with numbers |
@@ -443,13 +512,24 @@ laws, controllers, checked state machines.
 - **Quality of sources:** Rosetta solutions are often outdated; Wikidata classes are uneven (a
   wrong class id once turned units of time into "open problems" – class ids are now verified by
   label before use).
-- **Search without a server:** lexical search misses synonyms and other languages; vectors need
-  an embedding model for the query. Aliases and synonyms (Wikidata, GO) go into the cards first.
-- **Size of the catalog:** 30 MB of JSON lines in git today (mostly GO definitions); compress or
-  split into packs when it grows.
-- **Embeddings for code and formulas:** intents are embedded, code is searched by FULLTEXT and
-  signature, formulas by symbols and dimensions.
-- **Signatures for Rosetta tasks** do not exist and must be generated at import (LLM proposal +
-  check against the sample outputs) – the most expensive part of M1/M3.
+- **Hints the LLM already knows:** for a large model most pointers are not news (§0). The value
+  is the checked verdict, provenance and the exact library call; if M7 shows no gain for large
+  models, the target group is small local models.
+- **Recognition is the weak point**, not the amount of knowledge: 247 000 cards do not help when
+  a word like "warm" outweighs the quantities (§9). Problem classes are hand-written and their test
+  cases were written together with them; independent test tasks are needed.
+- **Many proofs, few solvers:** 190 000 of the cards are mathlib statements, 1 578 are library
+  solvers. Sparse kinds (controllers 38, state machines 78, decision tables 41) are mostly
+  Modelica and Wikidata pointers.
+- **The "ready-made solver" shown is the first library entry of a class**, not the best one (PID
+  tuning still names `scipy.optimize.minimize` before python-control); the order in
+  `problems.json` is the ranking.
+- **Search without a server:** lexical search misses synonyms; vectors need an embedding model for
+  the query. Aliases and synonyms (Wikidata, GO) go into the cards first.
+- **Size:** 62.5 MB wheel, 297 MB index on first start; mathlib dominates.
+- **Refs are case-insensitive in the factory database** (MariaDB collation): `control.frd` and
+  `control.FRD` collide. Importers must use canonical names and must not rely on case.
+- **Signatures for Rosetta tasks** are out of scope since the "point, don't solve" decision; a
+  Rosetta card is a reference plus Python code to look at, not a typed building block.
 - **Scope:** "all" problems is unbounded; bounded by milestones and the decision rule in section 11.
 - **Security:** foreign code only in the sandbox; `rosec submit` lands in staging.
