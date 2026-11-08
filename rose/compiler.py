@@ -14,7 +14,7 @@ from .diag import Diag, RoseError
 from .nodes import *  # noqa: F401,F403
 from .parser import parse
 
-VERSION = "0.1.1"
+VERSION = "0.1.2"
 BUILTIN_DIMLESS = {"exp": "math.exp", "ln": "math.log", "log10": "math.log10", "sin": "math.sin",
                    "cos": "math.cos", "tan": "math.tan", "asin": "math.asin", "acos": "math.acos",
                    "atan": "math.atan", "sinh": "math.sinh", "cosh": "math.cosh", "tanh": "math.tanh"}
