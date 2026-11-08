@@ -34,7 +34,7 @@
   "C_visit_all": "\\b(visit(s|ing)?|besuch\\w*|anfahr\\w*|deliver(s|ing)? to|beliefer\\w*) (all|every|each|\\d+|alle|jede\\w*|s(ä|a)mtliche)\\b|\\b(all|every|alle) (cities|customers|locations|stops|st(ä|a)dte|kunden|orte)\\b",
   "C_return": "\\breturns? to\\b|\\bback to\\b|\\bround[ -]?trip\\b|\\bdepot\\b|zur(ü|u)ck|rundreise",
   "C_multi_vehicle": "\\b(\\d+|two|three|four|five|six|several|multiple|mehrere|zwei|drei|vier|f(ü|u)nf) (trucks|vehicles|vans|lorries|fahrzeuge|lkw|transporter|lieferwagen)\\b|\\b(fleet|flotte)\\b",
-  "C_every_edge": "\\b(every|each) (street|road|edge|lane)\\b|\\ball (streets|roads|edges)\\b|\\bjede (stra(ß|ss)e|kante)\\b|\\balle stra(ß|ss)en\\b",
+  "C_every_edge": "\\b(drive|driving|travel|walk|traverse|sweep|clear|plough|plow|inspect|cover|pass|fahr\\w*|abfahr\\w*|kehr\\w*|r(ä|a)um\\w*|kontrollier\\w*)\\b[^.]{0,30}\\b((along|through|over|down) )?(every|each|all|jede|alle)( \\w+)? (streets?|roads?|edges?|lanes?|stra(ß|ss)en?|kanten?)\\b",
   "C_connect_all": "\\b(every|each|all) \\w+ (is |are )?connected\\b|\\bconnect (all|every|\\d+)\\b|\\balle \\w+ (sind )?verbunden\\b|\\bverbinde\\w* alle\\b",
   "C_source_target": "\\bfrom [A-ZÄÖÜa-zäöü]\\w* to [A-ZÄÖÜa-zäöü]\\w*|\\bvon \\w+ nach \\w+|\\bbetween two\\b",
   "C_pairs_all": "\\b(all pairs|every pair|each pair|between all|distance table|allen paaren|entfernungstabelle)\\b",
@@ -43,214 +43,850 @@
   "O_root": "\\b(roots? of|zeros? of|solve the equation|equals zero|nullstellen?|gleichung l(ö|o)sen)\\b"
  },
  "problems": [
-  {"id": "travelling_salesperson", "name": "travelling salesperson problem (TSP)",
+  {
+   "id": "travelling_salesperson",
+   "name": "travelling salesperson problem (TSP)",
    "description": "visit every location exactly once and return to the start with minimum total distance; one vehicle, no capacity",
-   "aliases": ["travelling salesman problem", "traveling salesman", "round trip", "tour planning with one vehicle", "Tourplanung", "Rundreiseproblem"],
-   "requires": [["E_locations", "E_graph"], ["O_tour", "C_return"], ["J_min"], ["C_visit_all", "O_tour"]],
-   "optional": ["R_weights", "C_visit_all", "C_return"],
-   "forbids": ["C_multi_vehicle", "R_capacity", "C_every_edge"],
+   "aliases": [
+    "travelling salesman problem",
+    "traveling salesman",
+    "round trip",
+    "tour planning with one vehicle",
+    "Tourplanung",
+    "Rundreiseproblem"
+   ],
+   "requires": [
+    [
+     "E_locations",
+     "E_graph"
+    ],
+    [
+     "O_tour",
+     "C_return"
+    ],
+    [
+     "J_min"
+    ],
+    [
+     "C_visit_all",
+     "O_tour"
+    ]
+   ],
+   "optional": [
+    "R_weights",
+    "C_visit_all",
+    "C_return"
+   ],
+   "forbids": [
+    "C_multi_vehicle",
+    "R_capacity",
+    "C_every_edge"
+   ],
    "complexity": "NP-hard",
    "solvers": [
-    {"name": "Held-Karp dynamic programming", "ref": "algo:heldkarp_algorithm", "use": "exact, O(n^2 2^n), up to about 20 locations"},
-    {"name": "nearest neighbour", "ref": "algo:nearest_neighbour_algorithm", "use": "construction heuristic, O(n^2)"},
-    {"name": "2-opt", "ref": "algo:n2_opt", "use": "local improvement of any tour"},
-    {"name": "Christofides", "ref": "algo:christofides_algorithm", "use": "metric distances: at most 1.5 x optimum"}],
-   "see": ["algo:travelling_salesperson_problem"]},
-  {"id": "vehicle_routing", "name": "vehicle routing problem (VRP)",
+    {
+     "name": "Held-Karp dynamic programming",
+     "ref": "algo:heldkarp_algorithm",
+     "use": "exact, O(n^2 2^n), up to about 20 locations"
+    },
+    {
+     "name": "nearest neighbour",
+     "ref": "algo:nearest_neighbour_algorithm",
+     "use": "construction heuristic, O(n^2)"
+    },
+    {
+     "name": "2-opt",
+     "ref": "algo:n2_opt",
+     "use": "local improvement of any tour"
+    },
+    {
+     "name": "Christofides",
+     "ref": "algo:christofides_algorithm",
+     "use": "metric distances: at most 1.5 x optimum"
+    }
+   ],
+   "see": [
+    "algo:travelling_salesperson_problem"
+   ]
+  },
+  {
+   "id": "vehicle_routing",
+   "name": "vehicle routing problem (VRP)",
    "description": "several vehicles, usually with capacity, serve all customers from a depot with minimum total distance",
-   "aliases": ["capacitated vehicle routing", "CVRP", "fleet routing", "Tourenplanung mit mehreren Fahrzeugen"],
-   "requires": [["E_locations"], ["J_min"], ["C_multi_vehicle", "R_capacity"]],
-   "optional": ["O_tour", "C_return", "R_weights", "C_visit_all", "C_time_windows"],
-   "forbids": ["C_every_edge"],
+   "aliases": [
+    "capacitated vehicle routing",
+    "CVRP",
+    "fleet routing",
+    "Tourenplanung mit mehreren Fahrzeugen"
+   ],
+   "requires": [
+    [
+     "E_locations"
+    ],
+    [
+     "J_min"
+    ],
+    [
+     "C_multi_vehicle",
+     "R_capacity"
+    ]
+   ],
+   "optional": [
+    "O_tour",
+    "C_return",
+    "R_weights",
+    "C_visit_all",
+    "C_time_windows"
+   ],
+   "forbids": [
+    "C_every_edge"
+   ],
    "complexity": "NP-hard",
    "solvers": [
-    {"name": "Clarke-Wright savings", "ref": "algo:clarke_wrights_savings_algorithm", "use": "construction heuristic"},
-    {"name": "2-opt per route", "ref": "algo:n2_opt", "use": "local improvement"}],
-   "see": ["algo:vehicle_routing_problem"]},
-  {"id": "shortest_path", "name": "shortest path problem (single pair)",
+    {
+     "name": "Clarke-Wright savings",
+     "ref": "algo:clarke_wrights_savings_algorithm",
+     "use": "construction heuristic"
+    },
+    {
+     "name": "2-opt per route",
+     "ref": "algo:n2_opt",
+     "use": "local improvement"
+    }
+   ],
+   "see": [
+    "algo:vehicle_routing_problem"
+   ]
+  },
+  {
+   "id": "shortest_path",
+   "name": "shortest path problem (single pair)",
    "description": "cheapest or fastest route between a start and a target in a weighted graph",
-   "aliases": ["fastest route", "shortest route", "route planning", "kürzester Weg", "Routenplanung"],
-   "requires": [["E_graph", "E_locations", "C_source_target"], ["O_path", "C_source_target"], ["J_min"]],
-   "optional": ["R_weights", "C_source_target"],
-   "forbids": ["O_tour", "C_visit_all", "C_every_edge", "C_pairs_all"],
+   "aliases": [
+    "fastest route",
+    "shortest route",
+    "route planning",
+    "kürzester Weg",
+    "Routenplanung"
+   ],
+   "requires": [
+    [
+     "E_graph",
+     "E_locations",
+     "C_source_target"
+    ],
+    [
+     "O_path",
+     "C_source_target"
+    ],
+    [
+     "J_min"
+    ]
+   ],
+   "optional": [
+    "R_weights",
+    "C_source_target"
+   ],
+   "forbids": [
+    "O_tour",
+    "C_visit_all",
+    "C_every_edge",
+    "C_pairs_all"
+   ],
    "complexity": "polynomial",
    "solvers": [
-    {"name": "Dijkstra", "ref": "algo:dijkstras_algorithm", "use": "non-negative weights, O((V+E) log V)"},
-    {"name": "A*", "ref": "algo:a_search_algorithm", "use": "with an admissible heuristic (e.g. straight-line distance)"},
-    {"name": "Bellman-Ford", "ref": "algo:bellmanford_algorithm", "use": "negative weights, O(V E)"}],
-   "see": ["algo:shortest_path_problem", "algo:single_source_shortest_path_problem"]},
-  {"id": "all_pairs_shortest_path", "name": "all-pairs shortest path problem",
+    {
+     "name": "Dijkstra",
+     "ref": "algo:dijkstras_algorithm",
+     "use": "non-negative weights, O((V+E) log V)"
+    },
+    {
+     "name": "A*",
+     "ref": "algo:a_search_algorithm",
+     "use": "with an admissible heuristic (e.g. straight-line distance)"
+    },
+    {
+     "name": "Bellman-Ford",
+     "ref": "algo:bellmanford_algorithm",
+     "use": "negative weights, O(V E)"
+    }
+   ],
+   "see": [
+    "algo:shortest_path_problem",
+    "algo:single_source_shortest_path_problem"
+   ]
+  },
+  {
+   "id": "all_pairs_shortest_path",
+   "name": "all-pairs shortest path problem",
    "description": "shortest distances between every pair of nodes",
-   "aliases": ["distance matrix", "Entfernungstabelle"],
-   "requires": [["E_graph", "E_locations"], ["C_pairs_all"], ["J_min", "R_weights"]],
-   "optional": ["R_weights"],
-   "forbids": ["O_tour"],
+   "aliases": [
+    "distance matrix",
+    "Entfernungstabelle"
+   ],
+   "requires": [
+    [
+     "E_graph",
+     "E_locations"
+    ],
+    [
+     "C_pairs_all"
+    ],
+    [
+     "J_min",
+     "R_weights"
+    ]
+   ],
+   "optional": [
+    "R_weights"
+   ],
+   "forbids": [
+    "O_tour"
+   ],
    "complexity": "polynomial",
-   "solvers": [{"name": "Floyd-Warshall", "ref": "algo:floydwarshall_algorithm", "use": "O(V^3)"},
-               {"name": "Dijkstra from every node", "ref": "algo:dijkstras_algorithm", "use": "sparse graphs"}],
-   "see": ["algo:all_pairs_shortest_path_problem"]},
-  {"id": "minimum_spanning_tree", "name": "minimum spanning tree",
+   "solvers": [
+    {
+     "name": "Floyd-Warshall",
+     "ref": "algo:floydwarshall_algorithm",
+     "use": "O(V^3)"
+    },
+    {
+     "name": "Dijkstra from every node",
+     "ref": "algo:dijkstras_algorithm",
+     "use": "sparse graphs"
+    }
+   ],
+   "see": [
+    "algo:all_pairs_shortest_path_problem"
+   ]
+  },
+  {
+   "id": "minimum_spanning_tree",
+   "name": "minimum spanning tree",
    "description": "connect all nodes with a tree of minimum total edge weight (cable, pipe or road network)",
-   "aliases": ["MST", "minimaler Spannbaum", "cheapest network connecting all sites"],
-   "requires": [["O_tree", "C_connect_all"], ["J_min"], ["C_connect_all", "E_graph", "E_locations"]],
-   "optional": ["R_weights", "E_graph", "E_locations"],
-   "forbids": ["O_tour", "C_return", "C_source_target"],
+   "aliases": [
+    "MST",
+    "minimaler Spannbaum",
+    "cheapest network connecting all sites"
+   ],
+   "requires": [
+    [
+     "O_tree",
+     "C_connect_all"
+    ],
+    [
+     "J_min"
+    ],
+    [
+     "C_connect_all",
+     "E_graph",
+     "E_locations"
+    ]
+   ],
+   "optional": [
+    "R_weights",
+    "E_graph",
+    "E_locations"
+   ],
+   "forbids": [
+    "O_tour",
+    "C_return",
+    "C_source_target"
+   ],
    "complexity": "polynomial",
-   "solvers": [{"name": "Kruskal", "ref": "algo:kruskals_algorithm", "use": "O(E log E)"},
-               {"name": "Prim", "ref": "algo:prims_algorithm", "use": "dense graphs, O(E + V log V)"}],
-   "see": []},
-  {"id": "knapsack", "name": "knapsack problem (0/1)",
+   "solvers": [
+    {
+     "name": "Kruskal",
+     "ref": "algo:kruskals_algorithm",
+     "use": "O(E log E)"
+    },
+    {
+     "name": "Prim",
+     "ref": "algo:prims_algorithm",
+     "use": "dense graphs, O(E + V log V)"
+    }
+   ],
+   "see": []
+  },
+  {
+   "id": "knapsack",
+   "name": "knapsack problem (0/1)",
    "description": "choose items with weights and values so that a capacity is not exceeded and the total value is maximal",
-   "aliases": ["rucksack problem", "Rucksackproblem", "0-1 knapsack"],
-   "requires": [["E_items"], ["R_capacity"], ["J_max"]],
-   "optional": ["R_value", "O_subset"],
-   "forbids": ["E_bins"],
+   "aliases": [
+    "rucksack problem",
+    "Rucksackproblem",
+    "0-1 knapsack"
+   ],
+   "requires": [
+    [
+     "E_items"
+    ],
+    [
+     "R_capacity"
+    ],
+    [
+     "J_max"
+    ]
+   ],
+   "optional": [
+    "R_value",
+    "O_subset"
+   ],
+   "forbids": [
+    "E_bins"
+   ],
    "complexity": "NP-hard (weakly: pseudo-polynomial dynamic programming)",
-   "solvers": [{"name": "dynamic programming over the capacity", "ref": null, "use": "exact, O(n W) for integer weights"},
-               {"name": "greedy by value per weight", "ref": null, "use": "2-approximation with the best single item"}],
-   "see": ["algo:knapsack_problem", "algo:n0_1_knapsack_problem"]},
-  {"id": "bin_packing", "name": "bin packing problem",
+   "solvers": [
+    {
+     "name": "dynamic programming over the capacity",
+     "ref": null,
+     "use": "exact, O(n W) for integer weights"
+    },
+    {
+     "name": "greedy by value per weight",
+     "ref": null,
+     "use": "2-approximation with the best single item"
+    }
+   ],
+   "see": [
+    "algo:knapsack_problem",
+    "algo:n0_1_knapsack_problem"
+   ]
+  },
+  {
+   "id": "bin_packing",
+   "name": "bin packing problem",
    "description": "pack items into as few bins of fixed capacity as possible",
-   "aliases": ["container loading", "Behälterproblem"],
-   "requires": [["E_items"], ["E_bins"], ["J_min"]],
-   "optional": ["R_capacity"],
-   "forbids": ["J_max"],
+   "aliases": [
+    "container loading",
+    "Behälterproblem"
+   ],
+   "requires": [
+    [
+     "E_items"
+    ],
+    [
+     "E_bins"
+    ],
+    [
+     "J_min"
+    ]
+   ],
+   "optional": [
+    "R_capacity"
+   ],
+   "forbids": [
+    "J_max"
+   ],
    "complexity": "NP-hard",
-   "solvers": [{"name": "first-fit decreasing", "ref": null, "use": "at most 11/9 OPT + 6/9 bins"},
-               {"name": "next-fit", "ref": "algo:next_fit_bin_packing", "use": "online, at most 2 OPT"}],
-   "see": ["algo:bin_packing_problem"]},
-  {"id": "graph_coloring", "name": "graph colouring",
+   "solvers": [
+    {
+     "name": "first-fit decreasing",
+     "ref": null,
+     "use": "at most 11/9 OPT + 6/9 bins"
+    },
+    {
+     "name": "next-fit",
+     "ref": "algo:next_fit_bin_packing",
+     "use": "online, at most 2 OPT"
+    }
+   ],
+   "see": [
+    "algo:bin_packing_problem"
+   ]
+  },
+  {
+   "id": "graph_coloring",
+   "name": "graph colouring",
    "description": "give conflicting elements different colours (time slots, frequencies) with as few colours as possible",
-   "aliases": ["exam timetabling", "frequency assignment", "register allocation", "Graphenfärbung"],
-   "requires": [["O_coloring"], ["R_conflict"]],
-   "optional": ["J_min", "E_jobs", "E_graph"],
+   "aliases": [
+    "exam timetabling",
+    "frequency assignment",
+    "register allocation",
+    "Graphenfärbung"
+   ],
+   "requires": [
+    [
+     "O_coloring"
+    ],
+    [
+     "R_conflict"
+    ]
+   ],
+   "optional": [
+    "J_min",
+    "E_jobs",
+    "E_graph"
+   ],
    "forbids": [],
    "complexity": "NP-hard",
-   "solvers": [{"name": "greedy colouring (largest degree first)", "ref": "algo:greedy_coloring", "use": "heuristic"},
-               {"name": "DSatur", "ref": null, "use": "heuristic, exact on bipartite graphs"}],
-   "see": ["algo:graph_coloring"]},
-  {"id": "route_inspection", "name": "route inspection (Chinese postman) problem",
+   "solvers": [
+    {
+     "name": "greedy colouring (largest degree first)",
+     "ref": "algo:greedy_coloring",
+     "use": "heuristic"
+    },
+    {
+     "name": "DSatur",
+     "ref": null,
+     "use": "heuristic, exact on bipartite graphs"
+    }
+   ],
+   "see": [
+    "algo:graph_coloring"
+   ]
+  },
+  {
+   "id": "route_inspection",
+   "name": "route inspection (Chinese postman) problem",
    "description": "traverse every edge (street) at least once and return to the start with minimum total length",
-   "aliases": ["Chinese postman problem", "street sweeping", "snow ploughing", "Briefträgerproblem"],
-   "requires": [["C_every_edge"]],
-   "optional": ["C_return", "J_min", "E_graph"],
+   "aliases": [
+    "Chinese postman problem",
+    "street sweeping",
+    "snow ploughing",
+    "Briefträgerproblem"
+   ],
+   "requires": [
+    [
+     "C_every_edge"
+    ]
+   ],
+   "optional": [
+    "C_return",
+    "J_min",
+    "E_graph"
+   ],
    "forbids": [],
    "complexity": "polynomial (undirected or directed); NP-hard for mixed graphs",
-   "solvers": [{"name": "Euler circuit after a minimum-weight matching of odd nodes", "ref": "algo:hierholzers_algorithm", "use": "Hierholzer for the Euler circuit"}],
-   "see": ["algo:route_inspection_problem"]},
-  {"id": "sorting", "name": "sorting",
+   "solvers": [
+    {
+     "name": "Euler circuit after a minimum-weight matching of odd nodes",
+     "ref": "algo:hierholzers_algorithm",
+     "use": "Hierholzer for the Euler circuit"
+    }
+   ],
+   "see": [
+    "algo:route_inspection_problem"
+   ]
+  },
+  {
+   "id": "sorting",
+   "name": "sorting",
    "description": "arrange elements in order",
-   "aliases": ["sort", "Sortieren"],
-   "requires": [["O_order"], ["E_sequence", "E_strings", "E_items"]],
+   "aliases": [
+    "sort",
+    "Sortieren"
+   ],
+   "requires": [
+    [
+     "O_order"
+    ],
+    [
+     "E_sequence",
+     "E_strings",
+     "E_items"
+    ]
+   ],
    "optional": [],
-   "forbids": ["R_precedence"],
+   "forbids": [
+    "R_precedence"
+   ],
    "complexity": "polynomial, O(n log n) comparisons",
-   "solvers": [{"name": "the language's built-in sort (Timsort in Python)", "ref": null, "use": "first choice"},
-               {"name": "merge sort", "ref": "algo:merge_sort", "use": "stable, O(n log n)"},
-               {"name": "quicksort", "ref": "algo:quicksort", "use": "in place, expected O(n log n)"},
-               {"name": "heapsort", "ref": "algo:heapsort", "use": "in place, worst case O(n log n)"}],
-   "see": []},
-  {"id": "edit_distance", "name": "edit distance (Levenshtein)",
+   "solvers": [
+    {
+     "name": "the language's built-in sort (Timsort in Python)",
+     "ref": null,
+     "use": "first choice"
+    },
+    {
+     "name": "merge sort",
+     "ref": "algo:merge_sort",
+     "use": "stable, O(n log n)"
+    },
+    {
+     "name": "quicksort",
+     "ref": "algo:quicksort",
+     "use": "in place, expected O(n log n)"
+    },
+    {
+     "name": "heapsort",
+     "ref": "algo:heapsort",
+     "use": "in place, worst case O(n log n)"
+    }
+   ],
+   "see": []
+  },
+  {
+   "id": "edit_distance",
+   "name": "edit distance (Levenshtein)",
    "description": "minimum number of insertions, deletions and substitutions that turn one string into another",
-   "aliases": ["Levenshtein distance", "Editierdistanz"],
-   "requires": [["O_edit"], ["E_strings"]],
-   "optional": ["J_min"],
+   "aliases": [
+    "Levenshtein distance",
+    "Editierdistanz"
+   ],
+   "requires": [
+    [
+     "O_edit"
+    ],
+    [
+     "E_strings"
+    ]
+   ],
+   "optional": [
+    "J_min"
+   ],
    "forbids": [],
    "complexity": "polynomial, O(n m)",
-   "solvers": [{"name": "Wagner-Fischer dynamic programming", "ref": "algo:wagnerfischer_algorithm", "use": "O(n m) time"}],
-   "see": ["math:levenshtein_distance", "bio:rosalind.edit"]},
-  {"id": "longest_common_subsequence", "name": "longest common subsequence",
+   "solvers": [
+    {
+     "name": "Wagner-Fischer dynamic programming",
+     "ref": "algo:wagnerfischer_algorithm",
+     "use": "O(n m) time"
+    }
+   ],
+   "see": [
+    "math:levenshtein_distance",
+    "bio:rosalind.edit"
+   ]
+  },
+  {
+   "id": "longest_common_subsequence",
+   "name": "longest common subsequence",
    "description": "longest sequence that appears in the same order in two sequences",
-   "aliases": ["LCS", "diff"],
-   "requires": [["O_common"], ["E_strings", "E_sequence"]],
-   "optional": ["J_max"],
+   "aliases": [
+    "LCS",
+    "diff"
+   ],
+   "requires": [
+    [
+     "O_common"
+    ],
+    [
+     "E_strings",
+     "E_sequence"
+    ]
+   ],
+   "optional": [
+    "J_max"
+   ],
    "forbids": [],
    "complexity": "polynomial, O(n m)",
-   "solvers": [{"name": "dynamic programming", "ref": null, "use": "O(n m)"}],
-   "see": ["algo:longest_common_subsequence_problem"]},
-  {"id": "maximum_flow", "name": "maximum flow problem",
+   "solvers": [
+    {
+     "name": "dynamic programming",
+     "ref": null,
+     "use": "O(n m)"
+    }
+   ],
+   "see": [
+    "algo:longest_common_subsequence_problem"
+   ]
+  },
+  {
+   "id": "maximum_flow",
+   "name": "maximum flow problem",
    "description": "maximum throughput from a source to a sink through a network with capacities",
-   "aliases": ["max flow", "maximaler Fluss"],
-   "requires": [["O_flow"], ["R_capacity"], ["J_max"]],
-   "optional": ["E_graph"],
+   "aliases": [
+    "max flow",
+    "maximaler Fluss"
+   ],
+   "requires": [
+    [
+     "O_flow"
+    ],
+    [
+     "R_capacity"
+    ],
+    [
+     "J_max"
+    ]
+   ],
+   "optional": [
+    "E_graph"
+   ],
    "forbids": [],
    "complexity": "polynomial",
-   "solvers": [{"name": "Edmonds-Karp", "ref": "algo:edmondskarp_algorithm", "use": "O(V E^2)"},
-               {"name": "push-relabel", "ref": "algo:pushrelabel_maximum_flow_algorithm", "use": "O(V^2 E), fast in practice"}],
-   "see": ["algo:maximum_flow_problem"]},
-  {"id": "assignment", "name": "assignment problem",
+   "solvers": [
+    {
+     "name": "Edmonds-Karp",
+     "ref": "algo:edmondskarp_algorithm",
+     "use": "O(V E^2)"
+    },
+    {
+     "name": "push-relabel",
+     "ref": "algo:pushrelabel_maximum_flow_algorithm",
+     "use": "O(V^2 E), fast in practice"
+    }
+   ],
+   "see": [
+    "algo:maximum_flow_problem"
+   ]
+  },
+  {
+   "id": "assignment",
+   "name": "assignment problem",
    "description": "assign n agents to n tasks one-to-one with minimum total cost or maximum total benefit",
-   "aliases": ["linear assignment", "weighted bipartite matching", "Zuordnungsproblem"],
-   "requires": [["O_assignment"], ["J_min", "J_max"]],
-   "optional": ["R_weights", "R_value"],
+   "aliases": [
+    "linear assignment",
+    "weighted bipartite matching",
+    "Zuordnungsproblem"
+   ],
+   "requires": [
+    [
+     "O_assignment"
+    ],
+    [
+     "J_min",
+     "J_max"
+    ]
+   ],
+   "optional": [
+    "R_weights",
+    "R_value"
+   ],
    "forbids": [],
    "complexity": "polynomial, O(n^3)",
-   "solvers": [{"name": "Hungarian method", "ref": "algo:hungarian_algorithm", "use": "O(n^3)"}],
-   "see": ["algo:generalized_assignment_problem"]},
-  {"id": "topological_sort", "name": "topological sorting",
+   "solvers": [
+    {
+     "name": "Hungarian method",
+     "ref": "algo:hungarian_algorithm",
+     "use": "O(n^3)"
+    }
+   ],
+   "see": [
+    "algo:generalized_assignment_problem"
+   ]
+  },
+  {
+   "id": "topological_sort",
+   "name": "topological sorting",
    "description": "order tasks so that every task comes after all tasks it depends on",
-   "aliases": ["dependency order", "build order"],
-   "requires": [["R_precedence"], ["O_order", "O_schedule"]],
-   "optional": ["E_jobs"],
+   "aliases": [
+    "dependency order",
+    "build order"
+   ],
+   "requires": [
+    [
+     "R_precedence"
+    ],
+    [
+     "O_order",
+     "O_schedule"
+    ]
+   ],
+   "optional": [
+    "E_jobs"
+   ],
    "forbids": [],
    "complexity": "polynomial, O(V + E)",
-   "solvers": [{"name": "Kahn's algorithm / depth-first search", "ref": null, "use": "O(V + E), also detects cycles"}],
-   "see": ["algo:topological_sorting"]},
-  {"id": "set_cover", "name": "set cover problem",
+   "solvers": [
+    {
+     "name": "Kahn's algorithm / depth-first search",
+     "ref": null,
+     "use": "O(V + E), also detects cycles"
+    }
+   ],
+   "see": [
+    "algo:topological_sorting"
+   ]
+  },
+  {
+   "id": "set_cover",
+   "name": "set cover problem",
    "description": "choose the fewest sets whose union covers every element",
-   "aliases": ["facility coverage", "Mengenüberdeckung"],
-   "requires": [["O_cover"], ["J_min"]],
-   "optional": ["O_subset"],
+   "aliases": [
+    "facility coverage",
+    "Mengenüberdeckung"
+   ],
+   "requires": [
+    [
+     "O_cover"
+    ],
+    [
+     "J_min"
+    ]
+   ],
+   "optional": [
+    "O_subset"
+   ],
    "forbids": [],
    "complexity": "NP-hard",
-   "solvers": [{"name": "greedy (largest uncovered first)", "ref": null, "use": "ln(n)-approximation"}],
-   "see": ["algo:set_cover_problem"]},
-  {"id": "subset_sum", "name": "subset sum problem",
+   "solvers": [
+    {
+     "name": "greedy (largest uncovered first)",
+     "ref": null,
+     "use": "ln(n)-approximation"
+    }
+   ],
+   "see": [
+    "algo:set_cover_problem"
+   ]
+  },
+  {
+   "id": "subset_sum",
+   "name": "subset sum problem",
    "description": "is there a subset of numbers that sums exactly to a target",
-   "aliases": ["Teilsummenproblem"],
-   "requires": [["R_target_sum"], ["E_sequence", "E_items", "O_subset"]],
-   "optional": ["O_subset"],
+   "aliases": [
+    "Teilsummenproblem"
+   ],
+   "requires": [
+    [
+     "R_target_sum"
+    ],
+    [
+     "E_sequence",
+     "E_items",
+     "O_subset"
+    ]
+   ],
+   "optional": [
+    "O_subset"
+   ],
    "forbids": [],
    "complexity": "NP-complete (weakly: pseudo-polynomial dynamic programming)",
-   "solvers": [{"name": "dynamic programming over the target", "ref": null, "use": "exact, O(n T)"}],
-   "see": ["algo:subset_sum_problem"]},
-  {"id": "job_shop_scheduling", "name": "job-shop scheduling",
+   "solvers": [
+    {
+     "name": "dynamic programming over the target",
+     "ref": null,
+     "use": "exact, O(n T)"
+    }
+   ],
+   "see": [
+    "algo:subset_sum_problem"
+   ]
+  },
+  {
+   "id": "job_shop_scheduling",
+   "name": "job-shop scheduling",
    "description": "schedule jobs on machines so that the completion of the last job (makespan) is minimal",
-   "aliases": ["machine scheduling", "Ablaufplanung"],
-   "requires": [["E_jobs"], ["O_schedule"], ["J_min"]],
-   "optional": ["R_precedence"],
-   "forbids": ["R_conflict"],
+   "aliases": [
+    "machine scheduling",
+    "Ablaufplanung"
+   ],
+   "requires": [
+    [
+     "E_jobs"
+    ],
+    [
+     "O_schedule"
+    ],
+    [
+     "J_min"
+    ]
+   ],
+   "optional": [
+    "R_precedence"
+   ],
+   "forbids": [
+    "R_conflict"
+   ],
    "complexity": "NP-hard",
-   "solvers": [{"name": "dispatching rules + local search, constraint programming", "ref": null, "use": "heuristic / exact for small instances"}],
-   "see": ["algo:job_shop_problem"]},
-  {"id": "convex_hull", "name": "convex hull",
+   "solvers": [
+    {
+     "name": "dispatching rules + local search, constraint programming",
+     "ref": null,
+     "use": "heuristic / exact for small instances"
+    }
+   ],
+   "see": [
+    "algo:job_shop_problem"
+   ]
+  },
+  {
+   "id": "convex_hull",
+   "name": "convex hull",
    "description": "smallest convex polygon enclosing a set of points",
-   "aliases": ["konvexe Hülle"],
-   "requires": [["O_hull"]],
-   "optional": ["E_points"],
+   "aliases": [
+    "konvexe Hülle"
+   ],
+   "requires": [
+    [
+     "O_hull"
+    ]
+   ],
+   "optional": [
+    "E_points"
+   ],
    "forbids": [],
    "complexity": "polynomial, O(n log n)",
-   "solvers": [{"name": "Graham scan", "ref": "algo:graham_scan", "use": "O(n log n)"},
-               {"name": "Andrew's monotone chain", "ref": null, "use": "O(n log n), simple"}],
-   "see": ["math:convex_hull"]},
-  {"id": "binary_search", "name": "search in a sorted sequence",
+   "solvers": [
+    {
+     "name": "Graham scan",
+     "ref": "algo:graham_scan",
+     "use": "O(n log n)"
+    },
+    {
+     "name": "Andrew's monotone chain",
+     "ref": null,
+     "use": "O(n log n), simple"
+    }
+   ],
+   "see": [
+    "math:convex_hull"
+   ]
+  },
+  {
+   "id": "binary_search",
+   "name": "search in a sorted sequence",
    "description": "find an element or its position in sorted data",
-   "aliases": ["binary search", "Binärsuche"],
-   "requires": [["O_search"]],
-   "optional": ["E_sequence", "O_order"],
+   "aliases": [
+    "binary search",
+    "Binärsuche"
+   ],
+   "requires": [
+    [
+     "O_search"
+    ]
+   ],
+   "optional": [
+    "E_sequence",
+    "O_order"
+   ],
    "forbids": [],
    "complexity": "polynomial, O(log n)",
-   "solvers": [{"name": "binary search (bisect in Python)", "ref": "algo:binary_search_algorithm", "use": "O(log n)"}],
-   "see": []},
-  {"id": "linear_programming", "name": "linear programming",
+   "solvers": [
+    {
+     "name": "binary search (bisect in Python)",
+     "ref": "algo:binary_search_algorithm",
+     "use": "O(log n)"
+    }
+   ],
+   "see": []
+  },
+  {
+   "id": "linear_programming",
+   "name": "linear programming",
    "description": "optimise a linear objective under linear constraints",
-   "aliases": ["LP", "lineare Optimierung"],
-   "requires": [["O_lp"]],
-   "optional": ["J_min", "J_max"],
+   "aliases": [
+    "LP",
+    "lineare Optimierung"
+   ],
+   "requires": [
+    [
+     "O_lp"
+    ]
+   ],
+   "optional": [
+    "J_min",
+    "J_max"
+   ],
    "forbids": [],
    "complexity": "polynomial (interior point); simplex fast in practice",
-   "solvers": [{"name": "simplex method", "ref": "math:simplex_algorithm", "use": "standard"},
-               {"name": "interior-point method", "ref": null, "use": "large instances"}],
-   "see": ["math:fundamental_theorem_of_linear_programming"]}
+   "solvers": [
+    {
+     "name": "simplex method",
+     "ref": "math:simplex_algorithm",
+     "use": "standard"
+    },
+    {
+     "name": "interior-point method",
+     "ref": null,
+     "use": "large instances"
+    }
+   ],
+   "see": [
+    "math:fundamental_theorem_of_linear_programming"
+   ]
+  }
  ]
 }
