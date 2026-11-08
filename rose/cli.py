@@ -5,7 +5,8 @@
   rosec check FILE.rose [--json]
   rosec compile FILE.rose [-o OUT.py] [--json]  writes OUT.py and OUT.lock.json
   rosec test FILE.rose                          compile and run the tests
-  rosec get REF [--json]                        show one corpus unit
+  rosec get REF [--json]                        show one unit
+plan/search/get use the built-in knowledge (std/catalog.jsonl); --db uses the corpus database.
 """
 import argparse
 import json
@@ -16,6 +17,15 @@ import tempfile
 
 from .compiler import VERSION, compile_source
 from .corpus import Corpus
+from .knowledge import Knowledge
+
+
+def knowledge(db=False):
+    """The compiler's built-in knowledge (std/catalog). The corpus database is optional: with --db
+    search/plan use it, and with ROSE_DB_NAME set it resolves refs the catalog lacks (oeis:...)."""
+    if db:
+        return Corpus()
+    return Knowledge(fallback=Corpus() if os.environ.get("ROSE_DB_NAME") else None)
 
 
 def _diags(diags, as_json):
@@ -29,8 +39,7 @@ def _diags(diags, as_json):
 
 def cmd_compile(a, write=True):
     src = open(a.file, encoding="utf-8").read()
-    corpus = Corpus()
-    code, diags, lock = compile_source(src, os.path.basename(a.file), corpus)
+    code, diags, lock = compile_source(src, os.path.basename(a.file), knowledge())
     out = a.out or os.path.splitext(a.file)[0] + ".py"
     if a.json:
         print(json.dumps({"ok": code is not None, "output": out if code and write else None,
@@ -60,12 +69,14 @@ def main(argv=None):
         p = sub.add_parser(name); p.add_argument("file"); p.add_argument("-o", "--out")
         p.add_argument("--json", action="store_true")
     p = sub.add_parser("get"); p.add_argument("ref"); p.add_argument("--json", action="store_true")
+    for name in ("plan", "search", "get"):
+        sub.choices[name].add_argument("--db", action="store_true", help="use the corpus database")
     a = ap.parse_args(argv)
 
     if a.cmd in ("plan", "search", "get"):
-        corpus = Corpus()
+        corpus = knowledge(a.db)
         if not corpus.online:
-            print(f"corpus offline: {corpus.error}", file=sys.stderr)
+            print(f"knowledge unavailable: {corpus.error}", file=sys.stderr)
             return 2
         if a.cmd == "get":
             u = corpus.get(a.ref)
@@ -82,7 +93,7 @@ def main(argv=None):
                 for n in notes:
                     print("note:", n, file=sys.stderr)
                 for h in hits:
-                    print(f"{h['similarity']:.3f}  {h['kind']:<6} {h['level']:<9} {h['ref']:<55} {h['name'][:60]}")
+                    print(f"{h['similarity']:.3f}  {h['kind']:<7} {h['level']:<9} {h['ref']:<55} {h['name'][:60]}")
             return 0
         r = corpus.plan(a.task, k=a.k)
         if a.json:
@@ -105,7 +116,7 @@ def main(argv=None):
 
     if a.cmd == "check":
         src = open(a.file, encoding="utf-8").read()
-        code, diags, lock = compile_source(src, os.path.basename(a.file), Corpus())
+        code, diags, lock = compile_source(src, os.path.basename(a.file), knowledge())
         if a.json:
             print(json.dumps({"ok": code is not None, "diagnostics": _diags(diags, True)}, ensure_ascii=False,
                              indent=1))

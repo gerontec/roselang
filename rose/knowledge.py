@@ -37,7 +37,8 @@ def stem(w):
 
 def tokens(text):
     out = []
-    for w in re.findall(r"[a-z][a-z0-9]*", (text or "").lower().replace("'s", "")):
+    t = re.sub(r"\bnon[- ]", "non", (text or "").lower().replace("'s", ""))  # non-homologous != homologous
+    for w in re.findall(r"[a-z][a-z0-9]*", t):
         if w in STOP or len(w) < 2:
             continue
         out.append(stem(w))
@@ -84,11 +85,7 @@ class Knowledge:
         if i is None:
             return self.fallback.get(ref) if self.fallback and self.fallback.online else None
         c = dict(self.cards[i])
-        hit = std.lookup(c["ref"]) if c.get("std") else None
-        c["rose_src"] = None
-        if hit:
-            meta = hit[1]
-            c["rose_src"] = "(std/" + meta["file"] + ": " + meta["name"] + ")"
+        c["rose_src"] = None   # Rose source of std units is bound from std/ by the compiler (bind_std)
         c["source_url"] = c.get("url")
         c["share_alike"] = False
         c["payload"] = {"tex": [c["tex"]]} if c.get("tex") else {}
