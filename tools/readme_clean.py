@@ -115,7 +115,12 @@ def plain(text, content_type=""):
     t = _markdown(t)
     t = re.sub(r"^\s*(https?://\S+|www\.\S+)\s*$", "", t, flags=re.M)   # bare link lines
     t = re.sub(r"https?://\S+", "", t)
-    t = re.sub(r"[  ]+", " ", t)
+    lines, fence = [], False                       # collapse spaces outside code only: indentation is syntax
+    for ln in t.split("\n"):
+        if ln.strip().startswith(("```", FENCE)):
+            fence = not fence
+        lines.append(ln.rstrip() if fence else re.sub(r"[ \u00a0]+", " ", ln))
+    t = "\n".join(lines)
     t = re.sub(r"^\s*[-*+]\s*$", "", t, flags=re.M)
     t = re.sub(r"^\s*[-*+]\s*[^\n:]{1,60}:\s*(\([^)]*\))?\s*$", "", t, flags=re.M)   # "- Website:" without its link
     t = re.sub(r"^[^\n:|]{1,40}:\s*(\|\s*[^\n:|]{1,40}:\s*)+$", "", t, flags=re.M)     # "Docs: | Source:"
