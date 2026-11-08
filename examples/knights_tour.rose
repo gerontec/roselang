@@ -1,0 +1,79 @@
+module demo.knights_tour
+
+# Knight's tour (Wikidata Q12524; OEIS A001230 counts the closed tours on 2n x 2n boards).
+# Squares are numbered row * n + col. Warnsdorff's rule: always jump to the square with the
+# fewest onward moves. It is a heuristic: the contract below reports a dead end instead of
+# returning a wrong tour.
+
+fn knights_tour(n: Int{>= 5}, start_row: Int, start_col: Int) -> List[Int]
+  intent "open knight's tour on an n x n chessboard by Warnsdorff's rule"
+  ensure len(result) == n * n and is_tour(result, n)
+  cost   O(n^2)
+do
+  let dr = [2, 1, -1, -2, -2, -1, 1, 2]
+  let dc = [1, 2, 2, 1, -1, -2, -2, -1]
+  let seen = fill(n * n, false)
+  let r = start_row
+  let c = start_col
+  let path = [r * n + c]
+  seen[r * n + c] = true
+  for step in range(1, n * n) do
+    let best = -1
+    let best_degree = 9
+    for k in range(0, 8) do
+      let nr = r + dr[k]
+      let nc = c + dc[k]
+      if nr >= 0 and nr < n and nc >= 0 and nc < n and not seen[nr * n + nc] do
+        let degree = 0
+        for m in range(0, 8) do
+          let ar = nr + dr[m]
+          let ac = nc + dc[m]
+          if ar >= 0 and ar < n and ac >= 0 and ac < n and not seen[ar * n + ac] do
+            degree = degree + 1
+          end
+        end
+        if degree < best_degree do
+          best = k
+          best_degree = degree
+        end
+      end
+    end
+    if best < 0 do
+      return path
+    end
+    r = r + dr[best]
+    c = c + dc[best]
+    seen[r * n + c] = true
+    push(path, r * n + c)
+  end
+  return path
+end
+
+fn is_knight_move(a: Int, b: Int, n: Int) -> Bool
+  intent "squares a and b of an n x n board are one knight move apart"
+do
+  let dr = abs(div(a, n) - div(b, n))
+  let dc = abs(a mod n - b mod n)
+  return (dr == 1 and dc == 2) or (dr == 2 and dc == 1)
+end
+
+fn is_tour(p: List[Int], n: Int) -> Bool
+  intent "p visits every square of the n x n board exactly once with knight moves"
+do
+  if len(unique(p)) != n * n do
+    return false
+  end
+  for i in range(1, len(p)) do
+    if not is_knight_move(p[i - 1], p[i], n) do
+      return false
+    end
+  end
+  return true
+end
+
+test len(knights_tour(8, 0, 0)) == 64
+test is_tour(knights_tour(8, 0, 0), 8)
+test is_tour(knights_tour(8, 3, 4), 8)
+test is_tour(knights_tour(5, 0, 0), 5)
+test is_knight_move(0, 10, 8)
+test not is_knight_move(0, 9, 8)

@@ -502,7 +502,10 @@ class Parser:
             n = self.ident()
             self.expect("=")
             return Assign(n, self.expr(), p)
-        return ExprStmt(self.expr(), p)
+        e = self.expr()
+        if isinstance(e, Index) and self.accept("="):
+            return IndexAssign(e, self.expr(), p)
+        return ExprStmt(e, p)
 
     # ---- expressions ----
     def expr(self):
@@ -594,6 +597,11 @@ class Parser:
             elif self.is_(".") and self.peek().kind == "ident":
                 p = self.pos(); self.i += 1
                 e = Attr(e, self.ident(), p)
+            elif self.is_("["):
+                p = self.pos(); self.i += 1
+                idx = self.expr()
+                self.expect("]")
+                e = Index(e, idx, p)
             else:
                 return e
 

@@ -82,6 +82,20 @@ class Attr:
 
 
 @dataclass
+class Index:
+    obj: Any
+    index: Any
+    pos: Pos = field(default_factory=Pos)
+
+
+@dataclass
+class IndexAssign:
+    target: Any         # Index
+    expr: Any
+    pos: Pos = field(default_factory=Pos)
+
+
+@dataclass
 class BinOp:
     op: str
     left: Any

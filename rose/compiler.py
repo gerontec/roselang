@@ -495,6 +495,11 @@ class Compiler:
                 self.expect_bool(t, s.cond, "while")
                 out.append(f"{ind}while {code}:")
                 out += self.block(s.body, dict(env), depth + 1, ret) or [f"{ind}    pass"]
+            elif isinstance(s, IndexAssign):
+                tc, tt = self.expr(s.target, env)
+                code, t = self.expr(s.expr, env)
+                self.assignable(tt, t, s.expr, "list element")
+                out.append(f"{ind}{tc} = {code}")
             elif isinstance(s, ExprStmt):
                 code, _ = self.expr(s.expr, env)
                 out.append(f"{ind}{code}")
@@ -646,6 +651,14 @@ class Compiler:
                     return f"{obj[1]}.contains", Ty.Ty("Fn", args=(Ty.INT,))
             code, _ = self.expr(e.obj, env)
             return f"{code}.{e.name}", Ty.ANY
+        if isinstance(e, Index):
+            oc, ot = self.expr(e.obj, env)
+            ic, it = self.expr(e.index, env)
+            if it.base not in ("Int", "Any"):
+                self.d("E205", f"list index must be Int, got {it}", e.index)
+            if ot.base not in ("List", "Any"):
+                self.d("E205", f"cannot index {ot}", e)
+            return f"{oc}[{ic}]", (ot.args[0] if ot.base == "List" and ot.args else Ty.ANY)
         if isinstance(e, Unary):
             code, t = self.expr(e.expr, env)
             if e.op == "not":
@@ -812,6 +825,17 @@ class Compiler:
             if len(codes) == 2:
                 return f"{n}({codes[1]}(x) for x in {codes[0]})", Ty.BOOL
             return f"{n}({codes[0]})", Ty.BOOL
+        if n == "fill":   # fill(n, v): a new list of n elements, v evaluated per element (no aliasing)
+            return f"[{codes[1]} for _ in range({codes[0]})]", Ty.list_of(tys[1] if len(tys) > 1 else Ty.ANY)
+        if n == "push":
+            return f"{codes[0]}.append({codes[1]})", Ty.ANY
+        if n == "div":
+            for t in tys:
+                if t.base not in ("Int", "Any"):
+                    self.d("E205", f"div() needs Int arguments, got {t}", e)
+            return f"({codes[0]} // {codes[1]})", Ty.INT
+        if n == "unique":
+            return f"list(dict.fromkeys({codes[0]}))", tys[0] if tys else Ty.ANY
         if n == "range":
             return f"list(range({', '.join(codes)}))", Ty.list_of(Ty.INT)
         if n in ("floor", "ceil"):

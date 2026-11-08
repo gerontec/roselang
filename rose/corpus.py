@@ -7,6 +7,7 @@ import json
 import os
 from collections import Counter
 
+MIN_SIMILARITY = float(os.environ.get("ROSE_MIN_SIMILARITY", "0.55"))  # below: corpus does not know the task
 LEVELS = ["imported", "parsed", "tested", "cross_checked", "proven"]
 EMBED_URL = os.environ.get("ROSE_EMBED_URL", "http://127.0.0.1:8084/v1/embeddings")
 
@@ -123,6 +124,13 @@ class Corpus:
         for i, h in enumerate(hits[:15]):
             cat = category(h)
             weights[cat] += 1.0 / (1 + i)
+        best_sim = max((h["similarity"] for h in hits[:10]), default=0.0)
+        if best_sim < MIN_SIMILARITY:
+            return {"task": task, "category": "unknown", "confidence": 0.0, "distribution": {},
+                    "paths": [], "notes": notes,
+                    "warnings": [f"CORPUS GAP: no solved problem in the corpus resembles this task "
+                                 f"(best similarity {best_sim:.2f} < {MIN_SIMILARITY}). Do not pretend to "
+                                 "reuse a known solution; write and test it, then submit it."]}
         total = sum(weights.values()) or 1.0
         dist = {c: round(w / total, 2) for c, w in weights.most_common()}
         cat = next(iter(dist), None)
