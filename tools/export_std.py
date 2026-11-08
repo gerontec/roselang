@@ -7,7 +7,10 @@ Only CC0 / public-domain sources (Wikidata, CODATA) - share-alike data (OEIS) st
   std/const/codata.rose  CODATA constants
   std/open.rose        open problems as `open` declarations (negative knowledge)
   std/index.json       ref -> {file, name, kind, level, license, url}
-Usage: export_std.py [--out ../std]
+  std/catalog.jsonl    one card per unit of every non-share-alike source (also cards without Rose
+                       source): the compiler's built-in knowledge for `rosec plan/search/get`
+  std/catalog.vec      optional: int8 bge-m3 vectors in catalog order (--vectors, not in git)
+Usage: export_std.py [--out ../std] [--vectors]
 """
 import argparse
 import json
@@ -42,6 +45,7 @@ def qstr(s):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", default=os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "std"))
+    ap.add_argument("--vectors", action="store_true")
     a = ap.parse_args()
     out = os.path.abspath(a.out)
     os.makedirs(os.path.join(out, "const"), exist_ok=True)
@@ -87,6 +91,52 @@ def main():
     with open(os.path.join(out, "index.json"), "w", encoding="utf-8") as fh:
         json.dump(index, fh, indent=0, sort_keys=True, ensure_ascii=False)
     print({f: len(v) for f, v in files.items()}, "index:", len(index))
+    export_catalog(cur, out, index, a.vectors)
+
+
+def export_catalog(cur, out, index, vectors):
+    cur.execute("SELECT scheme, value, unit_id FROM rose_alias")
+    aliases = {}
+    for scheme, value, uid in cur.fetchall():
+        aliases.setdefault(uid, []).append(f"{scheme}:{value}")
+    cur.execute("SELECT u.unit_id, u.ref, u.kind, u.name, u.intent, u.signature, u.level, u.payload, u.source_url, "
+                "s.name, s.license FROM rose_unit u JOIN rose_source s USING (source_id) "
+                "WHERE s.share_alike=0 ORDER BY u.ref")
+    ids = []
+    with open(os.path.join(out, "catalog.jsonl"), "w", encoding="utf-8") as fh:
+        for uid, ref, kind, name, intent, sig, level, payload, url, src, lic in cur.fetchall():
+            p = json.loads(payload) if payload else {}
+            card = {"ref": ref, "kind": kind, "name": name, "intent": intent, "level": level, "source": src,
+                    "license": lic, "url": url, "std": ref in index}
+            for k in ("domain", "status", "proved_year"):
+                if p.get(k):
+                    card[k] = p[k]
+            if p.get("proved_by"):
+                card["proved_by"] = [x.get("label") for x in p["proved_by"]]
+            if sig:
+                card["signature"] = sig
+            if p.get("tex"):
+                card["tex"] = p["tex"][0]
+            if uid in aliases:
+                card["aliases"] = sorted(aliases[uid])
+            fh.write(json.dumps(card, ensure_ascii=False, sort_keys=True) + "\n")
+            ids.append(uid)
+    print("catalog:", len(ids))
+    if not vectors:
+        return
+    import numpy as np
+    m = np.zeros((len(ids), 1024), dtype=np.int8)
+    pos = {uid: i for i, uid in enumerate(ids)}
+    cur.execute("SELECT unit_id, VEC_ToText(v) FROM rose_embedding WHERE unit_id IN "
+                "(SELECT unit_id FROM rose_unit u JOIN rose_source s USING (source_id) WHERE s.share_alike=0)")
+    n = 0
+    for uid, txt in cur.fetchall():
+        v = np.array(json.loads(txt), dtype=np.float32)
+        v /= np.linalg.norm(v) or 1.0
+        m[pos[uid]] = np.round(v * 127).astype(np.int8)
+        n += 1
+    m.tofile(os.path.join(out, "catalog.vec"))
+    print("vectors:", n)
 
 
 if __name__ == "__main__":
