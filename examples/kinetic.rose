@@ -1,0 +1,11 @@
+module demo.kinetic
+
+use law:kinetic_energy                       # from std/ (Wikidata Q46276): T = 1/2 m v^2
+
+fn speed_for(e: Real[J], m: Real[kg]) -> Real[m/s]
+  intent "speed of a body of mass m that carries kinetic energy e"
+do
+  return solve kinetic_energy for v given T = e, m = m
+end
+
+test speed_for(200 kJ, 1000 kg) == 20 m/s within 1 %

@@ -1,7 +1,9 @@
-# MCP server `rose` – tool specification (draft)
+# Tool interface of `rose` (draft)
 
-Transport: stdio (e.g. over `ssh -T <host> rose-mcp`), optional streamable HTTP.
-Reference deployment: 192.168.5.23.
+**Primary interface: the CLI** – `rosec plan|search|get|check|compile|test ... --json`, running
+locally on the built-in knowledge (`std/`). An MCP adapter is optional and deferred (see
+[`docs/CONCEPT.md`](../docs/CONCEPT.md) §8.1): if built, it exposes exactly these commands over stdio
+and adds no logic of its own. The tool names below describe that interface.
 Storage: tables `rose_*` (see [`schema/rose_schema.sql`](../schema/rose_schema.sql)).
 Embeddings: bge-m3 (1024 dimensions) via an OpenAI-compatible endpoint (`ROSE_EMBED_URL`).
 

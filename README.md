@@ -3,40 +3,44 @@
 **Search before you write.** Rose is a concept for a small, LLM-optimised programming
 language. Instead of re-inventing solved problems, an LLM *references* verified building
 blocks – algorithms from [Rosetta Code](https://rosettacode.org), mathematical facts,
-physical laws, controllers and state machines – and writes only the glue. A MCP server
-finds the blocks, checks the result (types, physical units, contracts, exhaustive
-tables and state machines) and compiles it to Python, C, IEC 61131-3 ST or ESPHome C++.
+physical laws, controllers and state machines – and writes only the glue. The compiler
+`rosec` carries this knowledge itself (`std/`, no server needed): it finds the blocks, checks
+the result (types, physical units, contracts, exhaustive tables and state machines) and
+compiles it to Python (C, IEC 61131-3 ST and ESPHome C++ planned).
 
-> Status: **compiler v1 (experimental)**. Corpus imported from Wikidata, CODATA and OEIS;
-> compiler handles `fn`, `const`, `use`, `law` + `solve`, `table`, `test` and emits Python.
-> Not yet: Rosetta Code import, `machine`/`ctrl`, C/ST/ESPHome targets, MCP server.
+> Status: **compiler v1 (experimental)**. Built-in knowledge: 1 252 units with Rose source
+> (laws, formulas, CODATA constants, open problems) and 47 967 searchable cards (Wikidata,
+> CODATA, Gene Ontology, Rosalind). Compiler handles `fn`, `const`, `use`, `law` + `solve`,
+> `table`, `test` and emits Python. `rosec plan` acceptance: 7/12.
+> Not yet: Rosetta Code import, `machine`/`ctrl`, C/ST/ESPHome targets.
 > Want to help? See [`TODO.md`](TODO.md).
 
 ```sh
-python3 tests/run_tests.py                       # offline self-test
-ROSE_OFFLINE=1 ./rosec test tests/units_demo.rose
-./rosec plan "mass flow of water for 9 kW at 5 K spread"   # needs the corpus
+python3 tests/run_tests.py                       # self-test, no network
+./rosec test examples/kinetic.rose
+./rosec plan "prove that every even integer greater than 2 is the sum of two primes"
 ```
 
 ```rose
-use law:water_heat_flow                      # P = mdot * cp * dT
+use law:kinetic_energy                       # from std/ (Wikidata Q46276): T = 1/2 m v^2
 
-fn required_flow(p: Real[W], dT: Real[K]) -> Real[kg/s]
-  intent "mass flow needed to carry thermal power p at temperature spread dT"
+fn speed_for(e: Real[J], m: Real[kg]) -> Real[m/s]
+  intent "speed of a body of mass m that carries kinetic energy e"
 do
-  return solve water_heat_flow for mdot given P = p, dT = dT
+  return solve kinetic_energy for v given T = e, m = m
 end
 
-test required_flow(9 kW, 5 K) == 0.430 kg/s within 1 %
+test speed_for(200 kJ, 1000 kg) == 20 m/s within 1 %
 ```
 
 ## Contents
 
 | Path | What |
 |---|---|
-| [`docs/CONCEPT.md`](docs/CONCEPT.md) | full concept: principles, language, corpus sources and licences, verification levels, MCP integration, benchmark and go/no-go rule, roadmap |
+| [`docs/CONCEPT.md`](docs/CONCEPT.md) | full concept: principles, language, corpus sources and licences, verification levels, where the knowledge lives, benchmark and go/no-go rule, roadmap |
 | [`spec/grammar.ebnf`](spec/grammar.ebnf) | grammar draft v0 |
-| [`spec/mcp-tools.md`](spec/mcp-tools.md) | MCP tool specification and diagnostic codes |
+| [`spec/mcp-tools.md`](spec/mcp-tools.md) | tool interface (CLI `--json`; optional MCP adapter) and diagnostic codes |
+| [`std/`](std) | generated standard library and knowledge catalog (do not edit; `tools/export_std.py`) |
 | [`schema/rose_schema.sql`](schema/rose_schema.sql) | MariaDB 11.8 corpus schema (`rose_*`, `VECTOR(1024)` + HNSW) |
 | [`rose/`](rose) | compiler v1 (`rosec`): parser, unit checker, solve, tables, Python codegen, corpus access |
 | [`tools/`](tools) | corpus importers (Wikidata, CODATA, OEIS) and embedding |
@@ -54,13 +58,13 @@ test required_flow(9 kW, 5 K) == 0.430 kg/s within 1 %
   completeness, overlap, reachability and deadlock.
 - **Machine-readable diagnostics** with fix suggestions, plus `R201 known-solution` when
   hand-written code re-implements a corpus unit.
-- **Provenance and licences** in `rose.lock`; `--license permissive` excludes
+- **Provenance and licences** in the lock file; `--license permissive` excludes
   share-alike sources (Rosetta Code is GFDL).
 - **Bio tasks take the local shortcut:** sequence, homology and taxon questions compile onto the
   local DIAMOND nr ([gerontec/blastDiamond](https://github.com/gerontec/blastDiamond)): MariaDB
   pre-selection, then DIAMOND through the existing job queue; online BLAST is a compile error.
-- **Measured, not assumed:** the language is dropped if LLM + MCP + Rose does not beat
-  LLM + MCP alone.
+- **Measured, not assumed:** the language is dropped if LLM + Rose does not beat
+  LLM + a plain Python module on the same knowledge.
 
 ## Licence
 

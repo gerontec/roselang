@@ -49,14 +49,16 @@ list below.
 |---|---|
 | Corpus: Wikidata (formulas, theorems, laws, conjectures, open problems) | importer done (`tools/import_wikidata.py`) |
 | Corpus: CODATA 2022 constants | imported, 355 constants |
-| Corpus: OEIS | imported, 401 561 sequences (CC BY-SA 4.0) |
+| Corpus: OEIS | imported, 401 561 sequences (CC BY-SA 4.0) – database only, not shipped |
 | Corpus: Rosalind (bio, titles + links) and Wikidata biology methods | imported |
+| Corpus: Gene Ontology (38 092 terms, CC BY 4.0) | imported (`tools/import_go.py`) |
+| Built-in knowledge | `std/` + `std/catalog.jsonl` (47 967 cards); `rosec` needs no database or server (`rose/knowledge.py`) |
 | Embeddings (bge-m3) | `tools/embed.py`; Wikidata + CODATA first, OEIS in background |
 | Knowledge → language | `rose/tex.py` converts imported TeX formulas to Rose `law`s, `tools/verify_laws.py` checks them with the compiler, `tools/export_std.py` generates `std/` (CC0/PD only) |
 | Negative knowledge | `open name intent "..." end` in the language, `use` of an open problem → `E305` |
 | Compiler v1 | `fn`, `const`, `use`, `law` + `solve` (sympy), `table` with exhaustive check, `test`; target Python |
 | Diagnostics | E101 E201 E202 E203 E204 E205 E206 E207 E208 E301 E305 E306 E511 E512 R199 R205 (each with a test in `tests/neg/` where listed there) |
-| `rosec plan` | hybrid search (HNSW vector + FULLTEXT, RRF), category vote, negative-knowledge warnings |
+| `rosec plan` | built-in catalog, BM25 (+ optional vectors); category = best evidence per category; negative-knowledge warnings; acceptance 7/12 (`tests/run_plan.py`) |
 
 ## Open tasks
 
@@ -74,7 +76,8 @@ Pick one, open an issue saying you work on it, keep the PR small.
 - [ ] Modelica Standard Library: extract equations of Thermal/Electrical/Fluid models as `law`/`model`.
 - [ ] Lean mathlib: index theorem statements as `math` units with level `proven`.
 - [ ] Core units (`ctrl:pid…`, `machine:hysteresis_min_runtime`, `model:fopdt`, `bio:*`) as real Rose sources.
-- [ ] Public read-only access to the corpus (dump on releases or a public MCP endpoint).
+- [ ] Share-alike packs (OEIS, later Rosetta Code) as optional downloads next to `std/`.
+- [ ] Wikidata aliases for every card; Wikidata subclasses of GO terms that GO lacks (6 562 items, e.g. illegitimate recombination).
 
 ### Compiler
 - [ ] `machine` with exhaustive checks (deterministic, reachable, no deadlock) – M5.
@@ -85,14 +88,16 @@ Pick one, open an issue saying you work on it, keep the PR small.
 - [ ] `--self-contained` mode for Rosetta Code submissions (E304), see M8.
 - [ ] Quantity literal ambiguity: `9 kW/m` when `m` is also a variable – define and test the rule.
 
-### MCP server (M2)
-- [ ] `rose` MCP server exposing `search`, `plan`, `get`, `check`, `compile`, `law_solve`
-      (spec: [`spec/mcp-tools.md`](spec/mcp-tools.md)).
+### Built-in knowledge (M2)
+- [ ] `rosec plan` to ≥ 10/12: synonyms/aliases in the lexical index, P vs NP warning, no warning for a proved
+      conjecture that has an open generalisation.
+- [ ] Semantic mode: measure `run_plan.py` with `std/catalog.vec` and an embedding endpoint.
+- [ ] MCP adapter only if the benchmark shows a need – a thin wrapper around `rosec ... --json`.
 
 ### Benchmark (M7) – the decision
 - [ ] Task set: Rosetta leave-one-out + 30 engineering tasks (control, state machines, energy flows) + 10 bio tasks.
-- [ ] Variants A (LLM alone), B (LLM + MCP, plain Python), **B2 (LLM + MCP + Python module `rose`)**, C (LLM + MCP + Rose).
-- [ ] Python module `rose` for B2: `use()`, `solve()`, quantities, `rose.lock` – same corpus, runtime checks.
+- [ ] Variants A (LLM alone), B (LLM + `rosec plan`, plain Python), **B2 (LLM + Python module `rose` on the same catalog)**, C (LLM + Rose).
+- [ ] Python module `rose` for B2: `use()`, `solve()`, quantities, lock file – same knowledge, runtime checks.
 - [ ] Report pass@1, tokens, check rounds, unit and table errors; decide language vs. module.
 
 ### Later (M8)

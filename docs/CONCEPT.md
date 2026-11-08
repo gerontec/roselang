@@ -3,9 +3,10 @@
 > **In short:** an LLM given a new task should not re-invent what is already solved. Rose is a
 > small composition language in which the LLM **references solved building blocks** –
 > algorithms, mathematical results, physical laws, constants, controllers, state machines,
-> decision tables, bioinformatics methods – and writes only the **glue**. A corpus server (MCP)
-> knows these blocks, finds them, checks the result and compiles it to the target language
-> (Python first; C, IEC 61131-3 ST and ESPHome C++ planned).
+> decision tables, bioinformatics methods – and writes only the **glue**. The compiler `rosec`
+> **carries this knowledge itself** (`std/`): it finds the blocks, checks the result and compiles
+> it to the target language (Python first; C, IEC 61131-3 ST and ESPHome C++ planned). No server
+> is needed at run time; the corpus database is only the factory that builds `std/`.
 
 Status and open work: [`TODO.md`](../TODO.md).
 
@@ -32,8 +33,8 @@ Lean mathlib, CODATA, Rosalind. What is missing is a bridge through which an LLM
 ## 2. Goals
 
 1. A **corpus of solved building blocks** with provenance, licence, tests and verification
-   level, searchable through an MCP server – plus **negative knowledge**: open problems marked as
-   such.
+   level, **shipped with the compiler** as `std/` – plus **negative knowledge**: open problems
+   marked as such.
 2. A **language (Rose)** in which an LLM composes these blocks compactly and unambiguously.
 3. A **checker/compiler** that checks types, physical units, contracts, decision tables and state
    machines automatically and generates code for the target platform.
@@ -41,33 +42,34 @@ Lean mathlib, CODATA, Rosalind. What is missing is a bridge through which an LLM
    (section 11) – otherwise the language is dropped.
 
 "All solved problems" is not a reachable end state but a direction: the corpus grows through
-importers (section 6) and through submissions by the LLMs themselves (`rose.submit`).
+importers (section 6) and through submissions by the LLMs themselves (`rosec submit`, planned).
 
 ## 3. Core idea: search before you write
 
 ```
-task ──► decompose ──► rose.search / rosec plan per sub-problem ──► hit? ─yes─► use <ref>
-                                                                     │
-                                                                     no
-                                                                     ▼
-                                                            write it yourself (fn/law/...)
-                                                                     │
-           rose.check ◄──────────────── Rose source ◄────────────────┘
-               │ diagnostics (JSON) ─► LLM fixes ─► check again
+task ──► decompose ──► rosec plan / rosec search per sub-problem ──► hit? ─yes─► use <ref>
+                                                                      │
+                                                                      no
+                                                                      ▼
+                                                             write it yourself (fn/law/...)
+                                                                      │
+          rosec check ◄──────────────── Rose source ◄─────────────────┘
+               │ diagnostics (--json) ─► LLM fixes ─► check again
                ▼
-           rose.compile ─► target code + rose.lock (provenance, licences)
+          rosec compile ─► target code + .lock.json (provenance, licences)
                ▼
-           rose.test ─► sandbox ─► ok ─► rose.submit (new unit, level "tested")
+          rosec test ─► sandbox ─► ok ─► rosec submit (planned: new unit, level "tested")
 ```
 
 The decisive point is **token economy**: the LLM only gets a **signature card** of a unit
 (≈ 50 tokens: name, intent, signature, units, level). It never sees the implementation – the
 compiler inserts it. The LLM thinks at the level of "sieve up to n", not at the level of loops.
 
-**Who chooses a unit?** Finding and ranking is automatic (server, SQL + vector search). Choosing
+**Who chooses a unit?** Finding and ranking is automatic (`rosec plan/search` over the built-in
+catalog). Choosing
 is the LLM's job: it writes `use law:...` explicitly, so the decision stays visible and
 reviewable. Choosing the implementation for the target is automatic again (compiler, pinned in
-`rose.lock`). Afterwards the compiler checks: `R201` when hand-written code duplicates a corpus
+the lock file). Afterwards the compiler checks: `R201` when hand-written code duplicates a corpus
 unit, `R202` when a better-verified unit with the same signature exists, `E305` when an open
 problem is used as a building block.
 
@@ -75,7 +77,7 @@ problem is used as a building block.
 
 | # | Principle | In Rose |
 |---|---|---|
-| P1 | **Reference, not copy** | `use rc:Sieve_of_Eratosthenes` instead of 20 lines; units pinned by hash (`rose.lock`) |
+| P1 | **Reference, not copy** | `use rc:Sieve_of_Eratosthenes` instead of 20 lines; units pinned by hash (the lock file) |
 | P2 | **One canonical form** | `rose fmt` is part of the language; no synonyms, no optional syntax. Same meaning → same text → same AST hash |
 | P3 | **Explicit over implicit** | types, physical units, effects (`effect io, time`), controller sample time, value ranges |
 | P4 | **Intent is code** | every `fn`/`law`/`ctrl`/`machine` carries `intent "..."` – the search key; new code becomes findable |
@@ -236,9 +238,12 @@ code never calls `diamond` itself, so the backend's memory planning stays the on
 questions are SQL, not searches. Reference implementation of such a backend:
 [gerontec/blastDiamond](https://github.com/gerontec/blastDiamond).
 
-Solved bio problems in the corpus come from Wikidata (bioinformatics methods, laws of genetics
-and enzyme kinetics, linked to 19 biology fields) and from the Rosalind problem list (titles and
-links only).
+Bio knowledge comes from Wikidata (bioinformatics methods, laws of genetics and enzyme kinetics,
+linked to 19 biology fields), the Rosalind problem list (titles and links only) and the **Gene
+Ontology** (all 38 092 non-obsolete terms: processes, functions, components, with synonyms).
+Terms that exist in neither source stay unknown – e.g. "heterologous recombination" is neither a
+GO term nor a Wikidata item; Wikidata has homologous (Q22280388) and illegitimate recombination
+(Q59567515, alias "nonhomologous recombination").
 
 ## 6. The corpus – sources
 
@@ -248,6 +253,7 @@ links only).
 | **CODATA** | fundamental physical constants with uncertainty | public domain (NIST) | `const` units |
 | **OEIS** | > 400 000 integer sequences with leading terms | CC BY-SA 4.0 | `math` units, terms as test oracle |
 | **Rosalind** | classic bioinformatics problems | reference only | `bio` reference cards |
+| **Gene Ontology** | biological processes, molecular functions, cellular components, synonyms | CC BY 4.0 | `bio` cards |
 | **Rosetta Code** (planned) | ~1 300 tasks, solutions in > 900 languages | GFDL 1.3 (share-alike) | `algo` units, outputs of several languages as test oracle |
 | TheAlgorithms (planned) | algorithms in Python, C, Go, … | MIT | permissive alternative |
 | Lean mathlib (planned) | > 200 000 proven theorems | Apache-2.0 | `math` facts, level `proven` |
@@ -259,7 +265,7 @@ Not used: Project Euler solutions (publication not allowed), Stack Overflow (unc
 provenance).
 
 **Licences are part of the data model.** Every implementation carries its SPDX id;
-`rose.compile` writes `rose.lock` with provenance and licence of every unit and supports
+`rosec compile` writes a lock file (`.lock.json`) with provenance and licence of every unit and supports
 `--license permissive`, which excludes share-alike sources.
 
 ## 7. Verification levels
@@ -276,30 +282,72 @@ Theorems from Wikidata carry `payload.status = proved` (with the prover, e.g. th
 conjecture, proved by Grigori Perelman, 2002) but stay level `imported` until a machine-checked
 proof is linked. Foreign code runs **only in a sandbox** (no network, memory limit, ≤ 20 s).
 
-## 8. MCP server
+## 8. Where the knowledge lives
 
-Tool specification: [`spec/mcp-tools.md`](../spec/mcp-tools.md). Schema:
-[`schema/rose_schema.sql`](../schema/rose_schema.sql) (MariaDB ≥ 11.7, `VECTOR(1024)` + HNSW).
+### 8.1 Review after the MCP route (2026-11-08)
 
-- **Storage:** tables `rose_*`, hybrid search = HNSW vector search over the embedded intents
-  (bge-m3, 1024 dimensions) + FULLTEXT, fused by reciprocal rank.
-- **Division of labour:** small models look things up reliably but **filter and count badly**.
-  Filtering, ranking, type and unit matching happen **in SQL on the server**; the LLM picks from a
-  few pre-sorted cards and writes the glue. Responses are small (k ≤ 10).
-- **Configuration:** database via `~/.my.cnf` group `ROSE_DB_GROUP` and database `ROSE_DB_NAME`,
-  embeddings via `ROSE_EMBED_URL`; a reference deployment runs at 192.168.5.23.
+The first design put the corpus behind a server (MCP over MariaDB + vector search) that the
+compiler and the LLM query at run time. Building and testing it showed:
+
+| Observation (measured in this repository) | Consequence |
+|---|---|
+| `use`, `plan` and the tests needed DB credentials, an embedding server and the network; without them every `use` failed with `E301 corpus offline` | contributors of a public repository cannot run the compiler at all |
+| a query ordered by a column alias returned **wrong neighbours** without any error (MariaDB 11.8 HNSW); `plan` went from 0/12 to 4/12 only after the fix | a server can be silently wrong; the error was visible only through the acceptance test |
+| cosine similarity of right and wrong units overlaps (right 0.50–0.71, noise up to 0.55) | a threshold "known / unknown" on embeddings alone is unreliable |
+| embedding 400 000 OEIS sequences runs at ~30/s (hours), competing with other jobs on the same GPU | the data path is a batch job, not something to do per query |
+| the result of `rosec compile` depended on the state of a database that changes between runs | a compile is not reproducible from the repository |
+| an LLM agent with a shell can call `rosec plan --json` directly | an extra tool protocol adds a layer, not a capability |
+
+### 8.2 Architecture
+
+```
+build time (maintainers)                     ship time (git)                run time (anyone)
+importers ─► corpus DB (rose_*) ─► verify ─► export_std.py ─► std/*.rose  ─► rosec check/compile/test
+ Wikidata, CODATA, OEIS, GO, ...   TeX→law     (CC0/PD/MIT/        std/catalog.jsonl ─► rosec plan/search/get
+                                   tests        CC BY only)        (std/catalog.vec, optional)
+```
+
+- **Knowledge is a release artefact.** `std/` (Rose source of laws, formulas, constants, open
+  problems) and `std/catalog.jsonl` (one card per unit: ref, kind, intent, level, licence, source,
+  aliases) are generated, committed and versioned with the compiler: the same compiler version
+  always has the same knowledge. Current size: 1 252 units with Rose source, 47 967 cards.
+- **The compiler needs nothing else.** `rosec plan/search/get` work from the catalog (BM25 over
+  name, intent, aliases); `use` binds Rose source from `std/`. Optional: `std/catalog.vec` (int8
+  vectors, not in git) plus an embedding endpoint for semantic search.
+- **The database is the factory**, not a dependency: importers, TeX→law conversion, verification
+  levels, embeddings, export. `--db` (or `ROSE_DB_NAME`) still lets maintainers query it.
+- **Share-alike sources are not shipped in `std/`** (OEIS CC BY-SA, Rosetta Code GFDL): they would
+  change the licence of the core. They become separate optional packs; until then `oeis:` refs
+  resolve only with the database.
+- **The LLM interface is the CLI** with `--json`. An MCP adapter, if ever wanted, is a thin wrapper
+  around the same commands without logic of its own ([`spec/mcp-tools.md`](../spec/mcp-tools.md) is
+  kept as the description of that interface). Schema of the factory:
+  [`schema/rose_schema.sql`](../schema/rose_schema.sql).
+- **Division of labour stays:** filtering, ranking and counting happen in the compiler, not in the
+  LLM; responses are small (k ≤ 10).
 
 ## 9. Example: `rosec plan`
 
 `rosec plan "<task>"` is the first test of the toolchain: a new task comes in and Rose recognises,
 from the solved problems it resembles, the **category** and the **best solution paths** – and warns
-when the task touches an open problem.
+when the task touches an open problem. Real output (built-in knowledge, lexical mode, no server):
 
 ```text
-$ rosec plan "prove that every even number greater than 2 is the sum of two primes"
-category:  math/...
-WARNING:   NEGATIVE KNOWLEDGE: 'Goldbach's conjecture' is an open problem - no known solution ...
+$ rosec plan "prove that every even integer greater than 2 is the sum of two primes" -k 3
+category:  open  (margin 0.34 over the next category)
+           best similarity per category: open 1.00, math/proved 0.66, math/defined 0.64, math/constant 0.37
+WARNING:   NEGATIVE KNOWLEDGE: 'Goldbach's conjecture' is an open problem - no known solution. Do not
+           claim or search for a general solution; solve a bounded or numerical sub-question instead.
+best solution paths:
+ 1. math:divergence_of_the_sum_of_the_reciprocals_of_the_primes  [math, imported, CC0-1.0]  sim 0.40
+ ...
 ```
+
+Acceptance test `tests/run_plan.py` (12 tasks, expectations written before the first run):
+**7/12** with the built-in knowledge, 4/12 with the database route. Open failures: three tasks
+whose words do not occur in any card (water mass flow, tank heater; the knowledge is there as a
+law but named differently), a German task (intents are English), a missing warning for P vs NP and
+a false warning for the Poincaré conjecture (matched to the *generalized* conjecture, which is open).
 
 ## 10. Prior art
 
@@ -316,11 +364,11 @@ WARNING:   NEGATIVE KNOWLEDGE: 'Goldbach's conjecture' is an open problem - no k
 Rose only justifies itself if it is measurably better. Same tasks, same models:
 
 - **A** LLM alone, writes Python/C directly.
-- **B** LLM + MCP corpus, writes Python/C directly (units as example code).
-- **B2** LLM + MCP + **Python module `rose`** (or a Perl module): same corpus, `solve`, units,
-  `rose.lock` – as a library in plain Python, checks at run time or through a type-checker plugin.
-  Extending Python itself (PEP) is not a realistic option.
-- **C** LLM + MCP + Rose.
+- **B** LLM + `rosec plan/search` (same catalog), writes Python/C directly (units as example code).
+- **B2** LLM + catalog + **Python module `rose`** (or a Perl module): same knowledge, `solve`,
+  units, lock file – as a library in plain Python, checks at run time or through a type-checker
+  plugin. Extending Python itself (PEP) is not a realistic option.
+- **C** LLM + Rose (`rosec`).
 
 Tasks: (1) Rosetta Code tasks **leave-one-out** (the task is removed from the index, its
 sub-problems remain findable); (2) 30 engineering tasks (control, state machines, energy flows)
@@ -330,7 +378,7 @@ the LLM takes the local route or writes online BLAST.
 Metrics: pass@1, tokens in/out, number of check rounds, run time, unit errors, table/machine errors.
 
 **Decision rule:** if C is not clearly better than B2, the language is dropped and Rose lives on
-as a Python module plus MCP corpus. The real question is whether **static** checking before the
+as a Python module plus the generated catalog. The real question is whether **static** checking before the
 run (units, complete tables, `E305` for open problems) is measurably better than the same checks
 at run time.
 
@@ -340,7 +388,7 @@ at run time.
 |---|---|---|
 | M0 | concept | review ✔ |
 | M1 | corpus import (Wikidata, CODATA, OEIS, Rosalind ✔; **Rosetta Code open**), embeddings | paraphrased task → right unit in top 3 for ≥ 80 % |
-| M2 | MCP server: `search`, `plan`, `get`, `examples`; bio units on the DIAMOND backend | benchmark variant B runs |
+| M2 | built-in knowledge: `std/` + `std/catalog.jsonl`, `rosec plan/search/get` offline ✔; bio units on the DIAMOND backend; (MCP adapter only if the benchmark asks for it) | `run_plan.py` ≥ 10/12 (now 7/12) |
 | M3 | compiler v1: parser, unit checker, Python target; `fn`, `use`, `law`/`solve`, `table`, `test` ✔ | self-test green ✔ |
 | M4 | TeX → `eq` converter for imported laws, QUDT, Modelica | 50 imported laws solvable for every variable |
 | M5 | `machine` with exhaustive checks; targets ST and C | reference tables re-built in Rose, differential test green |
@@ -354,14 +402,18 @@ laws, controllers, checked state machines.
 
 ## 13. Risks and open questions
 
-- **Licences:** GFDL/CC BY-SA in generated code → `rose.lock` and `--license permissive`.
+- **Licences:** GFDL/CC BY-SA in generated code → the lock file and `--license permissive`.
   Language and tools MIT, corpus data under the licence of its source.
 - **Quality of sources:** Rosetta solutions are often outdated; Wikidata classes are uneven (a
   wrong class id once turned units of time into "open problems" – class ids are now verified by
   label before use).
+- **Search without a server:** lexical search misses synonyms and other languages; vectors need
+  an embedding model for the query. Aliases and synonyms (Wikidata, GO) go into the cards first.
+- **Size of the catalog:** 30 MB of JSON lines in git today (mostly GO definitions); compress or
+  split into packs when it grows.
 - **Embeddings for code and formulas:** intents are embedded, code is searched by FULLTEXT and
   signature, formulas by symbols and dimensions.
 - **Signatures for Rosetta tasks** do not exist and must be generated at import (LLM proposal +
   check against the sample outputs) – the most expensive part of M1/M3.
 - **Scope:** "all" problems is unbounded; bounded by milestones and the decision rule in section 11.
-- **Security:** foreign code only in the sandbox; `rose.submit` lands in staging.
+- **Security:** foreign code only in the sandbox; `rosec submit` lands in staging.
