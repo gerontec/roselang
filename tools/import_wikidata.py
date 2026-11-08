@@ -14,7 +14,8 @@ kind: open  = negative knowledge: unsolved problem / open conjecture, a hint for
       law   = physics (dimension or quantity symbols with dimensions, or physical law/quantity)
       const = mathematical or physical constant
       math  = everything else
-payload.status: proved | open | defined (formula without a claim of proof)
+payload.status: proved | open | defined (formula without a claim of proof) | disputed (proposed
+                without established empirical support: by hand with a source, or instance of pseudoscience)
 
 Usage: import_wikidata.py [--limit N] [--dry-run]
 """
@@ -63,6 +64,31 @@ RADIO_KNOWLEDGE_CLASSES = BIO_KNOWLEDGE_CLASSES + ["Q317623", "Q132364", "Q26952
 # (anything with a country or coordinates)
 NOT_KNOWLEDGE = ("FILTER NOT EXISTS { ?i wdt:P31 ?no . VALUES ?no { wd:Q5 wd:Q43229 wd:Q4830453 } } "
                  "FILTER NOT EXISTS { ?i wdt:P176|wdt:P17|wdt:P625 ?m }")
+# social psychology and social dynamics (ids verified by label 2026-11-08): fields social psychology
+# Q161272, crowd psychology Q1355183, mass psychology Q16622884, opinion dynamics Q101247857,
+# sociology Q21201; classes social phenomenon Q602884 (instances only - its subclass tree is 14 000
+# items of everything), cognitive bias Q1127759, threshold model Q7798106, voter model Q7942158
+SOCIAL_CORE = ["Q110489961", "Q110489954", "Q16622884", "Q1355183", "Q101247857", "Q106283193",   # mass formation, m.f. psychosis, mass/crowd psychology, opinion dynamics, social contagion
+               "Q7798106", "Q7942158", "Q5243912", "Q778684", "Q191474", "Q540742", "Q751414",     # threshold model, voter model, DeGroot learning, Asch, Milgram, spiral of silence, groupthink
+               "Q6031027", "Q955199", "Q2914277", "Q4532199", "Q128135", "Q1307337", "Q221284", "Q161272"]  # cascade, bandwagon, moral panic, sociogenic illness, totalitarianism, influence, conformity
+SOCIAL_KNOWLEDGE_CLASSES = BIO_KNOWLEDGE_CLASSES + ["Q602884", "Q3249551"]   # + social phenomenon, process
+NOT_KNOWLEDGE_SOCIAL = ("FILTER NOT EXISTS { ?i wdt:P31 ?no . VALUES ?no { wd:Q5 wd:Q43229 wd:Q4830453 wd:Q13442814 wd:Q571 } } "
+                        "FILTER NOT EXISTS { ?i wdt:P176|wdt:P17|wdt:P625 ?m }")    # + scholarly articles, books
+# disputed: proposed concepts without empirical support - status 'disputed', the verdict says so.
+# Set by hand with a source, or by Wikidata 'instance of pseudoscience' (Q483677).
+DISPUTED = {
+    "Q110489954": "not a diagnosis (not in the DSM); experts asked by Reuters (2022) found no evidence for it; "
+                  "social psychologist Steve Reicher: 'more metaphor than science, more ideology than fact' "
+                  "(source: https://en.wikipedia.org/wiki/Robert_W._Malone); popularised on a podcast in "
+                  "December 2021; linked in public debate to Mattias Desmet's mass formation theory",
+}
+Q_PSEUDOSCIENCE = "Q483677"
+# notes added to a card's intent (facts with a source, not a judgement of the concept)
+NOTES = {
+    "Q110489961": "classical concept of crowd psychology (Le Bon, Freud); its application to the COVID-19 "
+                  "pandemic by the Belgian psychologist Mattias Desmet (The Psychology of Totalitarianism, 2022) "
+                  "is disputed - see mass formation psychosis",
+}
 SELECTIONS = {
     "formula": f"?i wdt:P2534 ?f . FILTER NOT EXISTS {{ ?i wdt:P31 ?x . VALUES ?x {{ {NUMBER_CLASSES} }} }}",
     "theorem": "?i wdt:P31/wdt:P279* wd:Q65943 .",
@@ -102,8 +128,18 @@ SELECTIONS = {
                    "wd:Q249 wd:Q872 wd:Q1474701 } . ?i wdt:P31 ?k . VALUES ?k { " + " ".join(
                        "wd:" + q for q in RADIO_KNOWLEDGE_CLASSES) + " } . " + NOT_KNOWLEDGE,
     "radio_core": "VALUES ?i { " + " ".join("wd:" + q for q in RADIO_CORE) + " } .",
+    "social_field": "?i wdt:P101|wdt:P361|wdt:P921|wdt:P2578|wdt:P2579|wdt:P279 ?fld . VALUES ?fld { wd:Q161272 "
+                    "wd:Q1355183 wd:Q16622884 wd:Q101247857 } . ?i wdt:P31 ?k . VALUES ?k { " + " ".join(
+                        "wd:" + q for q in SOCIAL_KNOWLEDGE_CLASSES) + " } . " + NOT_KNOWLEDGE_SOCIAL,
+    "social_sociology": "?i wdt:P101|wdt:P2579 wd:Q21201 . ?i wdt:P31 ?k . VALUES ?k { " + " ".join(
+                        "wd:" + q for q in SOCIAL_KNOWLEDGE_CLASSES) + " } . " + NOT_KNOWLEDGE_SOCIAL,
+    "social_class": "{ ?i wdt:P279+ ?f . VALUES ?f { wd:Q161272 wd:Q1355183 } } UNION { ?i wdt:P31 wd:Q602884 . } UNION "
+                    "{ ?i wdt:P31 wd:Q1127759 . } UNION { ?i wdt:P279* wd:Q7798106 . } UNION { ?i wdt:P279* wd:Q7942158 . } "
+                    "UNION { ?i wdt:P361|wdt:P2579 wd:Q101247857 . } " + NOT_KNOWLEDGE_SOCIAL,
+    "social_core": "VALUES ?i { " + " ".join("wd:" + q for q in SOCIAL_CORE) + " } .",
     "core_concepts": "VALUES ?i { " + " ".join("wd:" + q for q in sorted(set().union(*CORE_KIND.values()))) + " } .",
 }
+SOCIAL_SELECTIONS = {"social_field", "social_sociology", "social_class", "social_core"}
 RADIO_SELECTIONS = {"radio_class", "radio_field", "radio_core"}
 ALGO_SELECTIONS = {"algorithm", "computational_problem", "optimization_problem"}
 Q_HARD = {"Q1137554": "NP-hard", "Q215206": "NP-complete"}   # complexity classes (verified by label)
@@ -204,7 +240,9 @@ def tex_dim(tex: str) -> str:
     return " ".join(f"{b}{acc[b]}" for b in order if acc.get(b)) or "1"
 
 
-def status_of(claims, types):
+def status_of(claims, types, qid=None):
+    if qid in DISPUTED or Q_PSEUDOSCIENCE in types:
+        return "disputed"
     if item_ids(claims, "P1318"):
         return "proved"
     if Q_THEOREM in types:
@@ -269,7 +307,7 @@ def main():
     cur = con.cursor()
     sid = R.ensure_source(cur, "wikidata", "https://www.wikidata.org", "CC0-1.0", False,
                           "defining formulas, theorems, conjectures, physical laws, unsolved problems")
-    stats = {"law": 0, "math": 0, "const": 0, "open": 0, "bio": 0, "algo": 0, "ctrl": 0, "machine": 0, "table": 0, "proved": 0, "open_status": 0, "defined": 0, "skipped": 0}
+    stats = {"disputed": 0, "law": 0, "math": 0, "const": 0, "open": 0, "bio": 0, "algo": 0, "ctrl": 0, "machine": 0, "table": 0, "proved": 0, "open_status": 0, "defined": 0, "skipped": 0}
     for n, q in enumerate(qids, 1):
         e = ents.get(q)
         if not e or "missing" in e:
@@ -298,7 +336,7 @@ def main():
             qunit = next((unit_symbol(u) for u in item_ids(qe.get("claims", {}), "P8111")), "")
             symbols.append({"tex": v, "symbol": tex_ident(v), "quantity": qty,
                             "quantity_label": label(qe) if qe else None, "dim": qdim, "unit": qunit})
-        status = status_of(c, types)
+        status = status_of(c, types, q)
         if status == "open":
             kind = "open"
         elif types & Q_CONST:
@@ -320,6 +358,8 @@ def main():
             domain = "engineering" if kind == "ctrl" else "computer science"
         if selected[q] & RADIO_SELECTIONS and domain == "math":
             domain = "radio engineering"
+        if selected[q] & SOCIAL_SELECTIONS and domain == "math":
+            domain = "social science"
         if selected[q] & {"bio_field", "bio_core"}:
             domain = "biology"
             if kind == "math" and not tex:
@@ -344,12 +384,17 @@ def main():
         if complexity:
             intent += (f" [{complexity}: no polynomial-time exact algorithm is known - use an exact solver "
                        "for small instances, otherwise heuristics or approximation algorithms]")
+        if q in NOTES:
+            intent += f" [note: {NOTES[q]}]"
+        if status == "disputed":
+            intent += (" [DISPUTED - a proposed concept without established empirical support, not known knowledge"
+                       + (f": {DISPUTED[q]}" if q in DISPUTED else "") + "]")
         if status == "open":
             intent += " [OPEN PROBLEM - no known solution, do not claim or search for a general one]"
         elif provers:
             intent += " [proved by " + ", ".join(p["label"] or p["id"] for p in provers) + "]"
         stats[kind] += 1
-        stats["open_status" if status == "open" else status] += 1
+        stats["open_status" if status == "open" else status] += 1   # status: proved | open | defined | disputed
         if a.dry_run:
             if n <= 5 or q == "Q203586":
                 print(json.dumps({"ref": f"{kind}:{R.slug(name)}", "intent": intent, "payload": payload},

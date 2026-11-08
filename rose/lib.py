@@ -409,7 +409,7 @@ def use(ref):
 
 def exists(task, k=3):
     """Does a known solution exist for this task? Only points to it - does not solve anything.
-    -> {"verdict": "solved" | "open" | "unknown", "answer": one sentence, "solutions": [{ref, name,
+    -> {"verdict": "solved" | "open" | "disputed" | "unknown", "answer": one sentence, "solutions": [{ref, name,
        url, complexity}], "warnings": [...]}"""
     return verdict(_knowledge().plan(task, k=max(k, 5)), _knowledge(), k)
 
@@ -443,9 +443,17 @@ def verdict(r, kb, k=3):
             call = card["call"]
         sols.append({"ref": p["ref"], "name": p["name"], "url": url, "level": p["level"], "call": call,
                      "complexity": p.get("complexity") or card.get("complexity"), "license": p["license"]})
+        if card.get("status") == "disputed":
+            sols[-1]["status"] = "disputed"
         if card.get("kind") == "lib":
             sols[-1].update({k: card[k] for k in ("package_license", "docs", "install") if card.get(k)})
     best = sols[0]
+    if best.get("status") == "disputed":     # a proposed concept is not a known solution
+        return {"verdict": "disputed", "answer": f"Not established knowledge: {best['name']} is a proposed, "
+                "disputed concept without established empirical support - see the source.",
+                "solutions": sols, "warnings": warn, "task": r["task"]}
+    warn += [f"DISPUTED: '{x['name']}' ({x['ref']}) is a proposed concept without established empirical support"
+             for x in sols if x.get("status") == "disputed"]
     extra = f" ({best['complexity']})" if best.get("complexity") else ""
     call = next((x["call"] for x in sols if x.get("call")), None)
     if call:
