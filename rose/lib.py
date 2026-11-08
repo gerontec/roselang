@@ -379,7 +379,8 @@ def use(ref):
         if card.get("_pack"):
             impls = _knowledge().implementations(card["ref"])
             _LOCK.append({"ref": card["ref"], "level": card["level"], "license": card["license"],
-                          "source": "pack " + os.path.basename(card["_pack"]), "url": card.get("url"),
+                          "source": "std/sets/" + os.path.basename(card["_pack"]) if "/std/sets/" in card["_pack"]
+                          else "pack " + os.path.basename(os.path.dirname(card["_pack"])), "url": card.get("url"),
                           "share_alike": bool(card.get("share_alike"))})
             if card.get("share_alike"):
                 warnings.warn(f"R205: '{card['ref']}' is {card['license']} (share-alike); code that embeds it "

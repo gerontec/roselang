@@ -8,9 +8,10 @@ No database, no server: `rosec plan/search/get` and `use` resolution work offlin
 The full corpus (OEIS, share-alike) stays in the database; Knowledge(fallback=Corpus()) asks it for
 refs the catalog does not contain.
 
-Packs: optional knowledge under another licence, installed separately (share-alike sources such as
-Rosetta Code, GFDL). A pack is a directory with catalog.jsonl and optionally impl.jsonl
-(ref -> implementations); found as an installed module (PACK_MODULES) or listed in $ROSE_PACKS.
+Built-in sets: rose/std/sets/<name>.jsonl.gz (+ <name>.impl.jsonl.gz: ref -> implementations), e.g.
+mathlib (Apache-2.0) and rosetta (GFDL-1.3) - shipped in the core package, every card carries its
+licence. Third-party packs: a directory with catalog.jsonl (+ impl.jsonl), found as an installed
+module (PACK_MODULES) or listed in $ROSE_PACKS.
 """
 import json
 import math
@@ -24,6 +25,27 @@ VECTORS = os.path.join(std.STD, "catalog.vec")
 EMBED_URL = os.environ.get("ROSE_EMBED_URL", "http://127.0.0.1:8084/v1/embeddings")
 DIM = 1024
 PACK_MODULES = ("rose_rosetta",)
+
+
+SETS = os.path.join(std.STD, "sets")
+
+
+def builtin_sets():
+    if not os.path.isdir(SETS):
+        return []
+    return sorted(os.path.join(SETS, f) for f in os.listdir(SETS)
+                  if f.endswith(".jsonl.gz") and not f.endswith(".impl.jsonl.gz"))
+
+
+def open_text(path):
+    import gzip
+    return gzip.open(path, "rt", encoding="utf-8") if path.endswith(".gz") else open(path, encoding="utf-8")
+
+
+def impl_path(catalog):
+    if catalog.endswith(".jsonl.gz"):
+        return catalog[:-len(".jsonl.gz")] + ".impl.jsonl.gz"
+    return os.path.join(os.path.dirname(catalog), "impl.jsonl")
 
 
 def pack_dirs():
@@ -86,7 +108,8 @@ class Knowledge:
         self.fallback = fallback
         self.error = None
         self.packs = pack_dirs()
-        sources = [(CATALOG, None)] + [(os.path.join(d, "catalog.jsonl"), d) for d in self.packs]
+        cats = builtin_sets() + [os.path.join(d, "catalog.jsonl") for d in self.packs]
+        sources = [(CATALOG, None)] + [(c, c) for c in cats]
         if not os.path.exists(CATALOG):
             self.error = f"{CATALOG} missing - run tools/export_std.py"
             sources = sources[1:]
@@ -121,7 +144,7 @@ class Knowledge:
         n, n_core, seen = 0, 0, set()
         for path, pack in sources:
             rows, frows, arows = [], [], []
-            with open(path, encoding="utf-8") as f:
+            with open_text(path) as f:
                 for line in f:
                     c = json.loads(line)
                     if c["ref"] in seen:
@@ -170,9 +193,9 @@ class Knowledge:
             return []
         if pack not in self._impl:
             self._impl[pack] = {}
-            f = os.path.join(pack, "impl.jsonl")
+            f = impl_path(pack)
             if os.path.exists(f):
-                with open(f, encoding="utf-8") as fh:
+                with open_text(f) as fh:
                     for line in fh:
                         r = json.loads(line)
                         self._impl[pack][r["ref"]] = r["impl"]

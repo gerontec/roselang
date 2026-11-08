@@ -10,5 +10,10 @@ of Rose is MIT; every card in `catalog.jsonl` carries the SPDX id of its source 
 | Gene Ontology | cards `source: gene_ontology` | CC-BY-4.0 | Gene Ontology Consortium, go-basic.obo (release in each card's source data), https://geneontology.org – "The Gene Ontology knowledgebase", Nucleic Acids Research |
 | Rosalind | cards `source: rosalind` | titles and links only (reference) | https://rosalind.info |
 | Rose core | cards `source: rose-core` | MIT | this project |
+| Lean mathlib4 | `sets/mathlib.jsonl.gz` | Apache-2.0 | Copyright the mathlib contributors, https://github.com/leanprover-community/mathlib4 (commit in each card's `url`); statements only, cut at `:=`, whitespace normalised, search text added |
+| Rosetta Code | `sets/rosetta.jsonl.gz`, `sets/rosetta.impl.jsonl.gz` | GFDL-1.3 | https://rosettacode.org; authors in the history of each task page (`url`) |
 
-Share-alike sources (OEIS CC BY-SA, Rosetta Code GFDL) are **not** included.
+The files are an **aggregation** of independent works: each keeps its own licence, and the Rose
+code (MIT) does not become share-alike by being distributed with them (GFDL section 7). Code that
+*embeds* a unit from a share-alike set inherits that licence; Rose warns with `R205` and records the
+unit in the lock file.

@@ -36,4 +36,4 @@ packages = ["rose"]
 include-package-data = false
 
 [tool.setuptools.package-data]
-rose = ["std/*.rose", "std/const/*.rose", "std/index.json", "std/catalog.jsonl", "std/LICENSES.md"]
+rose = ["std/*.rose", "std/const/*.rose", "std/index.json", "std/catalog.jsonl", "std/LICENSES.md", "std/sets/*.jsonl.gz"]

@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Export a share-alike source as a separate knowledge pack (installable, own licence).
+"""Export a large source as a built-in knowledge set of the core: rose/std/sets/<pack>.jsonl.gz
+(+ <pack>.impl.jsonl.gz with implementations). Every card carries the SPDX id of its source; the
+licences are listed in rose/std/LICENSES.md. --out DIR writes a third-party pack directory instead.
+
+Former separate packs (kept for reference):
 
   rosetta: Rosetta Code (GFDL 1.3) -> packs/rosetta/rose_rosetta/{catalog.jsonl, impl.jsonl}
            installable as `pip install ./packs/rosetta` (distribution roselang-rosetta, module rose_rosetta)
@@ -27,9 +31,18 @@ def main():
     ap.add_argument("--out")
     a = ap.parse_args()
     source, module, share_alike, fields = PACKS[a.pack]
-    out = os.path.abspath(a.out or os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "packs", a.pack))
-    d = os.path.join(out, module)
-    os.makedirs(d, exist_ok=True)
+    import gzip
+    if a.out:
+        d = os.path.join(os.path.abspath(a.out), module)
+        os.makedirs(d, exist_ok=True)
+        cat_path, impl_file = os.path.join(d, "catalog.jsonl"), os.path.join(d, "impl.jsonl")
+        opener = open
+    else:
+        d = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "rose", "std", "sets")
+        os.makedirs(d, exist_ok=True)
+        cat_path, impl_file = os.path.join(d, a.pack + ".jsonl.gz"), os.path.join(d, a.pack + ".impl.jsonl.gz")
+        opener = lambda p, m, encoding: gzip.open(p, m + "t", encoding=encoding, compresslevel=9)  # noqa: E731
+    out = cat_path
     con = R.connect()
     cur = con.cursor()
     cur.execute("SELECT u.unit_id, u.ref, u.kind, u.name, u.intent, u.level, u.payload, u.source_url, s.license "
@@ -41,8 +54,7 @@ def main():
     for uid, lang, code, level in cur.fetchall():
         impls.setdefault(uid, []).append({"lang": lang, "code": code, "level": level})
     stats = {"units": 0, "with_python": 0, "with_python3": 0, "solutions": 0}
-    with open(os.path.join(d, "catalog.jsonl"), "w", encoding="utf-8") as fc, \
-            open(os.path.join(d, "impl.jsonl"), "w", encoding="utf-8") as fi:
+    with opener(cat_path, "w", encoding="utf-8") as fc, opener(impl_file, "w", encoding="utf-8") as fi:
         for uid, ref, kind, name, intent, level, payload, url, lic in units:
             p = json.loads(payload) if payload else {}
             card = {"ref": ref, "kind": kind, "name": name, "intent": intent, "level": level, "source": source,
