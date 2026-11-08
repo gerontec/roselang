@@ -94,6 +94,9 @@ def main():
     export_catalog(cur, out, index, a.vectors)
 
 
+OWN_SETS = ("mathlib", "rosettacode")   # exported as built-in sets by export_pack.py, not into catalog.jsonl
+
+
 def export_catalog(cur, out, index, vectors):
     cur.execute("SELECT scheme, value, unit_id FROM rose_alias")
     aliases = {}
@@ -101,7 +104,8 @@ def export_catalog(cur, out, index, vectors):
         aliases.setdefault(uid, []).append(f"{scheme}:{value}")
     cur.execute("SELECT u.unit_id, u.ref, u.kind, u.name, u.intent, u.signature, u.level, u.payload, u.source_url, "
                 "s.name, s.license FROM rose_unit u JOIN rose_source s USING (source_id) "
-                "WHERE s.share_alike=0 ORDER BY u.ref")
+                "WHERE s.share_alike=0 AND s.name NOT IN (" + ",".join(f"'{x}'" for x in OWN_SETS) + ") "
+                "ORDER BY u.ref")
     ids = []
     with open(os.path.join(out, "catalog.jsonl"), "w", encoding="utf-8") as fh:
         for uid, ref, kind, name, intent, sig, level, payload, url, src, lic in cur.fetchall():
@@ -128,7 +132,8 @@ def export_catalog(cur, out, index, vectors):
     m = np.zeros((len(ids), 1024), dtype=np.int8)
     pos = {uid: i for i, uid in enumerate(ids)}
     cur.execute("SELECT unit_id, VEC_ToText(v) FROM rose_embedding WHERE unit_id IN "
-                "(SELECT unit_id FROM rose_unit u JOIN rose_source s USING (source_id) WHERE s.share_alike=0)")
+                "(SELECT unit_id FROM rose_unit u JOIN rose_source s USING (source_id) WHERE s.share_alike=0 "
+                "AND s.name NOT IN (" + ",".join(f"'{x}'" for x in OWN_SETS) + "))")
     n = 0
     for uid, txt in cur.fetchall():
         v = np.array(json.loads(txt), dtype=np.float32)
