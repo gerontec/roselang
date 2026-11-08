@@ -195,6 +195,9 @@ def category(h):
 
 
 def how_to_use(h):
+    if h["ref"].startswith("problem:"):
+        sol = "; ".join(f"{x['name']} [{x['ref'] or '-'}]: {x['use']}" for x in h.get("solvers", []))
+        return f"problem class ({h.get('complexity')}): {sol}"
     d = h.get("dimensions")
     if d and d.get("solve_for"):
         givens = ", ".join(f"{v} = {t}" for v, t in d["given"].items())

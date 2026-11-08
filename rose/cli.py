@@ -102,6 +102,8 @@ def main(argv=None):
         print(f"task:      {r['task']}")
         print(f"category:  {r['category']}  (margin {r['confidence']:.2f} over the next category)")
         print("           best similarity per category: " + ", ".join(f"{c} {w:.2f}" for c, w in r["distribution"].items()))
+        if r.get("facets"):
+            print("structure: " + ", ".join(f"{k}({v})" for k, v in r["facets"].items()))
         q = r.get("quantities") or {}
         if q.get("given") or q.get("wanted"):
             print(f"quantities: given {', '.join(q['given']) or '-'}; wanted {', '.join(q['wanted']) or '-'}")

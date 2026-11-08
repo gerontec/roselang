@@ -88,7 +88,18 @@ def tokens(text):
     return out
 
 
-INDEX_VERSION = 3
+INDEX_VERSION = 4
+
+
+class _nullctx:
+    def __init__(self, x):
+        self.x = x
+
+    def __enter__(self):
+        return self.x
+
+    def __exit__(self, *a):
+        return False
 
 
 def prior(c):
@@ -123,7 +134,8 @@ def build_prebuilt():
     import shutil
     os.environ.pop("ROSE_PACKS", None)
     k = Knowledge.__new__(Knowledge)
-    sources = [(CATALOG, None)] + [(c, c) for c in builtin_sets()]
+    from .spec import PROBLEMS
+    sources = [(CATALOG, None), (PROBLEMS, None)] + [(c, c) for c in builtin_sets()]
     key = index_key(sources)
     k.db_path = os.path.join(cache_dir(), f"knowledge-{key}.sqlite")
     if not os.path.exists(k.db_path):
@@ -153,7 +165,8 @@ class Knowledge:
         self.error = None
         self.packs = pack_dirs()
         cats = builtin_sets() + [os.path.join(d, "catalog.jsonl") for d in self.packs]
-        sources = [(CATALOG, None)] + [(c, c) for c in cats]
+        from .spec import PROBLEMS
+        sources = [(CATALOG, None), (PROBLEMS, None)] + [(c, c) for c in cats]
         if not os.path.exists(CATALOG):
             self.error = f"{CATALOG} missing - run tools/export_std.py"
             sources = sources[1:]
@@ -203,7 +216,12 @@ class Knowledge:
         n, n_core, seen = 0, 0, set()
         for path, pack in sources:
             rows, frows, arows = [], [], []
-            with open_text(path) as f:
+            if path.endswith("problems.json"):
+                from . import spec
+                f = [json.dumps(c, ensure_ascii=False) for c in spec.cards()]
+            else:
+                f = open_text(path)
+            with f if hasattr(f, "__enter__") else _nullctx(f) as f:
                 for line in f:
                     c = json.loads(line)
                     if c["ref"] in seen:
@@ -217,7 +235,7 @@ class Knowledge:
             db.executemany("INSERT INTO cards VALUES (?,?,?,?,?,?)", rows)
             db.executemany("INSERT INTO fts (rowid, ntok, btok) VALUES (?,?,?)", frows)
             db.executemany("INSERT OR IGNORE INTO alias VALUES (?,?)", arows)
-            if pack is None:
+            if path == CATALOG:
                 n_core = n                      # catalog.vec covers the core catalog only, ids 1..n_core
         db.executemany("INSERT INTO meta VALUES (?,?)", [("n", n), ("n_core", n_core)])
         db.commit()
@@ -383,7 +401,8 @@ class Knowledge:
 
     @staticmethod
     def _hit(c, sim, score, measure):
-        return {"ref": c["ref"], "kind": c["kind"], "name": c["name"], "level": c["level"],
+        extra = {k: c[k] for k in ("complexity", "solvers") if c.get(k)}
+        return {**extra, "ref": c["ref"], "kind": c["kind"], "name": c["name"], "level": c["level"],
                 "signature": c.get("signature"), "status": c.get("status"), "domain": c.get("domain"),
                 "usable": bool(c.get("std")) and c["kind"] != "open", "license": c["license"],
                 "share_alike": bool(c.get("share_alike")), "similarity": round(sim, 3),
@@ -479,8 +498,26 @@ class Knowledge:
             h["score"] = round(h["score"] + d["score"] * weight, 4)   # words and dimensions agree: strongest
             h["similarity"] = max(h["similarity"], d["score"] * weight)
             h["dimensions"] = d
+        # specification matching: the structure of the task (given / wanted / objective / constraints)
+        from . import spec
+        matches, found = spec.match(task)
+        for m in matches:
+            if m["score"] < 0.75:
+                continue
+            h = by_ref.get(m["ref"])
+            if h is None:
+                i = self._id(m["ref"])
+                if i is None:
+                    continue
+                h = self._hit(self._card(i), 0.0, 0.0, "specification")
+                hits.append(h)
+                by_ref[m["ref"]] = h
+            h["score"] = round(h["score"] + 1.5 * m["score"], 4)
+            h["similarity"] = max(h["similarity"], m["score"])
+            h["spec"] = m
         hits.sort(key=lambda h: -h["score"])
         r = make_plan(task, hits, notes, k, semantic)
+        r["facets"] = found
         r["quantities"] = {"given": [g["text"] for g in q["given"]],
                            "wanted": [f"{w['word']} [{w['unit']}]" for w in q["wanted"]]}
         return r
