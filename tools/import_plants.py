@@ -264,6 +264,24 @@ def drugs(a):
     for c in comp.values():
         c["refs"] = {t: title[r] for t, r in c["refs"].items() if r in title}
 
+    # ATC group names: Wikidata's own labels (CC0) of the group codes - not the WHO index, whose terms
+    # forbid commercial distribution and changes; groups without a usable label keep only the code
+    q3 = """SELECT ?code ?l WHERE { ?g wdt:P267 ?code FILTER(STRLEN(?code) < 7) ?g rdfs:label ?l FILTER(lang(?l)='en') }"""
+    r3 = s.get("https://query.wikidata.org/sparql", params={"query": q3, "format": "json"}, timeout=300)
+    r3.raise_for_status()
+    group = {b["code"]["value"]: b["l"]["value"] for b in r3.json()["results"]["bindings"]
+             if not b["l"]["value"].lower().startswith("atc code")}
+    print(f"ATC group labels from Wikidata: {len(group)}", flush=True)
+
+    def atc_groups(codes):
+        out = []
+        for code in sorted(codes):
+            for n in (5, 4, 3, 1):
+                g = code[:n]
+                if g in group and f"{g} {group[g]}" not in out:
+                    out.append(f"{g} {group[g]}")
+        return out
+
     # drugs approved in the US before 1982: match the active moiety to a Wikidata item with an ATC code
     ob = orange_book_before_1982()
     q2 = """SELECT ?c ?l (GROUP_CONCAT(DISTINCT ?atc; separator=' ') AS ?atcs) WHERE { ?c wdt:P267 ?atc .
@@ -307,18 +325,22 @@ def drugs(a):
             parts.append(f"- {len(sourced)} organism(s): " + "; ".join(sourced[:15]) + (" ..." if len(sourced) > 15 else ""))
         if bare:
             parts.append("[found-in claim WITHOUT a source in Wikidata - unconfirmed: " + "; ".join(bare[:10]) + "]")
+        grp = atc_groups(c["atc"])
+        if grp:
+            parts.append("[ATC groups: " + "; ".join(grp) + "]")
         if q_ in approved:
             parts.append("[a found-in record can be a trace detection; the drug itself may be made synthetically]")
             parts.append(f"[US approval before 1982 (FDA Orange Book): {'; '.join(sorted(approved[q_])[:6]).lower()}]")
         parts.append("[pointer only: dose, preparation and safety are not covered - see the drug's own documentation]")
         intent = " ".join(parts)
         st["approved_before_1982"] += q_ in approved
+        st["with_atc_group_name"] += bool(grp)
         st["with_source"] += bool(sourced)
         st["only_unsourced"] += not sourced
         payload = {"domain": "pharmacology", "status": "defined" if sourced else "disputed", "wikidata": q_,
                    "atc": sorted(c["atc"]), "found_in": sourced, "found_in_unsourced": bare,
                    "found_in_refs": {t: c["refs"][t] for t in sourced if t in c["refs"]},
-                   "approved_us_before_1982": sorted(approved.get(q_, [])) or None}
+                   "approved_us_before_1982": sorted(approved.get(q_, [])) or None, "atc_groups": grp or None}
         if a.dry_run:
             if c["label"] in ("ephedrine", "methamphetamine", "cathine", "avermectin", "morphine", "artemisinin"):
                 print(intent[:700])
@@ -337,13 +359,16 @@ def drugs(a):
     rows = [(qid, label_of.get(qid) or min(forms).lower(), sorted(atc_of[qid]), forms) for qid, forms in approved.items() if qid not in comp]
     rows += [(None, m.lower(), [], forms) for m, forms in unmatched.items()]
     for qid, label, atc, forms in sorted(rows, key=lambda x: x[1]):
-        intent = (f"{label} - drug" + (f" (ATC {', '.join(atc)})" if atc else "") + ", known before ivermectin: US approval "
+        grp = atc_groups(atc)
+        intent = (f"{label} - drug" + (f" (ATC {', '.join(atc)})" if atc else "")
+                  + (" [ATC groups: " + "; ".join(grp) + "]" if grp else "") + ", known before ivermectin: US approval "
                   f"before 1982 (FDA Orange Book: {'; '.join(sorted(forms)[:6]).lower()}); no producing organism recorded "
                   "(synthetic or semi-synthetic) [pointer only: dose, preparation and safety are not covered - see the drug's "
                   "own documentation]")
         payload = {"domain": "pharmacology", "status": "defined", "wikidata": qid, "atc": atc,
-                   "approved_us_before_1982": sorted(forms)}
+                   "approved_us_before_1982": sorted(forms), "atc_groups": grp or None}
         st["synthetic_before_1982"] += 1
+        st["with_atc_group_name"] += bool(grp)
         st["synthetic_without_wikidata"] += qid is None
         if a.dry_run:
             if label in ("diazepam", "ibuprofen", "aspirin", "acetaminophen", "paracetamol", "metamfetamine", "methamphetamine"):
