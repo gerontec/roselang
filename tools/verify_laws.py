@@ -32,7 +32,7 @@ def main():
     a = ap.parse_args()
     con = R.connect()
     cur = con.cursor()
-    q = ("SELECT unit_id, ref, name, intent, payload FROM rose_unit u JOIN rose_source s USING (source_id) "
+    q = ("SELECT u.unit_id, u.ref, u.name, u.intent, u.payload FROM rose_unit u JOIN rose_source s USING (source_id) "
          "WHERE s.name='wikidata' AND u.kind IN ('law','math','const','bio') "
          "AND JSON_LENGTH(u.payload, '$.tex') > 0 AND JSON_LENGTH(u.payload, '$.symbols') > 0")
     args = []
