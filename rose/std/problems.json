@@ -1137,6 +1137,12 @@
      "name": "Quine-McCluskey",
      "ref": "algo:quinemccluskey_algorithm",
      "use": "exact, exponential"
+    },
+    {
+     "name": "dd BDD",
+     "ref": "py:dd.autoref.BDD",
+     "use": "reduced ordered binary decision diagram",
+     "library": true
     }
    ],
    "see": [
@@ -1182,6 +1188,12 @@
      "name": "DPLL",
      "ref": "algo:dpll_algorithm",
      "use": "complete backtracking search"
+    },
+    {
+     "name": "dd BDD",
+     "ref": "py:dd.autoref.BDD",
+     "use": "all satisfying assignments of small formulas",
+     "library": true
     }
    ],
    "see": [
@@ -1220,6 +1232,12 @@
      "name": "rose.table (Python module)",
      "ref": null,
      "use": "same check at definition time"
+    },
+    {
+     "name": "dd BDD",
+     "ref": "py:dd.autoref.BDD",
+     "use": "rule coverage and overlap as BDD operations",
+     "library": true
     }
    ],
    "see": [
@@ -1261,6 +1279,24 @@
      "name": "graph reachability on the transition graph",
      "ref": "py:networkx.algorithms.dag.descendants",
      "use": "states reachable from the start",
+     "library": true
+    },
+    {
+     "name": "transitions Machine",
+     "ref": "py:transitions.core.Machine",
+     "use": "state machine with events, guards, callbacks",
+     "library": true
+    },
+    {
+     "name": "transitions HierarchicalMachine",
+     "ref": "py:transitions.extensions.nesting.HierarchicalMachine",
+     "use": "nested states",
+     "library": true
+    },
+    {
+     "name": "automata-lib DFA",
+     "ref": "py:automata.fa.dfa.DFA",
+     "use": "deterministic automaton: minimise, compare, check",
      "library": true
     }
    ],
@@ -1312,6 +1348,30 @@
      "ref": "py:scipy.optimize.minimize",
      "use": "custom criteria",
      "library": true
+    },
+    {
+     "name": "python-control rootlocus_pid_designer",
+     "ref": "py:control.sisotool.rootlocus_pid_designer",
+     "use": "PID gains by root locus",
+     "library": true
+    },
+    {
+     "name": "python-control sisotool",
+     "ref": "py:control.sisotool.sisotool",
+     "use": "interactive loop shaping",
+     "library": true
+    },
+    {
+     "name": "python-control lqr",
+     "ref": "py:control.statefbk.lqr",
+     "use": "optimal state feedback (LQR)",
+     "library": true
+    },
+    {
+     "name": "python-control place",
+     "ref": "py:control.statefbk.place",
+     "use": "pole placement",
+     "library": true
     }
    ],
    "see": [
@@ -1351,6 +1411,18 @@
      "name": "first-order low-pass (PT1)",
      "ref": "ctrl:pt1_filter",
      "use": "simple smoothing"
+    },
+    {
+     "name": "python-control lqe",
+     "ref": "py:control.stochsys.lqe",
+     "use": "steady-state Kalman gain",
+     "library": true
+    },
+    {
+     "name": "python-control create_estimator_iosystem",
+     "ref": "py:control.stochsys.create_estimator_iosystem",
+     "use": "Kalman estimator as a system",
+     "library": true
     }
    ],
    "see": [
@@ -1395,6 +1467,24 @@
      "name": "scipy.signal.lti",
      "ref": "py:scipy.signal.lti",
      "use": "system object",
+     "library": true
+    },
+    {
+     "name": "python-control step_response",
+     "ref": "py:control.timeresp.step_response",
+     "use": "step response",
+     "library": true
+    },
+    {
+     "name": "python-control bode_plot",
+     "ref": "py:control.freqplot.bode_plot",
+     "use": "frequency response",
+     "library": true
+    },
+    {
+     "name": "python-control stability_margins",
+     "ref": "py:control.margins.stability_margins",
+     "use": "gain and phase margin",
      "library": true
     }
    ],
