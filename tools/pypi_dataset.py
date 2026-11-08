@@ -1,0 +1,164 @@
+#!/usr/bin/env python3
+"""A public overview of ALL PyPI projects (not shipped in the package): one compact, LLM-readable
+record per project - what it is for, licence, whether its latest release installs on CPython 3.14
+(Linux x86_64), when it was last released, links and a cleaned README extract. Metadata only:
+nothing is installed or run.
+
+  fetch   pypi_dataset.py fetch      all names from the PyPI simple index -> data/pypi_all/records.jsonl
+                                     (append-only, resumable; reuses data/pypi/*.json.gz of import_pypi.py)
+  build   pypi_dataset.py build      records.jsonl -> data/pypi_all/dataset/pypi-<a..z,0-9,_>.jsonl.gz + STATS.md
+"""
+import argparse
+import collections
+import concurrent.futures as cf
+import datetime as dt
+import gzip
+import json
+import os
+import sys
+import threading
+import time
+import urllib.error
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import import_pypi as P          # noqa: E402  (fetch helpers, licence, topics, installable)
+import readme_clean               # noqa: E402
+
+BASE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "data", "pypi_all")
+RECORDS = os.path.join(BASE, "records.jsonl")
+SIMPLE = "https://pypi.org/simple/"
+
+
+def names():
+    path = os.path.join(BASE, "_simple.json")
+    if not os.path.exists(path):
+        os.makedirs(BASE, exist_ok=True)
+        import urllib.request
+        req = urllib.request.Request(SIMPLE, headers={"User-Agent": P.UA, "Accept": "application/vnd.pypi.simple.v1+json"})
+        open(path, "wb").write(urllib.request.urlopen(req, timeout=120).read())
+    return [p["name"] for p in json.load(open(path))["projects"]]
+
+
+def record(d):
+    info = d["info"]
+    files = d.get("urls") or []
+    lic = P.licence(info)
+    sa = bool(P.SHARE_ALIKE.search(lic or ""))
+    up = [f.get("upload_time_iso_8601") or f.get("upload_time") for f in files if f.get("upload_time_iso_8601") or f.get("upload_time")]
+    urls = info.get("project_urls") or {}
+    pick = lambda *keys: next((v for k, v in urls.items() if k.lower() in keys), None)  # noqa: E731
+    try:
+        inst = P.installable(info, files)
+    except Exception:
+        inst = None
+    return {"name": info["name"], "version": info.get("version"),
+            "summary": " ".join((info.get("summary") or "").split()) or None,
+            "keywords": " ".join((info.get("keywords") or "").split())[:300] or None,
+            "topics": P.topics(info) or None, "license": lic, "share_alike": sa or None,
+            "requires_python": info.get("requires_python") or None, "install_cp314": inst,
+            "last_release": max(up)[:10] if up else None, "yanked": info.get("yanked") or None,
+            "docs": pick("documentation", "docs"), "homepage": pick("homepage", "home") or info.get("home_page") or None,
+            "source": pick("source", "source code", "repository", "github", "code"),
+            "url": f"https://pypi.org/project/{info['name']}/",
+            "readme": None if sa else (readme_clean.extract(info.get("description") or "",
+                                                            info.get("description_content_type")) or None)}
+
+
+def fetch_one(name):
+    cached = os.path.join(P.CACHE, P.norm(name) + ".json.gz")
+    try:
+        if os.path.exists(cached):
+            d = json.load(gzip.open(cached))
+        else:
+            for attempt in range(3):
+                try:
+                    d = json.loads(P.get(f"https://pypi.org/pypi/{name}/json"))
+                    time.sleep(0.15)
+                    break
+                except urllib.error.HTTPError as e:
+                    if e.code == 404:
+                        return {"name": name, "missing": True}
+                    time.sleep(2 + 5 * attempt)
+                except Exception:
+                    time.sleep(2 + 5 * attempt)
+            else:
+                return None                        # retried later on resume
+        r = {k: v for k, v in record(d).items() if v is not None}
+        r["key"] = P.norm(name)
+        return r
+    except Exception as e:                         # broken metadata: keep the name, note the error
+        return {"name": name, "key": P.norm(name), "error": type(e).__name__}
+
+
+def fetch():
+    all_names = names()
+    done = set()
+    if os.path.exists(RECORDS):
+        for ln in open(RECORDS, encoding="utf-8"):
+            try:
+                done.add(P.norm(json.loads(ln)["name"]))
+            except Exception:
+                pass
+    todo = [n for n in all_names if P.norm(n) not in done]
+    print(f"{len(all_names)} projects, {len(done)} done, {len(todo)} to fetch", flush=True)
+    lock, stats, t0 = threading.Lock(), collections.Counter(), time.time()
+    with open(RECORDS, "a", encoding="utf-8") as out, cf.ThreadPoolExecutor(4) as ex:
+        for i, r in enumerate(ex.map(fetch_one, todo), 1):
+            if r is None:
+                stats["retry later"] += 1
+            else:
+                stats["missing" if r.get("missing") else "error" if r.get("error") else "ok"] += 1
+                with lock:
+                    out.write(json.dumps(r, ensure_ascii=False) + "\n")
+            if i % 5000 == 0:
+                out.flush()
+                rate = i / (time.time() - t0)
+                print(f"{i}/{len(todo)} {dict(stats)} {rate:.1f}/s, eta {(len(todo) - i) / rate / 3600:.1f} h", flush=True)
+    print("fetched", dict(stats), flush=True)
+
+
+def build():
+    out_dir = os.path.join(BASE, "dataset")
+    os.makedirs(out_dir, exist_ok=True)
+    shards, seen, st = collections.defaultdict(list), set(), collections.Counter()
+    years = collections.Counter()
+    for ln in open(RECORDS, encoding="utf-8"):
+        r = json.loads(ln)
+        k = P.norm(r["name"])
+        if k in seen or r.get("missing"):
+            st["missing"] += bool(r.get("missing"))
+            continue
+        seen.add(k)
+        st["projects"] += 1
+        st["installable_wheel"] += r.get("install_cp314") == "wheel"
+        st["installable_sdist"] += r.get("install_cp314") == "sdist"
+        st["with_readme_extract"] += bool(r.get("readme"))
+        st["with_summary"] += bool(r.get("summary"))
+        st["share_alike"] += bool(r.get("share_alike"))
+        if r.get("last_release"):
+            years[r["last_release"][:4]] += 1
+        c = k[0] if k[0].isalnum() else "_"
+        r.pop("key", None)
+        shards[c].append(r)
+    for c, rows in sorted(shards.items()):
+        rows.sort(key=lambda r: P.norm(r["name"]))
+        with gzip.open(os.path.join(out_dir, f"pypi-{c}.jsonl.gz"), "wt", encoding="utf-8") as f:
+            for r in rows:
+                f.write(json.dumps(r, ensure_ascii=False, sort_keys=True) + "\n")
+    with open(os.path.join(out_dir, "STATS.md"), "w") as f:
+        f.write(f"# PyPI overview - build {dt.date.today().isoformat()}\n\n")
+        for k, v in st.items():
+            f.write(f"- {k}: {v}\n")
+        f.write("\nLatest release by year:\n\n" + "".join(f"- {y}: {n}\n" for y, n in sorted(years.items())))
+    print(dict(st), flush=True)
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("step", choices=["fetch", "build"])
+    a = ap.parse_args()
+    fetch() if a.step == "fetch" else build()
+
+
+if __name__ == "__main__":
+    sys.exit(main())
