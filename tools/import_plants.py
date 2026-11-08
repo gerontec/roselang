@@ -222,6 +222,18 @@ def taxa(a):
     print("taxa", dict(st), flush=True)
 
 
+def sparql(s, q):
+    """Wikidata query with back-off on 429/5xx (the query service throttles bursts)."""
+    for attempt in range(6):
+        r = s.get("https://query.wikidata.org/sparql", params={"query": q, "format": "json"}, timeout=300)
+        if r.status_code == 200:
+            return r.json()["results"]["bindings"]
+        if r.status_code not in (429, 500, 502, 503, 504):
+            r.raise_for_status()
+        time.sleep(int(r.headers.get("Retry-After", 0) or 0) or 30 * (attempt + 1))
+    r.raise_for_status()
+
+
 def drugs(a):
     s = requests.Session()
     s.headers["User-Agent"] = R.USER_AGENT
@@ -232,14 +244,8 @@ def drugs(a):
       OPTIONAL { ?st prov:wasDerivedFrom ?ref . OPTIONAL { ?ref pr:P248 ?r } }
       ?c rdfs:label ?cl FILTER(lang(?cl)='en') ?t rdfs:label ?tl FILTER(lang(?tl)='en') }
       GROUP BY ?c ?cl ?atc ?t ?tl"""
-    for attempt in range(4):
-        r = s.get("https://query.wikidata.org/sparql", params={"query": q, "format": "json"}, timeout=300)
-        if r.status_code == 200:
-            break
-        time.sleep(30)
-    r.raise_for_status()
     comp = collections.defaultdict(lambda: {"atc": set(), "taxa": {}, "refs": {}})
-    for b in r.json()["results"]["bindings"]:
+    for b in sparql(s, q):
         c = comp[b["c"]["value"].rsplit("/", 1)[1]]
         c["label"] = b["cl"]["value"]
         c["atc"].add(b["atc"]["value"])
@@ -267,9 +273,7 @@ def drugs(a):
     # ATC group names: Wikidata's own labels (CC0) of the group codes - not the WHO index, whose terms
     # forbid commercial distribution and changes; groups without a usable label keep only the code
     q3 = """SELECT ?code ?l WHERE { ?g wdt:P267 ?code FILTER(STRLEN(?code) < 7) ?g rdfs:label ?l FILTER(lang(?l)='en') }"""
-    r3 = s.get("https://query.wikidata.org/sparql", params={"query": q3, "format": "json"}, timeout=300)
-    r3.raise_for_status()
-    group = {b["code"]["value"]: b["l"]["value"] for b in r3.json()["results"]["bindings"]
+    group = {b["code"]["value"]: b["l"]["value"] for b in sparql(s, q3)
              if not b["l"]["value"].lower().startswith("atc code")}
     print(f"ATC group labels from Wikidata: {len(group)}", flush=True)
 
@@ -286,10 +290,8 @@ def drugs(a):
     ob = orange_book_before_1982()
     q2 = """SELECT ?c ?l (GROUP_CONCAT(DISTINCT ?atc; separator=' ') AS ?atcs) WHERE { ?c wdt:P267 ?atc .
       { ?c rdfs:label ?l } UNION { ?c skos:altLabel ?l } FILTER(lang(?l)='en') } GROUP BY ?c ?l"""
-    r2 = s.get("https://query.wikidata.org/sparql", params={"query": q2, "format": "json"}, timeout=300)
-    r2.raise_for_status()
     by_name, atc_of, label_of = collections.defaultdict(set), {}, {}
-    for b in r2.json()["results"]["bindings"]:
+    for b in sparql(s, q2):
         qid = b["c"]["value"].rsplit("/", 1)[1]
         by_name[b["l"]["value"].upper()].add(qid)
         atc_of[qid] = set(b["atcs"]["value"].split())
@@ -337,7 +339,7 @@ def drugs(a):
         st["with_atc_group_name"] += bool(grp)
         st["with_source"] += bool(sourced)
         st["only_unsourced"] += not sourced
-        payload = {"domain": "pharmacology", "status": "defined" if sourced else "disputed", "wikidata": q_,
+        payload = {"domain": "pharmacology", "status": "defined", "wikidata": q_,
                    "atc": sorted(c["atc"]), "found_in": sourced, "found_in_unsourced": bare,
                    "found_in_refs": {t: c["refs"][t] for t in sourced if t in c["refs"]},
                    "approved_us_before_1982": sorted(approved.get(q_, [])) or None, "atc_groups": grp or None}

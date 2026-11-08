@@ -623,6 +623,31 @@ the faulty line executes, and 2 never: an error in a branch the test does not ta
 numbers passed where quantities are expected. This answers what static checking buys; whether
 it outweighs the cost of an unfamiliar language for the LLM is the M7 benchmark.
 
+**M7, knowledge part (2026-11-08, `bench/m7_knowledge.py`, results in `bench/m7_results/`):** 34
+questions with an expected verdict fixed from the real state of knowledge (open problems, proved
+former conjectures, a disputed concept, plants with poison records, licences of rarely used PyPI
+packages, organisms a drug is recorded in, US approval before 1982, engineering pointers, invented
+terms). Local models on the CPU of the build host (llama.cpp, no GPU, no tools, no network),
+temperature 0; A = model alone, B = model + the output of `rose.exists()` in the prompt.
+
+| | correct | per question (median) | prompt tokens (median) |
+|---|---|---|---|
+| `rose.exists()` alone (no LLM) | 31/34 | 8.5 ms | – |
+| Qwen3-4B alone (A) | 22/34 | 3.8 s | 127 |
+| Qwen3-4B + Rose (B) | 31/34 | 3.8 s | 580 |
+| Qwen3-30B-A3B alone (A) | 26/34 | 5.4 s | 127 |
+| Qwen3-30B-A3B + Rose (B) | 32/34 | 7.7 s | 580 |
+
+Gains are where the model cannot know or tends to smooth over: plants with poison records (3/5 →
+5/5 for both), licences of rare packages (4B: 0/5 → 4/5; 30B guessed "MIT" right 4/5 times without
+Rose – the most common licence), US approval before 1982 (30B: 1/3 → 3/3), engineering pointers
+and invented terms (4B: 1/3 → 3/3 each). No loss on open problems and proved theorems (both models
+know them). Rose's own misses carry over: methamphetamine in acacias (Rose: unknown) fails in every
+condition; Rose's wrong "solved" for odd perfect numbers did not mislead either model. B costs
+~4.5× the prompt tokens; on the 30B model that is +2.3 s per question on the CPU, on the 4B model
+none. Limits: 34 questions, one run each, the questions were written by the Rose author with the
+catalog in view – a first measurement, not the M7 benchmark with code generation.
+
 **Decision rule:** if C is not clearly better than B2, the language is dropped and Rose lives on
 as a Python module plus the generated catalog. The real question is whether **static** checking before the
 run (units, complete tables, `E305` for open problems) is measurably better than the same checks
