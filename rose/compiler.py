@@ -224,7 +224,8 @@ class Compiler:
         unit = self.corpus.get(u.ref)
         if unit is None:
             sim = self.corpus.similar_refs(u.ref)
-            hint = " - this source is not imported yet (Rosetta Code = milestone M1)" if u.scheme == "rc" else ""
+            hint = (" - Rosetta Code tasks come with the separate pack: pip install roselang-rosetta"
+                    if u.scheme == "rc" else "")
             self.d("E301", f"unknown ref '{u.ref}'{hint}", u,
                    [{"did_you_mean": sim}] if sim else [])
             return
@@ -269,6 +270,10 @@ class Compiler:
             py = "_c_" + unit["ref"].split(".")[-1]
             self.helpers.append(f"{py} = {code}  # {unit['ref']}")
             self.objects[u.local] = ("const", py, self.ty(c.type))
+            return
+        if unit["ref"].startswith("rc:"):
+            self.d("E302", f"'{unit['ref']}' is a Rosetta Code task without a Rose signature yet; its Python "
+                           f"solutions are available from Python: rose.use({unit['ref']!r}).code", u)
             return
         self.d("E302", f"'{unit['ref']}' (kind {unit['kind']}) has no python implementation in v1", u)
 

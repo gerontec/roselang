@@ -185,6 +185,27 @@ class Knowledge(unittest.TestCase):
         self.assertEqual(rose.plan("speed of light in vacuum in metres per second")["category"], "physics/constant")
 
 
+def _has_rosetta():
+    from rose.knowledge import pack_dirs
+    return any(os.path.basename(d) == "rose_rosetta" for d in pack_dirs())
+
+
+@unittest.skipUnless(_has_rosetta(), "Rosetta Code pack not installed (pip install roselang-rosetta)")
+class RosettaPack(unittest.TestCase):
+    def test_task_with_python3_solution(self):
+        import warnings
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            t = rose.use("rc:100_doors")
+        self.assertTrue(any("R205" in str(x.message) for x in w))
+        self.assertIn("100 doors", t.description)
+        compile(t.code, "<rc>", "exec")
+        self.assertTrue(rose.lock()[-1]["share_alike"])
+
+    def test_search_finds_task(self):
+        self.assertEqual(rose.search("100 doors toggle", k=1)[0]["ref"], "rc:100_doors")
+
+
 class Tables(unittest.TestCase):
     INPUTS = {"soc": ("%", 0, 100), "grid_ok": bool}
     RULES = [(">= 20 %", True, "battery"), ("< 20 %", True, "grid"),
