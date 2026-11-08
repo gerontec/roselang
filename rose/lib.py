@@ -439,6 +439,8 @@ def verdict(r, kb, k=3):
             call = p["name"]
         if p["ref"].startswith("pypi:"):
             call = f"pip install {p['name']}"
+        if card.get("call"):                       # a pointer card that says how to get to the solution
+            call = card["call"]
         sols.append({"ref": p["ref"], "name": p["name"], "url": url, "level": p["level"], "call": call,
                      "complexity": p.get("complexity") or card.get("complexity"), "license": p["license"]})
         if card.get("kind") == "lib":

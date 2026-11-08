@@ -403,7 +403,7 @@ class Knowledge:
 
     @staticmethod
     def _hit(c, sim, score, measure):
-        extra = {k: c[k] for k in ("complexity", "solvers", "package_license", "docs") if c.get(k)}
+        extra = {k: c[k] for k in ("complexity", "solvers", "package_license", "docs", "call") if c.get(k)}
         return {**extra, "ref": c["ref"], "kind": c["kind"], "name": c["name"], "level": c["level"],
                 "signature": c.get("signature"), "status": c.get("status"), "domain": c.get("domain"),
                 "usable": bool(c.get("std")) and c["kind"] != "open", "license": c["license"],

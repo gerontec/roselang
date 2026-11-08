@@ -214,6 +214,8 @@ def how_to_use(h):
     if h["ref"].startswith("rc:"):
         return (f"python: rose.use({h['ref']!r}).code  (Rosetta Code solution, GFDL share-alike); "
                 "Rose: reference only, no signature yet")
+    if h["kind"] == "lib" and h.get("call"):
+        return f"{h['call']}   (licence {h.get('package_license') or 'not stated'}; docs {h.get('docs')})"
     if h["kind"] == "lib":
         return f"pip install {h['name']}   (PyPI package, licence {h.get('package_license') or 'not stated'})"
     return f"reference only ({h['level']}): no machine-readable Rose source yet"
