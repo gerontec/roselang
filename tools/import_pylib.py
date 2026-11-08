@@ -69,8 +69,11 @@ DD = ["dd.autoref", "dd.bdd", "dd.mdd"]
 
 def summary(obj):
     doc = inspect.getdoc(obj) or ""
-    para = doc.strip().split("\n\n")[0]
-    return " ".join(para.split())[:600]
+    paras = [p for p in doc.strip().split("\n\n") if p.strip()]
+    name = getattr(obj, "__name__", "")
+    if len(paras) > 1 and name and re.match(rf"\s*{re.escape(name)}\s*\(", paras[0]):
+        paras = paras[1:]                      # python-control: first paragraph is the call signature
+    return " ".join(paras[0].split())[:600] if paras else ""
 
 
 def sig(obj):
