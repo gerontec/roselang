@@ -19,7 +19,7 @@ import rose_db as R
 
 CLS = re.compile(r'^\s*(?:(?:encapsulated|replaceable|final|redeclare|inner|outer|expandable|impure|pure|operator)\s+)*'
                  r'(partial\s+)?(model|block|connector|record|function|package|type)\s+([A-Za-z_][A-Za-z0-9_]*)'
-                 r'\s*(?:"([^"]*)")?')
+                 r'\s*(?:"([^"]*)")?(?=\s*(?:$|\(|extends\b|"))')   # "block LimPID." in HTML text is no class
 END = re.compile(r"^\s*end\s+([A-Za-z_][A-Za-z0-9_]*)\s*;")
 WITHIN = re.compile(r"^\s*within\s+([A-Za-z0-9_.]*)\s*;")
 SKIP = (".Icons", ".Internal", "Obsolete", ".UsersGuide", "ModelicaTest", "ModelicaReference")
@@ -46,7 +46,8 @@ def classes(repo):
             p = os.path.join(dp, f)
             rel = os.path.relpath(p, repo)
             within, stack = "", []
-            for i, line in enumerate(open(p, encoding="utf-8", errors="replace")):
+            lines = open(p, encoding="utf-8", errors="replace").read().split("\n")
+            for i, line in enumerate(lines):
                 m = WITHIN.match(line)
                 if m:
                     within = m.group(1)
@@ -54,14 +55,18 @@ def classes(repo):
                 m = CLS.match(line)
                 if m and not line.strip().startswith(("extends", "import")) and "=" not in line.split('"')[0]:
                     partial, cls, name, desc = m.groups()
+                    if desc is None and i + 1 < len(lines):           # description on the next line
+                        nxt = re.match(r'\s*"([^"]*)"', lines[i + 1])
+                        desc = nxt.group(1) if nxt else None
                     stack.append(name)
                     path = ".".join(x for x in [within] + stack if x)
                     yield {"path": path, "cls": cls, "partial": bool(partial), "desc": desc or "", "file": rel,
                            "line": i + 1}
                     continue
                 m = END.match(line)
-                if m and stack and stack[-1] == m.group(1):
-                    stack.pop()
+                if m and m.group(1) in stack:                          # pop down to the closed class
+                    while stack and stack.pop() != m.group(1):
+                        pass
 
 
 def words(path):
