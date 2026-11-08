@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS rose_source (
 CREATE TABLE IF NOT EXISTS rose_unit (
   unit_id      BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   ref          VARCHAR(190) NOT NULL UNIQUE,      -- rc:Sieve_of_Eratosthenes, oeis:A000040, law:water_heat_flow
-  kind         ENUM('algo','math','law','const','model','ctrl','machine','table','bio') NOT NULL,
+  kind         ENUM('algo','math','law','const','model','ctrl','machine','table','bio','open') NOT NULL,  -- open = negative knowledge: no known solution, hint only, never usable via `use`
   name         VARCHAR(255) NOT NULL,
   intent       TEXT         NOT NULL,             -- embedding key
   signature    VARCHAR(1024) NULL,                -- canonical Rose type signature
