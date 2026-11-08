@@ -99,6 +99,42 @@ def prior(c):
     return 1.0
 
 
+PREBUILT = os.path.join(std.STD, "knowledge.sqlite.gz")
+PREBUILT_KEY = os.path.join(std.STD, "knowledge.key")
+
+
+def index_key(sources):
+    """Content key of a set of catalog files (independent of path and mtime, so that a prebuilt index
+    matches on every installation): index version + name + size + sha1 of every file."""
+    import hashlib
+    h = hashlib.sha1(str(INDEX_VERSION).encode())
+    for path, _ in sources:
+        f = hashlib.sha1()
+        with open(path, "rb") as fh:
+            for chunk in iter(lambda: fh.read(1 << 20), b""):
+                f.update(chunk)
+        h.update(f"{os.path.basename(path)}|{os.path.getsize(path)}|{f.hexdigest()}".encode())
+    return h.hexdigest()[:16]
+
+
+def build_prebuilt():
+    """Build the index of the core catalog + built-in sets into rose/std/knowledge.sqlite.gz (release step)."""
+    import gzip
+    import shutil
+    os.environ.pop("ROSE_PACKS", None)
+    k = Knowledge.__new__(Knowledge)
+    sources = [(CATALOG, None)] + [(c, c) for c in builtin_sets()]
+    key = index_key(sources)
+    k.db_path = os.path.join(cache_dir(), f"knowledge-{key}.sqlite")
+    if not os.path.exists(k.db_path):
+        k._build(sources)
+    with open(k.db_path, "rb") as src, gzip.open(PREBUILT, "wb", compresslevel=6) as dst:
+        shutil.copyfileobj(src, dst, 1 << 20)
+    with open(PREBUILT_KEY, "w", encoding="utf-8") as f:
+        f.write(key + "\n")
+    return key, os.path.getsize(PREBUILT)
+
+
 def cache_dir():
     d = os.environ.get("ROSE_CACHE") or os.path.join(
         os.environ.get("XDG_CACHE_HOME") or os.path.join(os.path.expanduser("~"), ".cache"), "roselang")
@@ -121,12 +157,9 @@ class Knowledge:
         if not os.path.exists(CATALOG):
             self.error = f"{CATALOG} missing - run tools/export_std.py"
             sources = sources[1:]
-        h = hashlib.sha1(str(INDEX_VERSION).encode())
-        for path, _ in sources:
-            st = os.stat(path)
-            h.update(f"{os.path.abspath(path)}|{st.st_size}|{st.st_mtime_ns}".encode())
-        self.db_path = os.path.join(cache_dir(), f"knowledge-{h.hexdigest()[:16]}.sqlite")
-        if not os.path.exists(self.db_path):
+        key = index_key(sources)
+        self.db_path = os.path.join(cache_dir(), f"knowledge-{key}.sqlite")
+        if not os.path.exists(self.db_path) and not self._unpack_prebuilt(key):
             self._build(sources)
         self.db = sqlite3.connect(self.db_path, check_same_thread=False)
         meta = dict(self.db.execute("SELECT key, value FROM meta"))
@@ -135,6 +168,23 @@ class Knowledge:
         self._vec = None
         self._law_dims = None
         self._idf_max = math.log(1 + (self.n + 0.5) / 0.5)
+
+    def _unpack_prebuilt(self, key):
+        """The release ships the finished index (rose/std/knowledge.sqlite.gz, key in knowledge.key):
+        unpacking takes ~1.5 s instead of building for ~20 s. Used only when the key matches."""
+        import gzip
+        import shutil
+        try:
+            with open(PREBUILT_KEY, encoding="utf-8") as f:
+                if f.read().strip() != key:
+                    return False
+            tmp = self.db_path + f".tmp{os.getpid()}"
+            with gzip.open(PREBUILT, "rb") as src, open(tmp, "wb") as dst:
+                shutil.copyfileobj(src, dst, 1 << 20)
+            os.replace(tmp, self.db_path)
+            return True
+        except OSError:
+            return False
 
     def _build(self, sources):
         import sqlite3
