@@ -8,10 +8,13 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(HERE))
 from rose.corpus import Corpus  # noqa: E402
+from rose.knowledge import Knowledge  # noqa: E402
 
-c = Corpus()
+# default: the compiler's built-in knowledge (std/catalog); --db: the corpus database
+c = Corpus() if "--db" in sys.argv else Knowledge()
 if not c.online:
-    sys.exit(f"corpus offline: {c.error}")
+    sys.exit(f"knowledge unavailable: {c.error}")
+print("mode:", "database" if "--db" in sys.argv else c.mode)
 cases = json.load(open(os.path.join(HERE, "plan_cases.json")))
 passed = 0
 for case in cases:
