@@ -34,7 +34,7 @@
   "C_visit_all": "\\b(visit(s|ing)?|besuch\\w*|anfahr\\w*|deliver(s|ing)? to|beliefer\\w*) (all|every|each|\\d+|alle|jede\\w*|s(ä|a)mtliche)\\b|\\b(all|every|alle) (cities|customers|locations|stops|st(ä|a)dte|kunden|orte)\\b",
   "C_return": "\\breturns? to\\b|\\bback to\\b|\\bround[ -]?trip\\b|\\bdepot\\b|zur(ü|u)ck|rundreise",
   "C_multi_vehicle": "\\b(\\d+|two|three|four|five|six|several|multiple|mehrere|zwei|drei|vier|f(ü|u)nf) (trucks|vehicles|vans|lorries|fahrzeuge|lkw|transporter|lieferwagen)\\b|\\b(fleet|flotte)\\b",
-  "C_every_edge": "\\b(drive|driving|travel|walk|traverse|sweep|clear|plough|plow|inspect|cover|pass|fahr\\w*|abfahr\\w*|kehr\\w*|r(ä|a)um\\w*|kontrollier\\w*)\\b[^.]{0,30}\\b((along|through|over|down) )?(every|each|all|jede|alle)( \\w+)? (streets?|roads?|edges?|lanes?|stra(ß|ss)en?|kanten?)\\b",
+  "C_every_edge": "\\b(drive|driving|walk|traverse|sweep|clear|plough|plow|inspect|fahr\\w*|abfahr\\w*|kehr\\w*|r(ä|a)um\\w*|kontrollier\\w*)\\b[^.]{0,30}\\b((along|through|over|down) )?(every|each|all|jede|alle)( \\w+)? (streets?|roads?|edges?|lanes?|stra(ß|ss)en?|kanten?)\\b",
   "C_connect_all": "\\b(every|each|all) \\w+ (is |are )?connected\\b|\\bconnect (all|every|\\d+)\\b|\\balle \\w+ (sind )?verbunden\\b|\\bverbinde\\w* alle\\b",
   "C_source_target": "\\bfrom [A-ZÄÖÜa-zäöü]\\w* to [A-ZÄÖÜa-zäöü]\\w*|\\bvon \\w+ nach \\w+|\\bbetween two\\b",
   "C_pairs_all": "\\b(all pairs|every pair|each pair|between all|distance table|allen paaren|entfernungstabelle)\\b",
